@@ -51,6 +51,11 @@ export function wordModalHtml(): string {
   return `  <div id="doc-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="doc-modal-title">
       <h3 id="doc-modal-title">Generuj protokół Word</h3>
+      <div id="doc-single-numer-wrap">
+        <label for="doc-inp-numer">Numer zlecenia</label>
+        <input type="text" id="doc-inp-numer" maxlength="120" placeholder="podgląd / auto" autocomplete="off" />
+      </div>
+      <p id="doc-bulk-numer-info" class="doc-bulk-numer-info" hidden aria-live="polite"></p>
       <div id="doc-single-zaladunek-wrap">
         <label for="doc-sel-zaladunek">Miejsce załadunku</label>
         <div class="doc-combobox-wrap">
@@ -63,6 +68,13 @@ export function wordModalHtml(): string {
         <p class="doc-bulk-points-title">Wybrane punkty</p>
         <ul id="doc-bulk-points-list" class="doc-bulk-points-list"></ul>
       </div>
+      <label for="doc-sel-zbiorka">Rodzaj zbiórki (tylko Google)</label>
+      <select id="doc-sel-zbiorka">
+        <option value="">—</option>
+        <option value="manualna">manualna</option>
+        <option value="automatyczna">automatyczna</option>
+        <option value="manualna i automatyczna">manualna i automatyczna</option>
+      </select>
       <label for="doc-sel-przewoznik">Przewoźnik</label>
       <div class="doc-combobox-wrap">
         <input type="text" id="doc-sel-przewoznik" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
@@ -81,22 +93,10 @@ export function wordModalHtml(): string {
       <input type="date" id="doc-inp-data" />
       <label for="doc-inp-stawka">Stawka (tylko Google)</label>
       <input type="text" id="doc-inp-stawka" maxlength="80" autocomplete="off" />
-      <label for="doc-sel-zbiorka">Rodzaj zbiórki (tylko Google)</label>
-      <select id="doc-sel-zbiorka">
-        <option value="">—</option>
-        <option value="manualna">manualna</option>
-        <option value="automatyczna">automatyczna</option>
-        <option value="manualna i automatyczna">manualna i automatyczna</option>
-      </select>
       <label for="doc-inp-worki">Ile worków (tylko Google)</label>
       <input type="text" id="doc-inp-worki" maxlength="40" autocomplete="off" />
       <label for="doc-inp-transport">Rodzaj transportu (tylko Google)</label>
       <input type="text" id="doc-inp-transport" maxlength="80" autocomplete="off" />
-      <div id="doc-single-numer-wrap">
-        <label for="doc-inp-numer">Numer zlecenia</label>
-        <input type="text" id="doc-inp-numer" maxlength="120" placeholder="podgląd / auto" autocomplete="off" />
-      </div>
-      <p id="doc-bulk-numer-info" class="doc-bulk-numer-info" hidden aria-live="polite"></p>
       <p class="doc-modal-hint" id="doc-modal-hint">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
       <div class="doc-modal-actions">
         <button type="button" id="doc-btn-cancel">Anuluj</button>
