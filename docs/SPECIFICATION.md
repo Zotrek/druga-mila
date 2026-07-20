@@ -25,7 +25,7 @@ Osobny proces i dane względem plomb: CD / place / Bolęcin, własna formatka Go
 |---------|------|----------|----------|
 | Koordynator transportu | Operacje | Widzieć punkty, wyszukać, wygenerować protokół + zapis Google | Wybiera załadunek → przewoźnik → dostawa → pobiera Word |
 | Dyspozytor | Planowanie | Hurt wielu punktów | Multi-select → wspólne pola → seria dokumentów i wierszy |
-| Osoba utrzymująca dane | Excel w repo | Rzadka aktualizacja punktów / podwykonawców | Edycja `data/druga-mila.xlsx` lub `docs/podwyko lista.xlsx` → lokalny `npm run generate` → commit `site/` → push; Pages pokazuje nowe dane |
+| Osoba utrzymująca dane | Excel w repo | Rzadka aktualizacja punktów / podwykonawców | Edycja `data/druga-mila.xlsx` lub `docs/podwyko lista.xlsx` → lokalny `npm run generate` → commit `index.html` (root) → push; Pages pokazuje nowe dane |
 
 ---
 
@@ -179,8 +179,8 @@ Aplikacja to **jedna statyczna strona** HTML (Leaflet) na GitHub Pages.
 | Codzienna praca (protokoły) | Przeglądarka: Word + POST do Apps Script → formatka Google |
 | Zmiana punktów Załadunek | Edycja `data/druga-mila.xlsx` |
 | Zmiana przewoźników / miejsc dostawy | Edycja `docs/podwyko lista.xlsx` |
-| Odświeżenie mapy po zmianie Excela | Lokalnie: `npm run generate` → commit wygenerowanego `site/` → push |
-| Publikacja na Pages | **Bez GitHub Actions.** Ustawienie repo: Pages → „Deploy from a branch” (`main`, folder `/site`) — push już wystarcza |
+| Odświeżenie mapy po zmianie Excela | Lokalnie: `npm run generate` → commit wygenerowanego `index.html` w rootcie → push |
+| Publikacja na Pages | **Bez GitHub Actions.** Pages → „Deploy from a branch”: `main`, folder **`/ (root)`** (GitHub pozwala tylko `/` lub `/docs` — nie `/site`) |
 
 Geokodowanie adresów dzieje się **tylko przy rebuildzie** (cache JSON), nie przy zapisie transportu.
 

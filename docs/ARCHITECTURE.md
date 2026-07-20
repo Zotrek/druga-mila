@@ -33,7 +33,7 @@ flowchart LR
     WordTpl[docs/pusty.docx]
     Podwyko[podwyko lista.xlsx]
     LocalBuild[npm run generate lokalnie]
-    Commit[commit site/ push]
+    Commit[commit index.html push]
   end
   subgraph pages [GitHub Pages]
     MapHtml[jedna strona Leaflet]
@@ -57,9 +57,9 @@ flowchart LR
 | Punkty | Excel Załadunek w repo | Źródło pinezek + combobox; wbudowane w HTML przy buildzie |
 | Podwykonawcy | `podwyko lista.xlsx` w repo | Przewoźnik / dostawa; wbudowane przy buildzie |
 | Transporty | Google Sheets (formatka) + Apps Script | Numeracja, zapis wierszy (runtime) |
-| Build | Node.js + TypeScript (lokalnie, rzadko) | Geocode, embed list, `buildMapHtml` → `site/` |
+| Build | Node.js + TypeScript (lokalnie, rzadko) | Geocode, embed list, `buildMapHtml` → `index.html` w rootcie |
 | UI | Leaflet w jednym HTML | Mapa, filtry, modal, Word |
-| Hosting | GitHub Pages | Serwuje gotowy `site/` (bez cyklicznego generate) |
+| Hosting | GitHub Pages | Serwuje root brancha `main` (folder `/`; bez cyklicznego generate) |
 
 ---
 
@@ -184,18 +184,18 @@ Wszystkie pola opcjonalne — brak `alert` wymagalności przy generacji.
 ```
 Edycja druga-mila.xlsx / podwyko lista.xlsx
   → lokalnie: npm run generate (geocode + buildMapHtml + embed docx/podwyko)
-  → commit site/ (+ cache geokodu)
+  → commit index.html w rootcie (+ cache geokodu)
   → push
-  → GitHub Pages serwuje gotowy HTML
+  → GitHub Pages serwuje root (folder /)
 ```
 
 | Element | Decyzja |
 |---------|--------|
-| Charakter strony | Statyczna; jedna mapa HTML |
+| Charakter strony | Statyczna; jedna mapa HTML (`index.html` w rootcie) |
 | Kiedy rebuild | Tylko gdy zmienia się Excel punktów lub `podwyko` / szablon Word |
 | Kiedy **nie** rebuild | Przy generacji protokołu / zapisie do Sheets |
-| Publikacja na Pages | **Bez GitHub Actions.** Ustawienie repo: *Settings → Pages → Source: „Deploy from a branch”*, branch `main`, folder `/site`. Push już zbudowanego `site/` = publikacja |
-| GitHub Actions | Nieużywane w v1 (brak schedule, brak workflow deployu — commit `site/` jest wystarczający) |
+| Publikacja na Pages | **Bez GitHub Actions.** Ustawienie: *Settings → Pages → Source: „Deploy from a branch”*, branch `main`, folder **`/ (root)`**. GitHub przy branch deploy obsługuje wyłącznie `/` lub `/docs` — **nie** dowolnego `/site` |
+| GitHub Actions | Nieużywane w v1 (brak schedule, brak workflow deployu — push `index.html` wystarcza) |
 | Sekrety runtime | URL Web App formatki wbudowany przy buildzie (z lokalnego `.env`) — bez GitHub Secrets, bo nie ma CI |
 | URL | np. `https://zotrek.github.io/druga-mila/` |
 
@@ -205,7 +205,7 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 
 1. Zmień `data/druga-mila.xlsx` i/lub `docs/podwyko lista.xlsx`.
 2. Uruchom lokalnie `npm run generate`.
-3. Commit zmian (`site/`, ewentualnie cache geokodu).
+3. Commit zmian (`index.html`, ewentualnie cache geokodu).
 4. Push — Pages pokazuje zaktualizowaną listę pinezek / comboboxów.
 
 ---
@@ -237,6 +237,7 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 
 ```
 druga-mila/
+  index.html                  # wynik lokalnego generate / placeholder Pages — root = publikacja
   docs/SPECIFICATION.md
   docs/ARCHITECTURE.md
   docs/FORMATKA_GOOGLE.md
@@ -248,10 +249,9 @@ druga-mila/
   data/…-geocode-cache.json   # (po implementacji)
   src/                        # (implementacja — później)
   google-apps-script/         # (później)
-  site/                       # wynik lokalnego generate — commitowany, serwowany przez Pages (branch, bez Actions)
 ```
 
-Brak katalogu `.github/workflows/` w v1 — publikacja przez ustawienie Pages „Deploy from a branch”, nie przez Actions.
+Brak katalogu `.github/workflows/` w v1 — publikacja przez Pages „Deploy from a branch” + folder `/ (root)`. Brak folderu `site/` — GitHub nie pozwala wybrać go jako źródła Pages.
 
 ---
 
