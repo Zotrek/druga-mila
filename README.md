@@ -8,8 +8,8 @@ W przeciwieństwie do `arkusz-mapa` mapa **nie jest cyklicznie regenerowana** pr
 
 ## Status
 
-Dokumentacja Fazy 1–2 **gotowa do implementacji** (SPEC + ARCH + kontrakt Apps Script). Numer startowy: **`DM1`**.  
-**Kod aplikacji (mapa / `src/`) jeszcze nie** — zadanie: `dev_docs/active/0001_implementacja-druga-mila/`.
+Implementacja w toku (`0001_implementacja-druga-mila`): **Fazy 1–5** — mapa Leaflet + modal Word (bez Web App). Numer startowy: **`DM1`**.  
+Następne: wdrożenie Apps Script (Faza 6), multi-select (Faza 7).
 
 ## Dokumentacja
 
@@ -46,9 +46,21 @@ Na razie w rootcie jest `index.html` (placeholder); po implementacji build zast�
 
 > Uwaga: GitHub Pages przy „Deploy from a branch” obsługuje tylko foldery `/` i `/docs` — stąd publikacja z roota, nie z `/site`.
 
+## Lokalny rebuild
+
+```bash
+cd druga-mila
+cp .env.example .env   # opcjonalnie: DRUGA_MILA_WEBAPP_URL
+npm install
+npm test
+npm run generate       # → index.html (+ data/geocode-cache.json)
+```
+
+Otwórz `index.html` w przeglądarce (pinezki, search, filtr, modal Word).
+
 ## Następny krok
 
-Implementacja kodu wg `dev_docs/active/0001_implementacja-druga-mila/` — bez Symfony/Vue/PostgreSQL w v1.
+Faza 6: wdróż `google-apps-script/formatka-log.gs` do arkusza formatki, ustaw `DRUGA_MILA_WEBAPP_URL`, `npm run generate` — wg `docs/FORMATKA_SHEET.md`.
 
 ## Sync reguł Cursora (opcjonalnie)
 

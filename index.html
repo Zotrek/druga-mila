@@ -1,64 +1,600 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Druga Mila — test Pages</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Druga Mila</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
-    :root {
-      --bg: #0f1419;
-      --fg: #e7ecf1;
-      --muted: #9aa7b5;
-      --accent: #3d8bfd;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      font-family: "Segoe UI", system-ui, sans-serif;
-      background:
-        radial-gradient(ellipse 80% 50% at 20% 10%, #1a3a5c 0%, transparent 50%),
-        radial-gradient(ellipse 60% 40% at 90% 80%, #1e2a1a 0%, transparent 45%),
-        var(--bg);
-      color: var(--fg);
-      padding: 1.5rem;
-    }
-    main {
-      max-width: 36rem;
-      text-align: center;
-    }
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: clamp(1.75rem, 4vw, 2.25rem);
-      font-weight: 650;
-      letter-spacing: -0.02em;
-    }
-    p {
-      margin: 0 0 1rem;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    .badge {
-      display: inline-block;
-      margin-top: 0.5rem;
-      padding: 0.35rem 0.75rem;
-      border: 1px solid #2a3a4a;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      color: var(--accent);
-    }
-  </style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; }
+    #map { width: 100%; height: 100vh; }
+    .leaflet-popup-content-wrapper { border-radius: 8px; }
+    .leaflet-popup-content { margin: 12px 16px; min-width: 220px; }
+    .popup-name { font-weight: 600; margin-bottom: 4px; color: #1a1a1a; }
+    .popup-short { font-size: 0.92em; color: #333; margin-bottom: 4px; }
+    .popup-address { font-size: 0.9em; color: #444; margin-bottom: 4px; }
+    .popup-type { font-size: 0.85em; color: #0d6efd; margin-top: 4px; }
+    .pin-dm { background: none !important; border: none !important; }
+    .map-legend { background: #fff; padding: 10px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.4); font-size: 12px; line-height: 1.5; }
+    .map-legend h3 { margin: 0 0 6px 0; font-size: 13px; }
+    .map-legend ul { margin: 0; padding: 0; list-style: none; }
+    .map-legend li { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .map-legend li:last-child { margin-bottom: 0; }
+    .map-legend .legend-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.2); flex-shrink: 0; }
+    .map-search-panel { background: #fff; padding: 10px 12px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.35); min-width: 220px; max-width: min(420px, calc(100vw - 48px)); }
+    .map-search-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
+    .map-search-input-row { display: flex; align-items: center; gap: 8px; }
+    .map-search-input { flex: 1; min-width: 0; padding: 8px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; }
+    .map-zoom-inline { display: flex; flex-direction: row; flex-shrink: 0; }
+    .map-zoom-inline button { width: 32px; height: 32px; padding: 0; border: 1px solid #ccc; background: #fff; cursor: pointer; font-size: 18px; line-height: 1; color: #333; display: flex; align-items: center; justify-content: center; }
+    .map-zoom-inline button:hover { background: #f4f4f4; }
+    .map-zoom-inline button:first-child { border-radius: 4px 0 0 4px; border-right: none; }
+    .map-zoom-inline button:last-child { border-radius: 0 4px 4px 0; }
+    .map-search-status { margin-top: 6px; font-size: 11px; color: #555; min-height: 1.2em; }
+    .map-type-filter { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8e8e8; }
+    .map-type-filter-title { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
+    .map-type-filter-options { display: flex; flex-direction: column; gap: 4px; }
+    .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
+    .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
+
+    .doc-modal-overlay { position: fixed; inset: 0; z-index: 20000; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start; justify-content: center; padding: 24px 12px; overflow: auto; }
+    .doc-modal-panel { background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 18px 20px; width: min(440px, 100%); margin-top: 24px; }
+    .doc-modal-panel h3 { margin: 0 0 12px; font-size: 16px; }
+    .doc-modal-panel label { display: block; font-size: 12px; font-weight: 600; margin: 10px 0 4px; color: #333; }
+    .doc-modal-panel input[type="text"], .doc-modal-panel input[type="date"], .doc-modal-panel input[type="number"], .doc-modal-panel select { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; }
+    .doc-combobox-wrap { position: relative; }
+    .doc-combobox-list { position: absolute; z-index: 5; left: 0; right: 0; max-height: 180px; overflow: auto; margin: 0; padding: 4px 0; list-style: none; background: #fff; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .doc-combobox-list li { padding: 6px 10px; font-size: 13px; cursor: pointer; }
+    .doc-combobox-list li:hover, .doc-combobox-list li[aria-selected="true"] { background: #eef5ff; }
+    .doc-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; }
+    .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+    .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
+    .popup-actions { margin-top: 10px; }
+    .popup-actions button { padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #0d6efd; background: #0d6efd; color: #fff; cursor: pointer; }
+    </style>
 </head>
 <body>
-  <main>
-    <h1>Druga Mila</h1>
-    <p>
-      Testowy plik dla GitHub Pages (publikacja z <code>/ (root)</code> brancha <code>main</code>).
-      Docelowa mapa Leaflet pojawi się po implementacji i <code>npm run generate</code>.
-    </p>
-    <span class="badge">Pages OK — placeholder</span>
-  </main>
+  <div class="map-brand">Druga Mila</div>
+  <div id="map"></div>
+  <div id="doc-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
+    <div class="doc-modal-panel" role="dialog" aria-labelledby="doc-modal-title">
+      <h3 id="doc-modal-title">Generuj protokół Word</h3>
+      <label for="doc-sel-zaladunek">Miejsce załadunku</label>
+      <div class="doc-combobox-wrap">
+        <input type="text" id="doc-sel-zaladunek" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Nazwa skrócona / pełna / adres…" />
+        <input type="hidden" id="doc-val-zaladunek" value="" />
+        <ul id="doc-sel-zaladunek-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
+      <label for="doc-sel-przewoznik">Przewoźnik</label>
+      <div class="doc-combobox-wrap">
+        <input type="text" id="doc-sel-przewoznik" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
+        <input type="hidden" id="doc-val-przewoznik" value="" />
+        <ul id="doc-sel-przewoznik-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
+      <label for="doc-sel-miejsce">Miejsce dostawy</label>
+      <div class="doc-combobox-wrap">
+        <input type="text" id="doc-sel-miejsce" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
+        <input type="hidden" id="doc-val-miejsce" value="" />
+        <ul id="doc-sel-miejsce-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
+      <label for="doc-inp-awizacja">Dane do awizacji</label>
+      <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
+      <label for="doc-inp-data">Data załadunku</label>
+      <input type="date" id="doc-inp-data" />
+      <label for="doc-inp-stawka">Stawka (tylko Google)</label>
+      <input type="text" id="doc-inp-stawka" maxlength="80" autocomplete="off" />
+      <label for="doc-sel-zbiorka">Rodzaj zbiórki (tylko Google)</label>
+      <select id="doc-sel-zbiorka">
+        <option value="">—</option>
+        <option value="manualna">manualna</option>
+        <option value="automatyczna">automatyczna</option>
+        <option value="manualna i automatyczna">manualna i automatyczna</option>
+      </select>
+      <label for="doc-inp-worki">Ile worków (tylko Google)</label>
+      <input type="text" id="doc-inp-worki" maxlength="40" autocomplete="off" />
+      <label for="doc-inp-transport">Rodzaj transportu (tylko Google)</label>
+      <input type="text" id="doc-inp-transport" maxlength="80" autocomplete="off" />
+      <label for="doc-inp-numer">Numer zlecenia</label>
+      <input type="text" id="doc-inp-numer" maxlength="120" placeholder="podgląd / auto" autocomplete="off" />
+      <p class="doc-modal-hint" id="doc-modal-hint">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
+      <div class="doc-modal-actions">
+        <button type="button" id="doc-btn-cancel">Anuluj</button>
+        <button type="button" id="doc-btn-generate" class="primary">Pobierz .docx</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const PUNKTY = [{"nazwaPelna":"CD Jaskółka Sokółka","nazwaSkrocona":"SOKÓŁKA","adres":"16-100 Sokółka Przemysłowa 20","typ":"CD","colorKind":"cd","lat":53.4056785,"lon":23.5158372,"kolor":"#0d6efd"},{"nazwaPelna":"CD SPOŁEM Radom","nazwaSkrocona":"SPOŁEM RADOM","adres":"26-600 Radom Wyścigowa 20","typ":"CD","colorKind":"cd","lat":51.3763264,"lon":21.1613345,"kolor":"#0d6efd"},{"nazwaPelna":"CD StopMarket Klecza","nazwaSkrocona":"KLECZA","adres":"34-124 Klecza Górna Barwałd Średni 71","typ":"CD","colorKind":"cd","lat":51.0075714,"lon":15.6353099,"kolor":"#0d6efd"},{"nazwaPelna":"ITUM OWOCE Rybnik","nazwaSkrocona":"ITUM RYBNIK","adres":"44-200 Rybnik Rudzka 47","typ":"PLAC","colorKind":"plac","lat":50.104688,"lon":18.5367384,"kolor":"#198754"},{"nazwaPelna":"CD Bort Wimar Grodków","nazwaSkrocona":"GRODKÓW","adres":"49-200 Grodków Sienkiewicza 104","typ":"CD","colorKind":"cd","lat":50.684974,"lon":17.386244,"kolor":"#0d6efd"},{"nazwaPelna":"Lubań ZGiUK","nazwaSkrocona":"LUBAŃ","adres":"59-800 Lubań Bazaltowa 1","typ":"PLAC","colorKind":"plac","lat":51.0986159,"lon":15.2737302,"kolor":"#198754"},{"nazwaPelna":"BIOCOLLECT plac pośredni","nazwaSkrocona":"BIOCOLLECT","adres":"84-207 Koleczkowo","typ":"PLAC","colorKind":"plac","lat":54.4864358,"lon":18.3425972,"kolor":"#198754"},{"nazwaPelna":"BIOSYSTEM Bolęcin","nazwaSkrocona":"BIOSYSTEM","adres":"32-540 Bolęcin Fabryczna 5","typ":"","colorKind":"bolecin","lat":50.1262616,"lon":19.4753047,"kolor":"#fd7e14"},{"nazwaPelna":"CD - WOY","nazwaSkrocona":"WOY BUKOWIEC","adres":"26-300 Bukowiec Opoczyński 7a","typ":"CD","colorKind":"cd","lat":52.8564728,"lon":17.2386686,"kolor":"#0d6efd"},{"nazwaPelna":"CD SCH Staszów","nazwaSkrocona":"STASZÓW","adres":"28-200 Staszów Towarowa 2","typ":"CD","colorKind":"cd","lat":50.5541235,"lon":21.1691747,"kolor":"#0d6efd"},{"nazwaPelna":"CD SELMET Pasłęk","nazwaSkrocona":"SELMET","adres":"14-400 Pasłęk Westerplatte 31","typ":"PLAC","colorKind":"plac","lat":54.0560567,"lon":19.6580762,"kolor":"#198754"},{"nazwaPelna":"Plac Pośredni Czyżew","nazwaSkrocona":"CZYŻEW","adres":"18-220 Czyżew Zambrowska 12","typ":"PLAC","colorKind":"plac","lat":52.8077389,"lon":22.3028016,"kolor":"#198754"},{"nazwaPelna":"EKOART. Plac pośredni","nazwaSkrocona":"EKO-ART.","adres":"26-110 Skarżysko Kamienna Asfaltowa 1","typ":"PLAC","colorKind":"plac","lat":51.0906399,"lon":20.8591342,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni TARGET Speed","nazwaSkrocona":"TARGET","adres":"63-940 Bojanowo Giżyn 7","typ":"PLAC","colorKind":"plac","lat":51.67004,"lon":16.66325,"kolor":"#198754"},{"nazwaPelna":"CD GS ZWOLEŃ","nazwaSkrocona":"ZWOLEŃ","adres":"26-700 Zwoleń Jagiełły 2","typ":"CD","colorKind":"cd","lat":51.3564351,"lon":21.5827999,"kolor":"#0d6efd"},{"nazwaPelna":"CD Express II Koszęcin","nazwaSkrocona":"KOSZĘCIN","adres":"42-286 Koszęcin Ligonia 11B","typ":"CD","colorKind":"cd","lat":50.6345274,"lon":18.8433173,"kolor":"#0d6efd"},{"nazwaPelna":"CD JUBILAT Kraków","nazwaSkrocona":"JUBILAT","adres":"31-111 Kraków Krasińskiego 1","typ":"CD","colorKind":"cd","lat":50.0557146,"lon":19.9276086,"kolor":"#0d6efd"},{"nazwaPelna":"CD SPOŁEM Lubartów","nazwaSkrocona":"SPOŁEM LUBARTÓW","adres":"21-100 Lubartów Krzywe Koło 53","typ":"CD","colorKind":"cd","lat":51.4573364,"lon":22.6150119,"kolor":"#0d6efd"},{"nazwaPelna":"CD SPOŁEM Tomaszów Lubelski","nazwaSkrocona":"SPOŁEM TOM LUBEL","adres":"22-600 Tomaszów Lubelski Lipowa 14","typ":"CD","colorKind":"cd","lat":50.4549106,"lon":23.4044192,"kolor":"#0d6efd"},{"nazwaPelna":"CD SPOŁEM Racibórz","nazwaSkrocona":"SPOŁEM RACIBÓRZ","adres":"47-400 Racibórz Londzina 4","typ":"CD","colorKind":"cd","lat":50.0944633,"lon":18.2142741,"kolor":"#0d6efd"},{"nazwaPelna":"Plac Pośredni PMC PLOMAT","nazwaSkrocona":"PLOMAT PMC","adres":"09-408 Płock Lubuska 15","typ":"PLAC","colorKind":"plac","lat":52.5205865,"lon":19.7642722,"kolor":"#198754"},{"nazwaPelna":"CD NAXPOL Marszowice","nazwaSkrocona":"NAXPOL CD","adres":"32-420 Marszowice Marszowice 189","typ":"CD","colorKind":"cd","lat":49.9126295,"lon":20.2339563,"kolor":"#0d6efd"},{"nazwaPelna":"Plac Czarny Staw Panda","nazwaSkrocona":"PANDA","adres":"95-070 Aleksandrów Łódżki Nowy Adamów 3","typ":"PLAC","colorKind":"plac","lat":51.8338399,"lon":19.2454008,"kolor":"#198754"},{"nazwaPelna":"BOMAZ Plac Zduńska Wola","nazwaSkrocona":"BOMAZ","adres":"98-220 Zduńska Wola Opiesińska 19","typ":"PLAC","colorKind":"plac","lat":51.6120576,"lon":18.9378646,"kolor":"#198754"},{"nazwaPelna":"Plac Pośredni JEST","nazwaSkrocona":"JEST","adres":"41-109 Gliwice Oświęcimska 51k","typ":"PLAC","colorKind":"plac","lat":50.3639762,"lon":18.6219219,"kolor":"#198754"},{"nazwaPelna":"DRAMP Padew Narodowa","nazwaSkrocona":"PADEW","adres":"39-340 Padew Narodowa Piechoty 64","typ":"PLAC","colorKind":"plac","lat":50.4055408,"lon":21.5354451,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni Blue Cargo","nazwaSkrocona":"BLUE CARGO","adres":"54-028 Wrocław Rajska 3","typ":"PLAC","colorKind":"plac","lat":51.1421832,"lon":16.8854835,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni Brzesko PW Your Partner","nazwaSkrocona":"YOUR PARTNER","adres":"32-800 Brzesko Dworcowa 2","typ":"PLAC","colorKind":"plac","lat":49.9858832,"lon":20.6132681,"kolor":"#198754"},{"nazwaPelna":"plac pośredni GEODIS Bydgoszcz","nazwaSkrocona":"GEODIS","adres":"87-100 Toruń Kanałowa 79","typ":"PLAC","colorKind":"plac","lat":53.037057,"lon":18.644945,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni RPM JAROCIN","nazwaSkrocona":"RPM Jarocin","adres":"63-200 Jarocin Szubianki 8","typ":"PLAC","colorKind":"plac","lat":51.96297,"lon":17.5,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni Kraków","nazwaSkrocona":"THOR","adres":"31-128 Kraków","typ":"PLAC","colorKind":"plac","lat":50.0667506,"lon":19.9291148,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni ZAGRODA","nazwaSkrocona":"ZAGRODA STRZYŻÓW","adres":"38-100 Strzyżów 1-go Maja 38b","typ":"PLAC","colorKind":"plac","lat":49.8659764,"lon":21.7945555,"kolor":"#198754"},{"nazwaPelna":"CD PAKMAN TORIMPEX Toruń","nazwaSkrocona":"TORIMPEX","adres":"87-100 Toruń Leszczynowa 3","typ":"CD","colorKind":"cd","lat":53.0267203,"lon":18.6525071,"kolor":"#0d6efd"},{"nazwaPelna":"Sortownia Sokołów Małopolski","nazwaSkrocona":"SOKOŁÓW MAŁOPOLSKI","adres":"36-050 Sokołów Małopolski Łazienna 7","typ":"","colorKind":"puste","lat":50.2260542,"lon":22.1245375,"kolor":"#6f42c1"},{"nazwaPelna":"CD Niedrzwica Duża","nazwaSkrocona":"NIEDRZWICA","adres":"24-220 Niedrzwica Duża Spółdzielcza 2","typ":"CD","colorKind":"cd","lat":51.112087,"lon":22.371485,"kolor":"#0d6efd"},{"nazwaPelna":"CD SPOŁEM Nidzica","nazwaSkrocona":"SPOŁEM NIDZICA","adres":"13-100 Nidzica Sprzymierzonych 25","typ":"CD","colorKind":"cd","lat":53.3706158,"lon":20.4279774,"kolor":"#0d6efd"},{"nazwaPelna":"CD STEK-ROL Dębica","nazwaSkrocona":"DĘBICA","adres":"39-200 Dębica Fabryczna 1","typ":"CD","colorKind":"cd","lat":50.0530809,"lon":21.3998633,"kolor":"#0d6efd"},{"nazwaPelna":"CD BJANEX Suwałki`","nazwaSkrocona":"BJANEX SUWAŁKI","adres":"16-400 Suwałki Leśna 68","typ":"CD","colorKind":"cd","lat":54.0743279,"lon":22.9173248,"kolor":"#0d6efd"},{"nazwaPelna":"CD GS SCh Nidzica","nazwaSkrocona":"NIDZICA","adres":"13-100 Nidzica Traugutta 20","typ":"CD","colorKind":"cd","lat":53.3636583,"lon":20.419325,"kolor":"#0d6efd"},{"nazwaPelna":"Plac MAK MET OŁAWA","nazwaSkrocona":"OŁAWA","adres":"55-200 Oława Kasztanowa 2","typ":"PLAC","colorKind":"plac","lat":50.9464687,"lon":17.3134429,"kolor":"#198754"},{"nazwaPelna":"Plac Pośredni BIAŁOBRZEGI","nazwaSkrocona":"BIAŁOBRZEGI","adres":"26-800 Białobrzegi Kościelna 97C","typ":"PLAC","colorKind":"plac","lat":51.6457475,"lon":20.9383324,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni PAPIERUS","nazwaSkrocona":"PAPIRUS","adres":"70-010 Szczecin Szczawiowa 54a","typ":"PLAC","colorKind":"plac","lat":53.3988015,"lon":14.5345715,"kolor":"#198754"},{"nazwaPelna":"Plac pośredni LUX BUS","nazwaSkrocona":"LUX BUS","adres":"05-123 Olszewnica Stara Wiejska 11L","typ":"PLAC","colorKind":"plac","lat":52.4420147,"lon":20.852952,"kolor":"#198754"},{"nazwaPelna":"CD AF-LIDER Emilia","nazwaSkrocona":"EMILIA","adres":"95-100 Emilia Zgierska 24","typ":"CD","colorKind":"cd","lat":51.9160552,"lon":19.3645157,"kolor":"#0d6efd"},{"nazwaPelna":"Plac pośredni Wiślanka","nazwaSkrocona":"WIŚLANKA","adres":"43-460 Wisła Malinka 41C","typ":"PLAC","colorKind":"plac","lat":49.6361248,"lon":18.9316287,"kolor":"#198754"},{"nazwaPelna":"Plac Pośredni SELMET","nazwaSkrocona":"SELMET","adres":"14-400 Pasłęk Westerplatte 31","typ":"PLAC","colorKind":"plac","lat":54.0560567,"lon":19.6580762,"kolor":"#198754"},{"nazwaPelna":"CD VOBIANO Złoczew","nazwaSkrocona":"ZŁOCZEW","adres":"98-270 Złoczew Parkowa 10C","typ":"CD","colorKind":"cd","lat":51.4158988,"lon":18.610482,"kolor":"#0d6efd"},{"nazwaPelna":"CD SPOŁEM Poniatowa","nazwaSkrocona":"SPOŁEM PONIATOWA","adres":"24-320 Poniatowa Brzozowa 2","typ":"CD","colorKind":"cd","lat":51.1894829,"lon":22.0667903,"kolor":"#0d6efd"},{"nazwaPelna":"CD GAMA RURARZ","nazwaSkrocona":"GAMA RURARZ","adres":"08-300 Sokołów Podlaski Olszowa 1","typ":"CD","colorKind":"cd","lat":52.4065013,"lon":22.2304671,"kolor":"#0d6efd"},{"nazwaPelna":"CD A&K HURT-MARKET","nazwaSkrocona":"AK MIELEC","adres":"39-300 Mielec Piaskowa 8","typ":"CD","colorKind":"cd","lat":50.2851694,"lon":21.438198,"kolor":"#0d6efd"},{"nazwaPelna":"CD MAGNOLIA Głowno","nazwaSkrocona":"MAGNOLIA","adres":"95-015 Głowno Sikorskiego 102","typ":"CD","colorKind":"cd","lat":51.95334,"lon":19.7164268,"kolor":"#0d6efd"}];
+    const COLOR_COUNTS = {"cd":25,"plac":24,"puste":1,"bolecin":1};
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbye96upfo4vXgEjQR8Z5_6XL4akWF0lojbauI5hsiqSyLpqh5AYU61OErtmiwbaI-xGpw/exec";
+    const COLOR_LABEL = {"cd":"CD","plac":"PLAC","puste":"Puste","bolecin":"Bolęcin"};
+    const wordDocEnabled = true;
+    const WORD_TEMPLATE_B64 = "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";
+    const PODWYKOLISTA = [{"label":"BLUECARGO","value":"BLUECARGO Sp. z o.o. Rajska 3, 54-028 Wrocław BDO 000710623 NIP 8943261149"},{"label":"Papirus","value":"Papirus-Recykling Grzegorz Kołakowski  ul. Szczawiowa 54a, 70-010 Szczecin NIP 8521124660  BDO 000003483"},{"label":"Zagroda","value":"P.H.P.U. Zagroda Sp. z O. O. ul. 1-go Maja 38b, 38-100 Strzyżów NIP 8191559477 BDO 000015388"},{"label":"EKO-RECYKLING POLSKA","value":"EKO-RECYKLING POLSKA SP. Z O.O. ul. Wyzwolenia 2, 41-103 Siemianowice Śląskie NIP 6431773477 BDO 000535999"},{"label":"GPW","value":"GPW Logistics S.A. ul. Książęca 4, 00-498 Warszawa NIP 5272959044  BDO 000706795"},{"label":"JEST","value":"JEST Cleaning System sp. z o.o. ul. Oświęcimska 51k, 41-109 Gliwice NIP 9691672326 BDO 000694943"},{"label":"EKO-ART.","value":"EKO-ART. GOSPODARKA ODADAMI SP. Z O. O. ul. ASFALTOWA 1, 26-110 SKARŻYSKO – KAMIENNA NIP 6832126447 BDO 000583541"},{"label":"ZK w Sokołowie Małopolskim","value":"Zakład Komunalny w Sokołowie Małopolskim Sp. z o.o. ul. Łazienna 7, 36-050 Sokołów Małopolski NIP 5170361538   BDO 000002391"},{"label":"EFEKT-TRANS","value":"EFEKT-TRANS Marcin Ostapowicz C. K. Norwida 11, 16-100 Sokółka NIP 5451733339  BDO 000158350"},{"label":"Czyżew magazyn","value":"Usługi Transportowe Dariusz Godlewski  ul. Zambrowska 12, 18-220 Czyżew NIP 7231002304   BDO 000111915"},{"label":"Traszkan","value":"Traszkan S.F.Z. Sroka Spółka Jawna Zegartowice 105, 32-415 Zegartowice NIP: 6811821834  BDO: 000011660"},{"label":"RPM","value":"RPM Sp.z o.o. ul. Szubianki 8, 63-200 Jarocin NIP: PL6172195754 BDO: 000010785"},{"label":"Selmet","value":"SELMET B. J. RUDNICCY ul. Traugutta 31, 82-300 Elbląg NIP: 5782865721 BDO:  000005241"},{"label":"LUX BUS","value":"LUX BUS SP. Z O.O. ul. Wiejska 11L, 05-123 Olszewnica Stara NIP 5361987906 BDO 000666036"},{"label":"Lubań","value":"ZGiUK Lubań Sp. z o.o. ul. Bazaltowa 1, 59-800 Lubań NIP: 6131425217, BDO: 000012296"},{"label":"YOUR PARTNER Brzesko","value":"PW YOUR PARTNER Brzesko Dworcowa 2, 32-800 Brzesko NIP: 8691956922 BDO: 000053224"},{"label":"Biosystem","value":"Zakład Przetwarzania ZSEiE: 32-540 Bolęcin, ul Fabryczna 5"},{"label":"THOR","value":"THOR Recycle Sp. z o.o. NIP: 9452260589 BDO: 000575610"},{"label":"TARGET SPEED","value":"TARGET SPEED SP. Z O.O., Braniborska 7/2, 53-680 Wrocław, NIP: 8971890822"},{"label":"PMC Auto (PLOMAT)","value":"PLOMAT SP. z O.O.  Lubuska 15, 09-408 Płock BDO: 000719289 NIP: 7743231982"},{"label":"Wiślanka","value":"Wiślanka Sp. z O.O. ul.Malinka 41C, 43-460 Wisła BDO: 000577060 NIP: 5482668086"},{"label":"Interzero","value":"Interzero Polska Spółka z o. o.  Al. Jerozolimskie 146D, 02-305 Warszawa NIP: 9512367010 BDO: 000009153"},{"label":"BIOCOLLECT","value":"Wschodnia 41 A, 87-100 Toruń NIP: 9571129660 BDO: 000605337"},{"label":"Sanit-Trans","value":"Sanit-Trans sortownia Prusa 33, 43-502 Czechowice-Dziedzice"},{"label":"Geodis","value":"GEODIS Poland Sp. z o.o., Wodna 38, 95-010 - Dobra"},{"label":"ECOLUX","value":"ECOLUX ul. Handlowa 6a, 37-716 Orły NIP:7952458856 REGON:522494593"}];
+    const LOAD_POINTS = [{"nazwaPelna":"CD Jaskółka Sokółka","nazwaSkrocona":"SOKÓŁKA","adres":"16-100 Sokółka Przemysłowa 20"},{"nazwaPelna":"CD SPOŁEM Radom","nazwaSkrocona":"SPOŁEM RADOM","adres":"26-600 Radom Wyścigowa 20"},{"nazwaPelna":"CD StopMarket Klecza","nazwaSkrocona":"KLECZA","adres":"34-124 Klecza Górna Barwałd Średni 71"},{"nazwaPelna":"ITUM OWOCE Rybnik","nazwaSkrocona":"ITUM RYBNIK","adres":"44-200 Rybnik Rudzka 47"},{"nazwaPelna":"CD Bort Wimar Grodków","nazwaSkrocona":"GRODKÓW","adres":"49-200 Grodków Sienkiewicza 104"},{"nazwaPelna":"Lubań ZGiUK","nazwaSkrocona":"LUBAŃ","adres":"59-800 Lubań Bazaltowa 1"},{"nazwaPelna":"BIOCOLLECT plac pośredni","nazwaSkrocona":"BIOCOLLECT","adres":"84-207 Koleczkowo"},{"nazwaPelna":"BIOSYSTEM Bolęcin","nazwaSkrocona":"BIOSYSTEM","adres":"32-540 Bolęcin Fabryczna 5"},{"nazwaPelna":"CD - WOY","nazwaSkrocona":"WOY BUKOWIEC","adres":"26-300 Bukowiec Opoczyński 7a"},{"nazwaPelna":"CD SCH Staszów","nazwaSkrocona":"STASZÓW","adres":"28-200 Staszów Towarowa 2"},{"nazwaPelna":"CD SELMET Pasłęk","nazwaSkrocona":"SELMET","adres":"14-400 Pasłęk Westerplatte 31"},{"nazwaPelna":"Plac Pośredni Czyżew","nazwaSkrocona":"CZYŻEW","adres":"18-220 Czyżew Zambrowska 12"},{"nazwaPelna":"EKOART. Plac pośredni","nazwaSkrocona":"EKO-ART.","adres":"26-110 Skarżysko Kamienna Asfaltowa 1"},{"nazwaPelna":"Plac pośredni TARGET Speed","nazwaSkrocona":"TARGET","adres":"63-940 Bojanowo Giżyn 7"},{"nazwaPelna":"CD GS ZWOLEŃ","nazwaSkrocona":"ZWOLEŃ","adres":"26-700 Zwoleń Jagiełły 2"},{"nazwaPelna":"CD Express II Koszęcin","nazwaSkrocona":"KOSZĘCIN","adres":"42-286 Koszęcin Ligonia 11B"},{"nazwaPelna":"CD JUBILAT Kraków","nazwaSkrocona":"JUBILAT","adres":"31-111 Kraków Krasińskiego 1"},{"nazwaPelna":"CD SPOŁEM Lubartów","nazwaSkrocona":"SPOŁEM LUBARTÓW","adres":"21-100 Lubartów Krzywe Koło 53"},{"nazwaPelna":"CD SPOŁEM Tomaszów Lubelski","nazwaSkrocona":"SPOŁEM TOM LUBEL","adres":"22-600 Tomaszów Lubelski Lipowa 14"},{"nazwaPelna":"CD SPOŁEM Racibórz","nazwaSkrocona":"SPOŁEM RACIBÓRZ","adres":"47-400 Racibórz Londzina 4"},{"nazwaPelna":"Plac Pośredni PMC PLOMAT","nazwaSkrocona":"PLOMAT PMC","adres":"09-408 Płock Lubuska 15"},{"nazwaPelna":"CD NAXPOL Marszowice","nazwaSkrocona":"NAXPOL CD","adres":"32-420 Marszowice Marszowice 189"},{"nazwaPelna":"Plac Czarny Staw Panda","nazwaSkrocona":"PANDA","adres":"95-070 Aleksandrów Łódżki Nowy Adamów 3"},{"nazwaPelna":"BOMAZ Plac Zduńska Wola","nazwaSkrocona":"BOMAZ","adres":"98-220 Zduńska Wola Opiesińska 19"},{"nazwaPelna":"Plac Pośredni JEST","nazwaSkrocona":"JEST","adres":"41-109 Gliwice Oświęcimska 51k"},{"nazwaPelna":"DRAMP Padew Narodowa","nazwaSkrocona":"PADEW","adres":"39-340 Padew Narodowa Piechoty 64"},{"nazwaPelna":"Plac pośredni Blue Cargo","nazwaSkrocona":"BLUE CARGO","adres":"54-028 Wrocław Rajska 3"},{"nazwaPelna":"Plac pośredni Brzesko PW Your Partner","nazwaSkrocona":"YOUR PARTNER","adres":"32-800 Brzesko Dworcowa 2"},{"nazwaPelna":"plac pośredni GEODIS Bydgoszcz","nazwaSkrocona":"GEODIS","adres":"87-100 Toruń Kanałowa 79"},{"nazwaPelna":"Plac pośredni RPM JAROCIN","nazwaSkrocona":"RPM Jarocin","adres":"63-200 Jarocin Szubianki 8"},{"nazwaPelna":"Plac pośredni Kraków","nazwaSkrocona":"THOR","adres":"31-128 Kraków"},{"nazwaPelna":"Plac pośredni ZAGRODA","nazwaSkrocona":"ZAGRODA STRZYŻÓW","adres":"38-100 Strzyżów 1-go Maja 38b"},{"nazwaPelna":"CD PAKMAN TORIMPEX Toruń","nazwaSkrocona":"TORIMPEX","adres":"87-100 Toruń Leszczynowa 3"},{"nazwaPelna":"Sortownia Sokołów Małopolski","nazwaSkrocona":"SOKOŁÓW MAŁOPOLSKI","adres":"36-050 Sokołów Małopolski Łazienna 7"},{"nazwaPelna":"CD Niedrzwica Duża","nazwaSkrocona":"NIEDRZWICA","adres":"24-220 Niedrzwica Duża Spółdzielcza 2"},{"nazwaPelna":"CD SPOŁEM Nidzica","nazwaSkrocona":"SPOŁEM NIDZICA","adres":"13-100 Nidzica Sprzymierzonych 25"},{"nazwaPelna":"CD STEK-ROL Dębica","nazwaSkrocona":"DĘBICA","adres":"39-200 Dębica Fabryczna 1"},{"nazwaPelna":"CD BJANEX Suwałki`","nazwaSkrocona":"BJANEX SUWAŁKI","adres":"16-400 Suwałki Leśna 68"},{"nazwaPelna":"CD GS SCh Nidzica","nazwaSkrocona":"NIDZICA","adres":"13-100 Nidzica Traugutta 20"},{"nazwaPelna":"Plac MAK MET OŁAWA","nazwaSkrocona":"OŁAWA","adres":"55-200 Oława Kasztanowa 2"},{"nazwaPelna":"Plac Pośredni BIAŁOBRZEGI","nazwaSkrocona":"BIAŁOBRZEGI","adres":"26-800 Białobrzegi Kościelna 97C"},{"nazwaPelna":"Plac pośredni PAPIERUS","nazwaSkrocona":"PAPIRUS","adres":"70-010 Szczecin Szczawiowa 54a"},{"nazwaPelna":"Plac pośredni LUX BUS","nazwaSkrocona":"LUX BUS","adres":"05-123 Olszewnica Stara Wiejska 11L"},{"nazwaPelna":"CD AF-LIDER Emilia","nazwaSkrocona":"EMILIA","adres":"95-100 Emilia Zgierska 24"},{"nazwaPelna":"Plac pośredni Wiślanka","nazwaSkrocona":"WIŚLANKA","adres":"43-460 Wisła Malinka 41C"},{"nazwaPelna":"Plac Pośredni SELMET","nazwaSkrocona":"SELMET","adres":"14-400 Pasłęk Westerplatte 31"},{"nazwaPelna":"CD VOBIANO Złoczew","nazwaSkrocona":"ZŁOCZEW","adres":"98-270 Złoczew Parkowa 10C"},{"nazwaPelna":"CD SPOŁEM Poniatowa","nazwaSkrocona":"SPOŁEM PONIATOWA","adres":"24-320 Poniatowa Brzozowa 2"},{"nazwaPelna":"CD GAMA RURARZ","nazwaSkrocona":"GAMA RURARZ","adres":"08-300 Sokołów Podlaski Olszowa 1"},{"nazwaPelna":"CD A&K HURT-MARKET","nazwaSkrocona":"AK MIELEC","adres":"39-300 Mielec Piaskowa 8"},{"nazwaPelna":"CD MAGNOLIA Głowno","nazwaSkrocona":"MAGNOLIA","adres":"95-015 Głowno Sikorskiego 102"}];
+
+    const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 6);
+    var attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+      subdomains: 'abcd',
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://carto.com/attributions/">CARTO</a> | ' + attribution
+    }).addTo(map);
+
+    function pinIcon(kolor, highlight) {
+      var shadow = highlight
+        ? '0 0 0 3px #ea3aed, 0 1px 4px rgba(0,0,0,0.45)'
+        : '0 1px 4px rgba(0,0,0,0.4)';
+      return L.divIcon({
+        className: 'pin-dm',
+        html: '<span style="display:block;width:24px;height:24px;border-radius:50%;background:' + kolor + ';border:2px solid #fff;box-shadow:' + shadow + '"></span>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12]
+      });
+    }
+
+    function normalizeForAddressSearchMap(text) {
+      var s = String(text).normalize('NFD').replace(/\p{M}/gu, '');
+      s = s
+        .replace(/ł/g, 'l').replace(/Ł/g, 'l')
+        .replace(/ą/g, 'a').replace(/Ą/g, 'a')
+        .replace(/ć/g, 'c').replace(/Ć/g, 'c')
+        .replace(/ę/g, 'e').replace(/Ę/g, 'e')
+        .replace(/ń/g, 'n').replace(/Ń/g, 'n')
+        .replace(/ó/g, 'o').replace(/Ó/g, 'o')
+        .replace(/ś/g, 's').replace(/Ś/g, 's')
+        .replace(/ź/g, 'z').replace(/Ź/g, 'z')
+        .replace(/ż/g, 'z').replace(/Ż/g, 'z');
+      return s.toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function mapPointMatchesSearchMap(p, query) {
+      var q = normalizeForAddressSearchMap(query);
+      if (!q) return true;
+      if (normalizeForAddressSearchMap(p.adres).indexOf(q) !== -1) return true;
+      if (normalizeForAddressSearchMap(p.nazwaPelna).indexOf(q) !== -1) return true;
+      if (normalizeForAddressSearchMap(p.nazwaSkrocona).indexOf(q) !== -1) return true;
+      return false;
+    }
+
+    function mapPointMatchesColorFilterMap(colorKind, mode) {
+      return mode === 'wszystkie' || colorKind === mode;
+    }
+
+    function escapeHtmlMap(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    var markerEntries = [];
+    PUNKTY.forEach(function(p) {
+      var marker = L.marker([p.lat, p.lon], { icon: pinIcon(p.kolor, false) });
+      var typeLabel = COLOR_LABEL[p.colorKind] || p.typ || '—';
+      var loadIdx = -1;
+      for (var li = 0; li < LOAD_POINTS.length; li++) {
+        if (LOAD_POINTS[li].adres === p.adres && LOAD_POINTS[li].nazwaPelna === p.nazwaPelna) {
+          loadIdx = li;
+          break;
+        }
+      }
+      var html =
+        '<div class="popup-name">' + escapeHtmlMap(p.nazwaPelna) + '</div>' +
+        '<div class="popup-short">' + escapeHtmlMap(p.nazwaSkrocona) + '</div>' +
+        '<div class="popup-address">' + escapeHtmlMap(p.adres) + '</div>' +
+        '<div class="popup-type">Typ: ' + escapeHtmlMap(typeLabel) + '</div>';
+      if (wordDocEnabled && loadIdx >= 0) {
+        html += '<div class="popup-actions"><button type="button" onclick="openDocModal(' + loadIdx + ')">Generuj protokół</button></div>';
+      }
+      marker.bindPopup(html);
+      marker.addTo(map);
+      markerEntries.push({ p: p, marker: marker });
+    });
+
+    if (markerEntries.length > 0) {
+      var group = L.featureGroup(markerEntries.map(function(e) { return e.marker; }));
+      map.fitBounds(group.getBounds().pad(0.08));
+    }
+
+    function getColorFilterMode() {
+      var el = document.querySelector('input[name="map-type-filter"]:checked');
+      return el ? el.value : 'wszystkie';
+    }
+
+    function setMarkerClickable(marker, on) {
+      if (on) {
+        if (marker._icon) marker._icon.style.pointerEvents = '';
+        marker.options.interactive = true;
+      } else {
+        if (marker._icon) marker._icon.style.pointerEvents = 'none';
+        marker.options.interactive = false;
+      }
+    }
+
+    var searchTimer = null;
+    function scheduleSearchViewport(matches) {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() {
+        if (!matches.length) return;
+        if (matches.length === 1) {
+          map.setView(matches[0].getLatLng(), 16);
+          return;
+        }
+        var g = L.featureGroup(matches);
+        map.fitBounds(g.getBounds().pad(0.12), { maxZoom: 16 });
+      }, 300);
+    }
+
+    function applyAddressSearch() {
+      var inputEl = document.getElementById('map-address-search');
+      var statusEl = document.getElementById('map-search-status');
+      var raw = inputEl ? inputEl.value : '';
+      var hasSearch = String(raw).trim().length > 0;
+      var mode = getColorFilterMode();
+      var matchMarkers = [];
+      var matchCount = 0;
+      var visibleCount = 0;
+
+      markerEntries.forEach(function(entry) {
+        var cMatch = mapPointMatchesColorFilterMap(entry.p.colorKind, mode);
+        if (!cMatch) {
+          entry.marker.setOpacity(0);
+          setMarkerClickable(entry.marker, false);
+          entry.marker.setIcon(pinIcon(entry.p.kolor, false));
+          return;
+        }
+        var sMatch = mapPointMatchesSearchMap(entry.p, raw);
+        if (hasSearch && !sMatch) {
+          entry.marker.setOpacity(0.28);
+          setMarkerClickable(entry.marker, true);
+          entry.marker.setIcon(pinIcon(entry.p.kolor, false));
+          return;
+        }
+        visibleCount++;
+        if (hasSearch && sMatch) {
+          matchCount++;
+          matchMarkers.push(entry.marker);
+        }
+        entry.marker.setOpacity(1);
+        setMarkerClickable(entry.marker, true);
+        entry.marker.setIcon(pinIcon(entry.p.kolor, hasSearch && sMatch));
+      });
+
+      if (statusEl) {
+        if (hasSearch) {
+          statusEl.textContent = matchCount === 0
+            ? 'Brak dopasowań'
+            : (matchCount === 1 ? '1 dopasowanie' : matchCount + ' dopasowań');
+        } else {
+          statusEl.textContent = 'Widoczne: ' + visibleCount;
+        }
+      }
+      if (hasSearch) scheduleSearchViewport(matchMarkers);
+    }
+
+    var searchControl = L.control({ position: 'topleft' });
+    searchControl.onAdd = function() {
+      var wrap = L.DomUtil.create('div', 'map-search-panel');
+      wrap.innerHTML =
+        '<label class="map-search-label" for="map-address-search">Szukaj na mapie</label>' +
+        '<div class="map-search-input-row">' +
+        '<input type="search" id="map-address-search" class="map-search-input" placeholder="Nazwa lub adres…" autocomplete="off" />' +
+        '<div class="map-zoom-inline">' +
+        '<button type="button" id="map-zoom-in" title="Przybliż" aria-label="Przybliż">+</button>' +
+        '<button type="button" id="map-zoom-out" title="Oddal" aria-label="Oddal">−</button>' +
+        '</div></div>' +
+        '<div id="map-search-status" class="map-search-status" role="status" aria-live="polite"></div>' +
+        '<div class="map-type-filter" role="group" aria-labelledby="map-type-filter-title">' +
+        '<span id="map-type-filter-title" class="map-type-filter-title">Filtr typu</span>' +
+        '<div class="map-type-filter-options">' +
+        '<label><input type="radio" name="map-type-filter" value="wszystkie" checked /> Wszystkie</label>' +
+        '<label><input type="radio" name="map-type-filter" value="cd" /> CD</label>' +
+        '<label><input type="radio" name="map-type-filter" value="plac" /> PLAC</label>' +
+        '<label><input type="radio" name="map-type-filter" value="puste" /> Puste</label>' +
+        '<label><input type="radio" name="map-type-filter" value="bolecin" /> Bolęcin</label>' +
+        '</div></div>';
+      L.DomEvent.disableClickPropagation(wrap);
+      L.DomEvent.disableScrollPropagation(wrap);
+      return wrap;
+    };
+    searchControl.addTo(map);
+
+    document.getElementById('map-address-search').addEventListener('input', applyAddressSearch);
+    document.querySelectorAll('input[name="map-type-filter"]').forEach(function(el) {
+      el.addEventListener('change', applyAddressSearch);
+    });
+    document.getElementById('map-zoom-in').addEventListener('click', function() { map.zoomIn(); });
+    document.getElementById('map-zoom-out').addEventListener('click', function() { map.zoomOut(); });
+
+    var legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function() {
+      var div = L.DomUtil.create('div', 'map-legend');
+      div.innerHTML =
+        '<h3>Legenda</h3><ul>' +
+        '<li><span class="legend-swatch" style="background:#0d6efd"></span>CD (' + COLOR_COUNTS.cd + ')</li>' +
+        '<li><span class="legend-swatch" style="background:#198754"></span>PLAC (' + COLOR_COUNTS.plac + ')</li>' +
+        '<li><span class="legend-swatch" style="background:#6f42c1"></span>Puste (' + COLOR_COUNTS.puste + ')</li>' +
+        '<li><span class="legend-swatch" style="background:#fd7e14"></span>Bolęcin (' + COLOR_COUNTS.bolecin + ')</li>' +
+        '</ul>';
+      return div;
+    };
+    legend.addTo(map);
+
+    applyAddressSearch();
+
+    function openDocModal(prefillIdx) {
+      var m = document.getElementById('doc-modal');
+      if (!m || !wordDocEnabled) return;
+      resetDocModal();
+      if (typeof prefillIdx === 'number' && LOAD_POINTS[prefillIdx]) {
+        selectZaladunek(prefillIdx);
+      }
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      previewNumerFromApi();
+    }
+    function closeDocModal() {
+      var m = document.getElementById('doc-modal');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+    }
+    function resetDocModal() {
+      ['doc-sel-zaladunek','doc-sel-przewoznik','doc-sel-miejsce','doc-inp-awizacja','doc-inp-stawka','doc-inp-worki','doc-inp-transport','doc-inp-numer'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+      ['doc-val-zaladunek','doc-val-przewoznik','doc-val-miejsce'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+      var z = document.getElementById('doc-sel-zbiorka'); if (z) z.value = '';
+      var d = document.getElementById('doc-inp-data'); if (d) d.value = '';
+      hideAllComboboxLists();
+    }
+    function hideAllComboboxLists() {
+      document.querySelectorAll('.doc-combobox-list').forEach(function(ul) { ul.hidden = true; });
+    }
+    function normQ(t) {
+      return normalizeForAddressSearchMap(t);
+    }
+    function selectZaladunek(idx) {
+      var p = LOAD_POINTS[idx];
+      if (!p) return;
+      var inp = document.getElementById('doc-sel-zaladunek');
+      var hid = document.getElementById('doc-val-zaladunek');
+      if (inp) inp.value = p.nazwaSkrocona || p.nazwaPelna;
+      if (hid) hid.value = String(idx);
+    }
+    function wireCombobox(inputId, hiddenId, listId, getItems, getLabel, onPick) {
+      var input = document.getElementById(inputId);
+      var hidden = document.getElementById(hiddenId);
+      var list = document.getElementById(listId);
+      if (!input || !hidden || !list) return;
+      function render() {
+        var q = normQ(input.value);
+        var items = getItems();
+        list.innerHTML = '';
+        var shown = 0;
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          var label = getLabel(it, i);
+          var hay = normQ(label + ' ' + (it.adres || '') + ' ' + (it.nazwaPelna || '') + ' ' + (it.value || ''));
+          if (q && hay.indexOf(q) === -1) continue;
+          var li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.textContent = label;
+          li.dataset.idx = String(i);
+          li.addEventListener('mousedown', function(ev) {
+            ev.preventDefault();
+            var ix = Number(this.dataset.idx);
+            onPick(ix, items[ix]);
+            list.hidden = true;
+          });
+          list.appendChild(li);
+          shown++;
+          if (shown >= 40) break;
+        }
+        list.hidden = shown === 0;
+      }
+      input.addEventListener('focus', render);
+      input.addEventListener('input', function() { hidden.value = ''; render(); });
+      input.addEventListener('blur', function() { setTimeout(function() { list.hidden = true; }, 150); });
+    }
+    wireCombobox('doc-sel-zaladunek', 'doc-val-zaladunek', 'doc-sel-zaladunek-list',
+      function() { return LOAD_POINTS; },
+      function(it) { return it.nazwaSkrocona || it.nazwaPelna; },
+      function(ix) { selectZaladunek(ix); }
+    );
+    wireCombobox('doc-sel-przewoznik', 'doc-val-przewoznik', 'doc-sel-przewoznik-list',
+      function() { return PODWYKOLISTA; },
+      function(it) { return it.label; },
+      function(ix, it) {
+        document.getElementById('doc-val-przewoznik').value = String(ix);
+        document.getElementById('doc-sel-przewoznik').value = it.label;
+      }
+    );
+    wireCombobox('doc-sel-miejsce', 'doc-val-miejsce', 'doc-sel-miejsce-list',
+      function() { return PODWYKOLISTA; },
+      function(it) { return it.label; },
+      function(ix, it) {
+        document.getElementById('doc-val-miejsce').value = String(ix);
+        document.getElementById('doc-sel-miejsce').value = it.label;
+      }
+    );
+
+    function findBiosystemIdx() {
+      for (var i = 0; i < PODWYKOLISTA.length; i++) {
+        if (String(PODWYKOLISTA[i].label).toLowerCase() === 'biosystem') return i;
+      }
+      return -1;
+    }
+    var zbiorkaEl = document.getElementById('doc-sel-zbiorka');
+    if (zbiorkaEl) {
+      zbiorkaEl.addEventListener('change', function() {
+        var v = zbiorkaEl.value;
+        if (v === 'manualna' || v === 'manualna i automatyczna') {
+          var bi = findBiosystemIdx();
+          if (bi >= 0) {
+            var it = PODWYKOLISTA[bi];
+            document.getElementById('doc-val-miejsce').value = String(bi);
+            document.getElementById('doc-sel-miejsce').value = it.label;
+          }
+        }
+      });
+    }
+
+    function b64ToUint8(b64) {
+      var bin = atob(b64);
+      var u = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      return u;
+    }
+    var wordTemplateBytesCache = null;
+    function getWordTemplateBytes() {
+      if (!wordTemplateBytesCache) wordTemplateBytesCache = b64ToUint8(WORD_TEMPLATE_B64);
+      return wordTemplateBytesCache;
+    }
+    var docxLibsPromise = null;
+    function loadScriptOnce(src) {
+      return new Promise(function(resolve, reject) {
+        var existing = document.querySelector('script[src="' + src + '"]');
+        if (existing) {
+          if (existing.getAttribute('data-loaded') === '1') { resolve(); return; }
+          existing.addEventListener('load', function() { resolve(); });
+          existing.addEventListener('error', function() { reject(new Error(src)); });
+          return;
+        }
+        var s = document.createElement('script');
+        s.src = src; s.crossOrigin = '';
+        s.onload = function() { s.setAttribute('data-loaded', '1'); resolve(); };
+        s.onerror = function() { reject(new Error(src)); };
+        document.head.appendChild(s);
+      });
+    }
+    function ensureDocxLibrariesLoaded() {
+      if (typeof PizZip !== 'undefined' && typeof docxtemplater !== 'undefined' && typeof saveAs !== 'undefined') {
+        return Promise.resolve();
+      }
+      if (!docxLibsPromise) {
+        docxLibsPromise = loadScriptOnce('https://unpkg.com/pizzip@3.1.7/dist/pizzip.min.js')
+          .then(function() { return loadScriptOnce('https://unpkg.com/docxtemplater@3.50.0/build/docxtemplater.js'); })
+          .then(function() { return loadScriptOnce('https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js'); });
+      }
+      return docxLibsPromise;
+    }
+    function sanitizeFileNamePart(text) {
+      return String(text).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+    function formatDateForDoc(isoOrDot) {
+      var s = String(isoOrDot || '').trim();
+      var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return m[3] + '.' + m[2] + '.' + m[1];
+      return s;
+    }
+    function formatDateForFile(isoOrDot) {
+      var s = String(isoOrDot || '').trim();
+      var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return m[3] + '.' + m[2] + '.' + m[1].slice(2);
+      var d = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (d) return d[1] + '.' + d[2] + '.' + d[3].slice(2);
+      return sanitizeFileNamePart(s);
+    }
+    function buildDocxDownloadName(shortName, dataVal, adres) {
+      var name = sanitizeFileNamePart(shortName) || 'protokol';
+      var datePart = formatDateForFile(dataVal);
+      var addr = sanitizeFileNamePart(adres);
+      var base = [name, datePart, addr].filter(function(x) { return x.length > 0; }).join(' ');
+      if (base.length > 80) base = base.slice(0, 77).trim() + '...';
+      return base + '.docx';
+    }
+    function resolvePodwyko(hiddenId, inputId) {
+      var hid = document.getElementById(hiddenId);
+      var inp = document.getElementById(inputId);
+      if (hid && hid.value !== '') {
+        var ix = Number(hid.value);
+        if (PODWYKOLISTA[ix]) return PODWYKOLISTA[ix];
+      }
+      var typed = inp ? String(inp.value).trim() : '';
+      if (!typed) return { label: '', value: '' };
+      return { label: typed, value: typed };
+    }
+    function resolveZaladunek() {
+      var hid = document.getElementById('doc-val-zaladunek');
+      if (hid && hid.value !== '') {
+        var ix = Number(hid.value);
+        if (LOAD_POINTS[ix]) return LOAD_POINTS[ix];
+      }
+      var typed = document.getElementById('doc-sel-zaladunek');
+      var t = typed ? String(typed.value).trim() : '';
+      return { nazwaPelna: t, nazwaSkrocona: t, adres: '' };
+    }
+    function previewNumerFromApi() {
+      var numerEl = document.getElementById('doc-inp-numer');
+      var hint = document.getElementById('doc-modal-hint');
+      if (!WEBAPP_URL) {
+        if (hint) hint.textContent = 'Brak Web App — Word lokalnie, wpisz numer ręcznie lub zostaw pusty.';
+        return;
+      }
+      if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
+      fetch(WEBAPP_URL + '?action=modalData')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.ok && data.numer && numerEl && !String(numerEl.value).trim()) {
+            numerEl.value = String(data.numer);
+          }
+          if (hint) hint.textContent = 'Pola opcjonalne. Numer z podglądu — zapis do Sheets przy generacji (Faza 6).';
+        })
+        .catch(function() {
+          if (hint) hint.textContent = 'Nie udało się pobrać numeru — możesz wpisać ręcznie.';
+        });
+    }
+    function generateDocxLocal() {
+      if (!wordDocEnabled) return;
+      var btn = document.getElementById('doc-btn-generate');
+      if (btn) btn.disabled = true;
+      ensureDocxLibrariesLoaded().then(function() {
+        var zal = resolveZaladunek();
+        var pr = resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik');
+        var md = resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce');
+        var dataVal = document.getElementById('doc-inp-data').value;
+        var awizacja = document.getElementById('doc-inp-awizacja').value;
+        var numer = document.getElementById('doc-inp-numer').value;
+        var miejsceWord = [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
+        var zip = new PizZip(getWordTemplateBytes());
+        var Doc = window.docxtemplater;
+        var doc = new Doc(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
+        doc.render({
+          numer_zlecenia_transportowego: String(numer || '').trim(),
+          miejsce_zaladunku: miejsceWord,
+          przewoznik: pr.value || pr.label || '',
+          miejsce_dostawy: md.value || md.label || '',
+          dane_do_awizacji: String(awizacja || '').trim(),
+          data_zaladunku: formatDateForDoc(dataVal)
+        });
+        var out = doc.getZip().generate({
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        saveAs(out, buildDocxDownloadName(zal.nazwaSkrocona || zal.nazwaPelna, dataVal, zal.adres));
+        closeDocModal();
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się wygenerować Word (biblioteki lub szablon).');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
+    }
+    document.getElementById('doc-btn-cancel').addEventListener('click', closeDocModal);
+    document.getElementById('doc-btn-generate').addEventListener('click', generateDocxLocal);
+    document.getElementById('doc-modal').addEventListener('click', function(ev) {
+      if (ev.target === this) closeDocModal();
+    });
+  
+  </script>
 </body>
 </html>

@@ -1,0 +1,352 @@
+{
+  "05-123 olszewnica stara wiejska 11l": {
+    "lat": 52.4420147,
+    "lon": 20.852952,
+    "status": "ok",
+    "displayName": "11L, Wiejska, Kolonia, Olszewnica Stara, gmina Wieliszew, powiat legionowski, województwo mazowieckie, 05-123, Polska",
+    "queriedAt": "2026-07-20T10:44:58.389Z"
+  },
+  "08-300 sokołów podlaski olszowa 1": {
+    "lat": 52.4065013,
+    "lon": 22.2304671,
+    "status": "ok",
+    "displayName": "Gama Dom i Ogród, 1, Olszowa, Syndykat, Sokołów Podlaski, powiat sokołowski, województwo mazowieckie, 08-300, Polska",
+    "queriedAt": "2026-07-20T10:45:11.690Z"
+  },
+  "09-408 płock lubuska 15": {
+    "lat": 52.5205865,
+    "lon": 19.7642722,
+    "status": "ok",
+    "displayName": "15, Lubuska, Borowiczki-Cukrownia, Płock, województwo mazowieckie, 09-408, Polska",
+    "queriedAt": "2026-07-20T10:43:55.107Z"
+  },
+  "13-100 nidzica sprzymierzonych 25": {
+    "lat": 53.3706158,
+    "lon": 20.4279774,
+    "status": "ok",
+    "displayName": "25, Aleja Sprzymierzonych, Nidzica, gmina Nidzica, powiat nidzicki, województwo warmińsko-mazurskie, 13-100, Polska",
+    "queriedAt": "2026-07-20T10:44:38.926Z"
+  },
+  "13-100 nidzica traugutta 20": {
+    "lat": 53.3636583,
+    "lon": 20.419325,
+    "status": "ok",
+    "displayName": "20G, Romualda Traugutta, Nidzica, gmina Nidzica, powiat nidzicki, województwo warmińsko-mazurskie, 13-100, Polska",
+    "queriedAt": "2026-07-20T10:44:47.840Z"
+  },
+  "14-400 pasłęk westerplatte 31": {
+    "lat": 54.0560567,
+    "lon": 19.6580762,
+    "status": "ok",
+    "displayName": "Orlen, 31, Bohaterów Westerplatte, Pasłęk, gmina Pasłęk, powiat elbląski, województwo warmińsko-mazurskie, 14-400, Polska",
+    "queriedAt": "2026-07-20T10:43:26.930Z"
+  },
+  "16-100 sokółka przemysłowa 20": {
+    "lat": 53.4056785,
+    "lon": 23.5158372,
+    "status": "ok",
+    "displayName": "20, Przemysłowa, Osiedle Zielone, Sokółka, gmina Sokółka, powiat sokólski, województwo podlaskie, 16-100, Polska",
+    "queriedAt": "2026-07-20T10:42:51.200Z"
+  },
+  "16-400 suwałki leśna 68": {
+    "lat": 54.0743279,
+    "lon": 22.9173248,
+    "status": "ok",
+    "displayName": "Suwalskie Centrum Logistyki i Dystrybucji, 68, Leśna, Suwałki, województwo podlaskie, 16-400, Polska",
+    "queriedAt": "2026-07-20T10:44:44.263Z"
+  },
+  "18-220 czyżew zambrowska 12": {
+    "lat": 52.8077389,
+    "lon": 22.3028016,
+    "status": "ok",
+    "displayName": "12, Zambrowska, Czyżew Kościelny, Czyżew, gmina Czyżew, powiat wysokomazowiecki, województwo podlaskie, 18-220, Polska",
+    "queriedAt": "2026-07-20T10:43:29.405Z"
+  },
+  "21-100 lubartów krzywe koło 53": {
+    "lat": 51.4573364,
+    "lon": 22.6150119,
+    "status": "ok",
+    "displayName": "Gizet, 53, Krzywe Koło, Lubartów, powiat lubartowski, województwo lubelskie, 21-100, Polska",
+    "queriedAt": "2026-07-20T10:43:47.834Z"
+  },
+  "22-600 tomaszów lubelski lipowa 14": {
+    "lat": 50.4549106,
+    "lon": 23.4044192,
+    "status": "ok",
+    "displayName": "Gama, 14, Lipowa, Jaśkiewiczówka, Tomaszów Lubelski, powiat tomaszowski, województwo lubelskie, 22-600, Polska",
+    "queriedAt": "2026-07-20T10:43:50.416Z"
+  },
+  "24-220 niedrzwica duża spółdzielcza 2": {
+    "lat": 51.112087,
+    "lon": 22.371485,
+    "status": "ok",
+    "displayName": "2, Spółdzielcza, Niedrzwica Duża Druga, Niedrzwica Duża, gmina Niedrzwica Duża, powiat lubelski, województwo lubelskie, 24-220, Polska",
+    "queriedAt": "2026-07-20T10:44:36.475Z"
+  },
+  "24-320 poniatowa brzozowa 2": {
+    "lat": 51.1894829,
+    "lon": 22.0667903,
+    "status": "ok",
+    "displayName": "2, Brzozowa, Centrum, Poniatowa, gmina Poniatowa, powiat opolski, województwo lubelskie, 24-320, Polska",
+    "queriedAt": "2026-07-20T10:45:08.381Z"
+  },
+  "26-110 skarżysko kamienna asfaltowa 1": {
+    "lat": 51.0906399,
+    "lon": 20.8591342,
+    "status": "ok",
+    "displayName": "1, Asfaltowa, Skałka, Skarżysko-Kamienna, powiat skarżyski, województwo świętokrzyskie, 26-110, Polska",
+    "queriedAt": "2026-07-20T10:43:32.324Z"
+  },
+  "26-300 bukowiec opoczyński 7a": {
+    "lat": 52.8564728,
+    "lon": 17.2386686,
+    "status": "ok",
+    "displayName": "Bukowiec, gmina Wągrowiec, powiat wągrowiecki, województwo wielkopolskie, 62-100, Polska",
+    "queriedAt": "2026-07-20T10:43:21.809Z"
+  },
+  "26-600 radom wyścigowa 20": {
+    "lat": 51.3763264,
+    "lon": 21.1613345,
+    "status": "ok",
+    "displayName": "Społem, 20, Wyścigowa, Prędocinek, Godów, Radom, województwo mazowieckie, 26-611, Polska",
+    "queriedAt": "2026-07-20T10:42:53.767Z"
+  },
+  "26-700 zwoleń jagiełły 2": {
+    "lat": 51.3564351,
+    "lon": 21.5827999,
+    "status": "ok",
+    "displayName": "2, Władysława Jagiełły, Zwoleń, gmina Zwoleń, powiat zwoleński, województwo mazowieckie, 26-700, Polska",
+    "queriedAt": "2026-07-20T10:43:37.257Z"
+  },
+  "26-800 białobrzegi kościelna 97c": {
+    "lat": 51.6457475,
+    "lon": 20.9383324,
+    "status": "ok",
+    "displayName": "Dominium, 97c, Kościelna, Praga, Białobrzegi, gmina Białobrzegi, powiat białobrzeski, województwo mazowieckie, 26-800, Polska",
+    "queriedAt": "2026-07-20T10:44:53.307Z"
+  },
+  "28-200 staszów towarowa 2": {
+    "lat": 50.5541235,
+    "lon": 21.1691747,
+    "status": "ok",
+    "displayName": "2, Towarowa, Pluskawa, Staszów, gmina Staszów, powiat staszowski, województwo świętokrzyskie, 28-200, Polska",
+    "queriedAt": "2026-07-20T10:43:24.384Z"
+  },
+  "31-111 kraków krasińskiego 1": {
+    "lat": 50.0557146,
+    "lon": 19.9276086,
+    "status": "ok",
+    "displayName": "1, Aleja Zygmunta Krasińskiego, Zwierzyniec, Kraków, województwo małopolskie, 31-111, Polska",
+    "queriedAt": "2026-07-20T10:43:42.407Z"
+  },
+  "31-128 kraków": {
+    "lat": 50.0667506,
+    "lon": 19.9291148,
+    "status": "ok",
+    "displayName": "31-128, Stare Miasto, Kraków, województwo małopolskie, Polska",
+    "queriedAt": "2026-07-20T10:44:20.457Z"
+  },
+  "32-420 marszowice marszowice 189": {
+    "lat": 49.9126295,
+    "lon": 20.2339563,
+    "status": "ok",
+    "displayName": "Marszowice, gmina Gdów, powiat wielicki, województwo małopolskie, 32-420, Polska",
+    "queriedAt": "2026-07-20T10:43:56.251Z"
+  },
+  "32-540 bolęcin fabryczna 5": {
+    "lat": 50.1262616,
+    "lon": 19.4753047,
+    "status": "ok",
+    "displayName": "Zakład Przetwarzania Zużytego Sprzętu Elektrycznego i Elektronicznego, 5, Fabryczna, Nawsie, Bolęcin, gmina Trzebinia, powiat chrzanowski, województwo małopolskie, 32-540, Polska",
+    "queriedAt": "2026-07-20T10:43:15.361Z"
+  },
+  "32-800 brzesko dworcowa 2": {
+    "lat": 49.9858832,
+    "lon": 20.6132681,
+    "status": "ok",
+    "displayName": "2, Dworcowa, Słotwina, Łączyska, Brzesko, gmina Brzesko, powiat brzeski, województwo małopolskie, 32-800, Polska",
+    "queriedAt": "2026-07-20T10:44:14.184Z"
+  },
+  "34-124 klecza górna barwałd średni 71": {
+    "lat": 51.0075714,
+    "lon": 15.6353099,
+    "status": "ok",
+    "displayName": "Klecza, gmina Wleń, powiat lwówecki, województwo dolnośląskie, Polska",
+    "queriedAt": "2026-07-20T10:43:04.416Z"
+  },
+  "36-050 sokołów małopolski łazienna 7": {
+    "lat": 50.2260542,
+    "lon": 22.1245375,
+    "status": "ok",
+    "displayName": "BUDYNEK GOSPODARKI KOMUNALNEJ, 7, Łazienna, Zawale, Sokołów Małopolski, gmina Sokołów Małopolski, powiat rzeszowski, województwo podkarpackie, 36-050, Polska",
+    "queriedAt": "2026-07-20T10:44:33.983Z"
+  },
+  "38-100 strzyżów 1-go maja 38b": {
+    "lat": 49.8659764,
+    "lon": 21.7945555,
+    "status": "ok",
+    "displayName": "38-100, Strzyżów, gmina Strzyżów, powiat strzyżowski, województwo podkarpackie, Polska",
+    "queriedAt": "2026-07-20T10:44:28.998Z"
+  },
+  "39-200 dębica fabryczna 1": {
+    "lat": 50.0530809,
+    "lon": 21.3998633,
+    "status": "ok",
+    "displayName": "1, Fabryczna, Słoneczne im. Edwarda Brzostowskiego, Dębica, powiat dębicki, województwo podkarpackie, 39-200, Polska",
+    "queriedAt": "2026-07-20T10:44:41.618Z"
+  },
+  "39-300 mielec piaskowa 8": {
+    "lat": 50.2851694,
+    "lon": 21.438198,
+    "status": "ok",
+    "displayName": "8, Piaskowa, Żeromskiego, Wolności, Mielec, powiat mielecki, województwo podkarpackie, 39-300, Polska",
+    "queriedAt": "2026-07-20T10:45:14.184Z"
+  },
+  "39-340 padew narodowa piechoty 64": {
+    "lat": 50.4055408,
+    "lon": 21.5354451,
+    "status": "ok",
+    "displayName": "64, Piechoty, gmina Padew Narodowa, powiat mielecki, województwo podkarpackie, 39-340, Polska",
+    "queriedAt": "2026-07-20T10:44:09.247Z"
+  },
+  "41-109 gliwice oświęcimska 51k": {
+    "lat": 50.3639762,
+    "lon": 18.6219219,
+    "status": "ok",
+    "displayName": "51k, Oświęcimska, Łabędy, Gliwice, Górnośląsko-Zagłębiowska Metropolia, województwo śląskie, 44-109, Polska",
+    "queriedAt": "2026-07-20T10:44:06.818Z"
+  },
+  "42-286 koszęcin ligonia 11b": {
+    "lat": 50.6345274,
+    "lon": 18.8433173,
+    "status": "ok",
+    "displayName": "11b, Juliusza Ligonia, Koszęcin, gmina Koszęcin, powiat lubliniecki, województwo śląskie, 42-286, Polska",
+    "queriedAt": "2026-07-20T10:43:39.848Z"
+  },
+  "43-460 wisła malinka 41c": {
+    "lat": 49.6361248,
+    "lon": 18.9316287,
+    "status": "ok",
+    "displayName": "41C, Malinka, Maresz, Malinka, Wisła, powiat cieszyński, województwo śląskie, 43-460, Polska",
+    "queriedAt": "2026-07-20T10:45:03.341Z"
+  },
+  "44-200 rybnik rudzka 47": {
+    "lat": 50.104688,
+    "lon": 18.5367384,
+    "status": "ok",
+    "displayName": "47, Rudzka, Wawok, Rybnik-Północ, Rybnik, województwo śląskie, 44-200, Polska",
+    "queriedAt": "2026-07-20T10:43:06.997Z"
+  },
+  "47-400 racibórz londzina 4": {
+    "lat": 50.0944633,
+    "lon": 18.2142741,
+    "status": "ok",
+    "displayName": "4, Księdza Józefa Londzina, Proszowiec, Racibórz, powiat raciborski, województwo śląskie, 47-400, Polska",
+    "queriedAt": "2026-07-20T10:43:52.816Z"
+  },
+  "49-200 grodków sienkiewicza 104": {
+    "lat": 50.684974,
+    "lon": 17.386244,
+    "status": "ok",
+    "displayName": "104, Henryka Sienkiewicza, Grodków, gmina Grodków, powiat brzeski, województwo opolskie, 49-200, Polska",
+    "queriedAt": "2026-07-20T10:43:09.428Z"
+  },
+  "54-028 wrocław rajska 3": {
+    "lat": 51.1421832,
+    "lon": 16.8854835,
+    "status": "ok",
+    "displayName": "3, Rajska, Złotniki, Leśnica, Wrocław, województwo dolnośląskie, 54-028, Polska",
+    "queriedAt": "2026-07-20T10:44:11.693Z"
+  },
+  "55-200 oława kasztanowa 2": {
+    "lat": 50.9464687,
+    "lon": 17.3134429,
+    "status": "ok",
+    "displayName": "2, Kasztanowa, Zaodrze, Oława, powiat oławski, województwo dolnośląskie, 55-200, Polska",
+    "queriedAt": "2026-07-20T10:44:50.766Z"
+  },
+  "59-800 lubań bazaltowa 1": {
+    "lat": 51.0986159,
+    "lon": 15.2737302,
+    "status": "ok",
+    "displayName": "1, Bazaltowa, Lubań, powiat lubański, województwo dolnośląskie, 58-900, Polska",
+    "queriedAt": "2026-07-20T10:43:11.832Z"
+  },
+  "63-200 jarocin szubianki 8": {
+    "lat": 51.96297,
+    "lon": 17.5,
+    "status": "ok",
+    "displayName": "8, Szubianki, Jarocin, gmina Jarocin, powiat jarociński, województwo wielkopolskie, 63-200, Polska",
+    "queriedAt": "2026-07-20T10:44:19.314Z"
+  },
+  "63-940 bojanowo giżyn 7": {
+    "lat": 51.67004,
+    "lon": 16.66325,
+    "status": "ok",
+    "displayName": "7, Giżyn, gmina Bojanowo, powiat rawicki, województwo wielkopolskie, 63-940, Polska",
+    "queriedAt": "2026-07-20T10:43:34.735Z"
+  },
+  "70-010 szczecin szczawiowa 54a": {
+    "lat": 53.3988015,
+    "lon": 14.5345715,
+    "status": "ok",
+    "displayName": "54a, Szczawiowa, Pomorzany, Zachód, Szczecin, województwo zachodniopomorskie, 70-010, Polska",
+    "queriedAt": "2026-07-20T10:44:55.930Z"
+  },
+  "84-207 koleczkowo": {
+    "lat": 54.4864358,
+    "lon": 18.3425972,
+    "status": "ok",
+    "displayName": "Koleczkowo, gmina Szemud, powiat wejherowski, województwo pomorskie, 84-207, Polska",
+    "queriedAt": "2026-07-20T10:43:12.979Z"
+  },
+  "87-100 toruń kanałowa 79": {
+    "lat": 53.037057,
+    "lon": 18.644945,
+    "status": "ok",
+    "displayName": "Redmax, 79/81, Kanałowa, Katarzynka, Toruń, województwo kujawsko-pomorskie, 87-100, Polska",
+    "queriedAt": "2026-07-20T10:44:16.842Z"
+  },
+  "87-100 toruń leszczynowa 3": {
+    "lat": 53.0267203,
+    "lon": 18.6525071,
+    "status": "ok",
+    "displayName": "3, Leszczynowa, Osiedle PZWANN, Winnica, Toruń, województwo kujawsko-pomorskie, 87-100, Polska",
+    "queriedAt": "2026-07-20T10:44:31.558Z"
+  },
+  "95-015 głowno sikorskiego 102": {
+    "lat": 51.95334,
+    "lon": 19.7164268,
+    "status": "ok",
+    "displayName": "Plasterek, 102, Generała Władysława Sikorskiego, Osiny, Głowno, gmina Dmosin, powiat zgierski, województwo łódzkie, 95-015, Polska",
+    "queriedAt": "2026-07-20T10:45:16.632Z"
+  },
+  "95-070 aleksandrów łódżki nowy adamów 3": {
+    "lat": 51.8338399,
+    "lon": 19.2454008,
+    "status": "ok",
+    "displayName": "Czarny Staw, 3, Nowy Adamów, gmina Aleksandrów Łódzki, powiat zgierski, województwo łódzkie, 95-070, Polska",
+    "queriedAt": "2026-07-20T10:44:01.548Z"
+  },
+  "95-100 emilia zgierska 24": {
+    "lat": 51.9160552,
+    "lon": 19.3645157,
+    "status": "ok",
+    "displayName": "24, Zgierska, Ciosny, Emilia, gmina Zgierz, powiat zgierski, województwo łódzkie, 95-100, Polska",
+    "queriedAt": "2026-07-20T10:45:00.845Z"
+  },
+  "98-220 zduńska wola opiesińska 19": {
+    "lat": 51.6120576,
+    "lon": 18.9378646,
+    "status": "ok",
+    "displayName": "19, Opiesińska, Osiedle Panorama, Stęszyce, Zduńska Wola, powiat zduńskowolski, województwo łódzkie, 98-220, Polska",
+    "queriedAt": "2026-07-20T10:44:04.141Z"
+  },
+  "98-270 złoczew parkowa 10c": {
+    "lat": 51.4158988,
+    "lon": 18.610482,
+    "status": "ok",
+    "displayName": "Parkowa, Złoczew, gmina Złoczew, powiat sieradzki, województwo łódzkie, 98-270, Polska",
+    "queriedAt": "2026-07-20T10:45:05.969Z"
+  }
+}

@@ -2,7 +2,24 @@
 
 > **Last Updated:** 2026-07-20  
 > **Task:** 0001_implementacja-druga-mila  
-> **Status:** docs ready — kod jeszcze nie
+> **Status:** Fazy 1–5 done — następna: Faza 6 (Apps Script Web App + POST)
+
+## Progress
+
+| Faza | Status |
+|------|--------|
+| 1 Scaffold | ✅ |
+| 2 readPoints + classify | ✅ |
+| 3 geocode + cache | ✅ 50/50 OK (`data/geocode-cache.json`) |
+| 4 buildMapHtml | ✅ `index.html` 51 pinezek |
+| 5 Modal / Word | ✅ embed `pusty.docx` + Biosystem przy manualnej |
+| 6 Apps Script | ⏳ wymaga wdrożenia Web App + `DRUGA_MILA_WEBAPP_URL` |
+| 7 Multi-select | ⏳ |
+| 8 Polish | ⏳ |
+
+### Geocode note (2026-07-20)
+
+Adresy w Excelu to „XX-XXX Miasto Ulica Numer”. Nominatim lepiej bierze „Ulica Numer, XX-XXX Miasto” — `buildGeocodeQueryVariants` próbuje warianty; fail nie jest cache'owany na stałe (retry przy kolejnym generate).
 
 ---
 

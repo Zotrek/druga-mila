@@ -1,0 +1,25 @@
+{
+  "name": "druga-mila",
+  "version": "0.1.0",
+  "description": "Mapa sieci Druga Mila: Excel → Leaflet HTML + Word + formatka Google",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "generate": "tsx src/run.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.6"
+  }
+}

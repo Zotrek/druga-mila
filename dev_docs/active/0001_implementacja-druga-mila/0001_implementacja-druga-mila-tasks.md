@@ -20,16 +20,16 @@
 
 ## Implementation
 
-- [ ] Faza 1: scaffold npm/TS/Vitest/`config.ts`
-- [ ] **CHECKPOINT 1:** `npm run build` + `npm test` — pass
-- [ ] Faza 2: `readPoints` + `classify` + testy
-- [ ] **CHECKPOINT 2:** unit classify/points — pass
-- [ ] Faza 3: `readPodwyko` + `geocode` + cache
-- [ ] **CHECKPOINT 3:** generate loguje punkty / zapisuje cache
-- [ ] Faza 4: `buildMapHtml` (mapa, legenda, search, filtr)
-- [ ] **CHECKPOINT 4:** lokalny HTML — pinezki + filtry OK
-- [ ] Faza 5: modal + Word + reguła Biosystem
-- [ ] **CHECKPOINT 5:** pobranie `.docx` bez Web App
+- [x] Faza 1: scaffold npm/TS/Vitest/`config.ts`
+- [x] **CHECKPOINT 1:** `npm run build` + `npm test` — pass ✅ (2026-07-20)
+- [x] Faza 2: `readPoints` + `classify` + testy
+- [x] **CHECKPOINT 2:** unit classify/points — pass ✅ (2026-07-20)
+- [x] Faza 3: `readPodwyko` + `geocode` + cache
+- [x] **CHECKPOINT 3:** generate loguje punkty / zapisuje cache ✅ (2026-07-20, 50/50 ok)
+- [x] Faza 4: `buildMapHtml` (mapa, legenda, search, filtr)
+- [x] **CHECKPOINT 4:** lokalny HTML — pinezki + filtry OK ✅ (2026-07-20, 51 pinezek)
+- [x] Faza 5: modal + Word + reguła Biosystem
+- [x] **CHECKPOINT 5:** pobranie `.docx` bez Web App ✅ (kod + embed; smoke w przeglądarce: pinezka → Generuj → Pobierz)
 - [ ] Faza 6: wdrożenie Web App + POST/GET w mapie
 - [ ] **CHECKPOINT 6:** wiersz w formatce, numer `DM1`→`DM2`
 - [ ] Faza 7: multi-select + README Pages
