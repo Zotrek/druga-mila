@@ -47,6 +47,10 @@ Jak `arkusz-mapa`: `podwyko lista.xlsx`
 - Kolumna B — treść do Worda („Dane”)  
 - Puste B → do dokumentu idzie treść z A  
 
-## Nazwa pobieranego pliku (propozycja v1)
+## Nazwa pobieranego pliku (v1 — zamrożone)
 
-Nazwa skrócona załadunku + spacja + data `dd.mm.rr` + spacja + fragment adresu (znaki niedozwolone → spacje; limit długości).
+`{nazwa_skrócona} {dd.mm.rr} {fragment_adresu}.docx`
+
+- Nazwa skrócona załadunku (kolumna B); jeśli pusta → `protokol`.
+- Data z modala w formacie `dd.mm.rr` (rok 2-cyfrowy); jeśli pusta → bez segmentu daty.
+- Fragment adresu (kolumna C), obcięty; znaki niedozwolone w nazwie pliku (`\/:*?"<>|`) → spacje; wielokrotne spacje → jedna; trim; limit całej nazwy bazowej ~80 znaków.

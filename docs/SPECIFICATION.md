@@ -99,7 +99,7 @@ Klik pinezki może podpowiedzieć ten punkt w comboboxie; pole nadal edytowalne 
 
 | Pole UI | Na Word | Na Google | Zachowanie |
 |---------|---------|-----------|------------|
-| Numer zlecenia | Tak | Tak | Auto z API (alfanumerycznie); można nadpisać lub zostawić puste |
+| Numer zlecenia | Tak | Tak | **Zawsze auto** z API przy generacji z mapy (podgląd nie rezerwuje; numer „żyje” dopiero po zapisie wiersza). Pole w UI może pokazywać podgląd; awaryjny nadpis ręczny tylko przez API |
 | Przewoźnik | Tak | „Kto odbiera” | Lista `podwyko` jak arkusz-mapa + search |
 | Miejsce dostawy | Tak | „Miejsce zrzutu” | Lista jak arkusz-mapa + search |
 | Dane do awizacji | Tak | „awizacja” | Nr rejestracyjny, **bez walidacji** |
@@ -148,11 +148,15 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 
 ### 8. Numeracja zlecenia
 
-- Podgląd + atomowy POST jak w `arkusz-mapa` (Apps Script + LockService).
+- Podgląd (`previewNumber` / `modalData`) + atomowy POST jak w `arkusz-mapa` (Apps Script + LockService).
 - Ten sam numer → Word i kolumna „Nr zlecenia transportowego”.
-- Prefiks tekstowy: `asd123` → następny `asd124` (inkrement końcowej liczby).
+- Prefiks tekstowy: `asd123` → następny `asd124`; `ABC100` → `ABC101` (mieszane prefiksy OK).
 - Czysto numeryczne: `1460` → `1461`.
-- Ręczny nadpis; puste dozwolone.
+- **Pusty arkusz / brak numerów:** pierwszy auto-numer = **`DM1`**, potem `DM2`, `DM3`, …
+- **Z mapy zawsze auto-numer** — nie wysyłamy pustego numeru przy generacji.
+- **Nie „palić” numeru przy podglądzie** — otwarcie modala / preview tylko pokazuje kandydat; rezerwacja dopiero po udanym zapisie wiersza do arkusza.
+- **Usunięcie wierszy z arkusza** — następny numer cofa się według tego, co zostało w kolumnie (źródło prawdy = arkusz). Przykład: były `DM1`…`DM5`, skasowano `DM4` i `DM5` → następny = `DM4`.
+- Źródło prawdy i API: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md).
 
 ---
 

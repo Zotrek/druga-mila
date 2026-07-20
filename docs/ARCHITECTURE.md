@@ -1,10 +1,10 @@
 # ARCHITECTURE.md — Druga Mila
 
-> **Status:** Szkic techniczny (Faza 2)  
+> **Status:** Gotowy do implementacji (Faza 2) — decyzje techniczne zamknięte 2026-07-20  
 > **Ostatnia aktualizacja:** 2026-07-20  
 > **Na podstawie:** `docs/SPECIFICATION.md`  
 > **Tworzony przez:** plan techniczny (wzorce UX z `arkusz-mapa`; **inny** model wdrożenia — strona statyczna)  
-> **Zatwierdzony przez:** (do podpisu przed implementacją kodu)
+> **Zatwierdzony przez:** (podpis biznesowy — checklista na dole)
 
 ---
 
@@ -105,32 +105,66 @@ Tagi: `numer_zlecenia_transportowego`, `miejsce_zaladunku`, `przewoznik`, `miejs
 
 ### Cache geokodu
 
-JSON w `data/` (commitowany) — wzorzec `arkusz-mapa` phase5, uproszczony. Odświeżany przy lokalnym `npm run generate`, gdy zmienia się Excel punktów. **Bez** Actions cache jako głównego mechanizmu.
+| Element | Wartość |
+|---------|---------|
+| Plik | **`data/geocode-cache.json`** (commitowany) |
+| Env (opcjonalnie) | `GEOCODE_CACHE_PATH` — domyślnie `./data/geocode-cache.json` |
+| Model | Uproszczony wzorzec `arkusz-mapa` phase5: klucz = znormalizowany adres → `{ lat, lon, status, … }` |
+| Odświeżanie | Tylko przy lokalnym `npm run generate` |
+
+**Bez** Actions cache jako głównego mechanizmu.
+
+---
+
+## Zmienne środowiskowe
+
+Plik: [`.env.example`](../.env.example). Lokalnie: `.env` (nie commitować).
+
+| Zmienna | Wymagana | Opis |
+|---------|----------|------|
+| `DRUGA_MILA_WEBAPP_URL` | Do zapisu Sheets / auto-numeru | URL Web App (`…/exec`). Bez niej: Word lokalnie, bez POST / bez podglądu numeru |
+| `GOOGLE_FORMATKA_SHEETS_ID` | Nie (dokumentacja) | `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0` |
+| `GEOCODE_CACHE_PATH` | Nie | Domyślnie `./data/geocode-cache.json` |
+| `OUTPUT_HTML` | Nie | Domyślnie `./index.html` (root = Pages) |
+| `NOMINATIM_USER_AGENT` | Nie | Domyślnie stała w `config.ts` (nazwa + kontakt) |
+
+Brak Service Account w v1 (punkty z Excela w repo). URL Web App jest **wbudowywany w HTML przy buildzie** (jak sekrety runtime w plombach, ale bez CI — wartość z lokalnego `.env`).
 
 ---
 
 ## API Apps Script (formatka)
 
-Osobny Web App (nie współdzielić numeracji z mapą plomb).
+Osobny Web App (nie współdzielić numeracji z mapą plomb).  
+Deploy + kontrakt: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md). Kod: [`google-apps-script/formatka-log.gs`](../google-apps-script/formatka-log.gs).
 
 | Metoda | Akcja | Opis |
 |--------|-------|------|
-| GET | `previewNumber` / `modalData` | Podgląd następnego numeru (alfanumeryczny) |
-| POST | JSON body | LockService → append wiersza formatki → zwrot `numer` |
+| GET | `action=previewNumber` | Podgląd następnego numeru (**skan arkusza**, bez rezerwacji) |
+| GET | `action=modalData` | **Tylko numer** `{ ok, numer }` — **bez** `lastTransportDate` (DM nie filtruje plomb) |
+| POST | JSON, `Content-Type: text/plain` | LockService → append → zwrot `{ ok, numer }` (numer zużyty dopiero po zapisie) |
 
-### `nextNumber` alfanumeryczny
+> `modalData` w plombach zwraca też ostatnią datę transportu. W DM **nie** — endpoint zostaje dla spójności UX (jeden GET przy otwarciu modala), ale payload to wyłącznie podgląd numeru.
 
-1. Weź ostatni / max znany numer zlecenia (Script Properties + ewentualnie skan).
-2. Match `^(.*?)(\d+)$` — prefiks + liczba.
-3. Zwróć `prefix + (liczba+1)` z zachowaniem długości zer wiodących liczby, jeśli występują; v1: bez wymogu paddingu, wystarczy `asd123`→`asd124`.
-4. Samo `\d+` → inkrement liczby.
-5. Brak numerów → start uzgodniony przy wdrożeniu (np. `1` lub `DM1`).
+### Numeracja alfanumeryczna (zamknięte)
+
+| Element | Decyzja |
+|---------|---------|
+| Start (pusty arkusz / brak numerów) | **`DM1`** |
+| Źródło prawdy | Kolumna „Nr zlecenia” w arkuszu (skan przy preview i POST) |
+| Script Property `formatkaLastNumber` | Cache po udanym zapisie — **nie** pali numerów przy podglądzie |
+| Regex | `^(.*?)(\d+)$` → prefiks + liczba; samo `\d+` → prefiks pusty |
+| Auto next | Inkrement względem max w arkuszu; v1 **bez** paddingu zer (`DM9`→`DM10`, `ABC100`→`ABC101`) |
+| Z mapy | **Zawsze auto-numer** przy generacji |
+| Podgląd | Nie rezerwuje / nie „pali” numeru |
+| Usunięcie wierszy | Następny numer **cofa się** do luk (max pozostałych + 1) |
+| Ręczny `numer` w POST | Tylko awaryjnie (API); mapa v1 nie polega na nadpisie |
+| Mieszane prefiksy (v1) | **Zaakceptowane:** max po liczbie końcowej; remis → późniejszy wiersz |
 
 Body POST (kierunek pól):
 
 ```json
 {
-  "numer": "asd124",
+  "numer": "DM2",
   "numerFaktury": "",
   "stawka": "…",
   "czyProtokolZrobiony": "tak",
@@ -226,10 +260,62 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 | Ryzyko | Mitygacja |
 |--------|-----------|
 | Kolizja numeracji z mapą plomb | Osobny arkusz + osobny Web App |
-| Prefiksy numerów mieszane | Reguła: inkrement względem ostatniego zapisanego / cached max — przy wdrożeniu jak arkusz-mapa |
+| Prefiksy numerów mieszane | Zaakceptowane: max po liczbie końcowej w arkuszu |
+| Usunięte numery / „palenie” | Źródło prawdy = arkusz; preview nie rezerwuje; delete → cofnięcie |
 | Geocode / Nominatim | Cache commitowany; rebuild tylko przy zmianie Excela |
 | Zapomniany rebuild po edycji Excela | Dokumentacja workflow; Pages pokazuje stare dane do następnego generate |
 | Wiersze bez adresu w Excelu | Pomijane na mapie |
+
+---
+
+## Moduły `src/` (mapa plików)
+
+| Plik | Odpowiedzialność |
+|------|------------------|
+| `src/config.ts` | Env, ścieżki, hex kolorów, UA Nominatim, nazwy arkuszy Excel |
+| `src/classify.ts` | Klasyfikacja koloru: Bolęcin → CD → PLAC → puste |
+| `src/readPoints.ts` | Odczyt `druga-mila.xlsx` (Załadunek); pomijanie pustego C |
+| `src/readPodwyko.ts` | Odczyt `podwyko lista.xlsx` (A=UI, B=Word) |
+| `src/geocode.ts` | Nominatim + rate limit + `data/geocode-cache.json` |
+| `src/buildMapHtml.ts` | Szablon Leaflet: pinezki, legenda, search, filtr, modal, embed docx/podwyko/URL Web App |
+| `src/run.ts` | Pipeline CLI: points → geocode → build → zapis `index.html` |
+| `src/nextNumber.ts` | Czysta funkcja inkrementu alfanumerycznego (testowana; lustro logiki `.gs`) |
+| `src/searchNormalize.ts` | Port `normalizeForAddressSearch` / match z `arkusz-mapa` |
+| `src/*.test.ts` | Vitest |
+
+**Reuse z `arkusz-mapa` (port, nie zależność runtime):** search normalize, combobox UX, PizZip+docxtemplater w przeglądarce, wzorzec Web App.  
+**Nie kopiować:** pipeline plomb, filtr worków, lastTransportDate, CI/cron Pages.
+
+### Zależności npm (v1)
+
+| Pakiet | Rola |
+|--------|------|
+| `xlsx` | Odczyt Excel |
+| `dotenv` | `.env` |
+| `typescript`, `tsx`, `@types/node` | Build / CLI |
+| `vitest` | Testy |
+| (w HTML CDN lub embed) | Leaflet, PizZip, docxtemplater — jak w mapie plomb |
+
+### Skrypty npm
+
+| Skrypt | Komenda | Opis |
+|--------|---------|------|
+| `generate` | `tsx src/run.ts` | Pełny lokalny rebuild → `index.html` |
+| `build` | `tsc --noEmit` (lub `tsc`) | Sprawdzenie typów |
+| `test` | `vitest run` | Testy jednostkowe |
+
+---
+
+## Strategia testów
+
+| Warstwa | Co | Narzędzie |
+|---------|-----|-----------|
+| Unit | `nextNumber` (brak→`DM1`, `DM1`→`DM2`, `asd123`→`asd124`, `ABC100`→`ABC101`; skan max po usunięciu) | Vitest |
+| Unit | `classify` (kolejność Bolęcin / CD / PLAC / puste) | Vitest |
+| Unit | Search normalize + match | Vitest |
+| Unit | Parse wiersza Załadunek / pomijanie pustego C | Vitest |
+| Manual / smoke | `npm run generate` lokalnie; otwarcie `index.html`; modal Word; POST do Web App | Checklist w `-tasks.md` |
+| Poza v1 | E2E przeglądarkowy, CI | — |
 
 ---
 
@@ -238,17 +324,19 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 ```
 druga-mila/
   index.html                  # wynik lokalnego generate / placeholder Pages — root = publikacja
+  .env.example
   docs/SPECIFICATION.md
   docs/ARCHITECTURE.md
   docs/FORMATKA_GOOGLE.md
+  docs/FORMATKA_SHEET.md      # deploy Apps Script + API
   docs/SZABLON_WORD_tagi.md
   docs/pusty.docx
   docs/podwyko lista.xlsx
   data/druga-mila.xlsx
   data/formatka-druga-mila.xlsx
-  data/…-geocode-cache.json   # (po implementacji)
-  src/                        # (implementacja — później)
-  google-apps-script/         # (później)
+  data/geocode-cache.json     # po pierwszym generate
+  src/                        # implementacja
+  google-apps-script/formatka-log.gs
 ```
 
 Brak katalogu `.github/workflows/` w v1 — publikacja przez Pages „Deploy from a branch” + folder `/ (root)`. Brak folderu `site/` — GitHub nie pozwala wybrać go jako źródła Pages.
@@ -257,12 +345,15 @@ Brak katalogu `.github/workflows/` w v1 — publikacja przez Pages „Deploy fro
 
 ## Zatwierdzenie
 
-- [ ] Plan przeczytany
-- [ ] Formatka Google i numeracja alfanumeryczna zaakceptowane
-- [ ] Model statyczny (lokalny rebuild, bez cyklicznego CI) zaakceptowany
-- [ ] Gotowy do implementacji kodu
+**Zamknięte (2026-07-20):** start `DM1`, mieszane prefiksy OK, auto z mapy, preview nie pali, delete cofa numerację, env/cache/moduły/testy, kontrakt Apps Script, model statyczny Pages.
 
-**Zatwierdzający:** _____________ - _____________
+- [x] Plan techniczny uzupełniony (moduły, env, cache, testy, numeracja)
+- [x] Numer startowy = `DM1`
+- [x] Formatka Google i reguła mieszanych prefiksów zaakceptowane biznesowo
+- [x] Model statyczny (lokalny rebuild, bez cyklicznego CI) zaakceptowany
+- [x] Gotowy do implementacji kodu (Faza 1 scaffold)
+
+**Zatwierdzający:** użytkownik (decyzje 2026-07-20) + dokumentacja w repo
 
 ---
 

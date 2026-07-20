@@ -1,0 +1,44 @@
+# Tasks: Implementacja Druga Mila
+
+> **Task:** 0001_implementacja-druga-mila  
+> **Updated:** 2026-07-20
+
+---
+
+## Documentation (przed kodem)
+
+- [x] Numer startowy = `DM1` (SPEC + ARCH + FORMATKA_SHEET + `.gs`)
+- [x] `.env.example` + wyjątek w `.gitignore`
+- [x] `docs/FORMATKA_SHEET.md` (deploy + API)
+- [x] `google-apps-script/formatka-log.gs`
+- [x] Moduły / npm / testy / cache w ARCHITECTURE
+- [x] Nazwa pliku Word zamrożona w SZABLON_WORD_tagi
+- [x] Plan + context + tasks (ten folder)
+- [x] Mieszane prefiksy OK (`ABC100`→`ABC101`)
+- [x] Auto z mapy; preview nie pali; delete cofa numerację
+- [x] Podpis / go do kodu (ARCHITECTURE checklist)
+
+## Implementation
+
+- [ ] Faza 1: scaffold npm/TS/Vitest/`config.ts`
+- [ ] **CHECKPOINT 1:** `npm run build` + `npm test` — pass
+- [ ] Faza 2: `readPoints` + `classify` + testy
+- [ ] **CHECKPOINT 2:** unit classify/points — pass
+- [ ] Faza 3: `readPodwyko` + `geocode` + cache
+- [ ] **CHECKPOINT 3:** generate loguje punkty / zapisuje cache
+- [ ] Faza 4: `buildMapHtml` (mapa, legenda, search, filtr)
+- [ ] **CHECKPOINT 4:** lokalny HTML — pinezki + filtry OK
+- [ ] Faza 5: modal + Word + reguła Biosystem
+- [ ] **CHECKPOINT 5:** pobranie `.docx` bez Web App
+- [ ] Faza 6: wdrożenie Web App + POST/GET w mapie
+- [ ] **CHECKPOINT 6:** wiersz w formatce, numer `DM1`→`DM2`
+- [ ] Faza 7: multi-select + README Pages
+- [ ] **CHECKPOINT 7:** smoke hurt + dokumentacja workflow
+- [ ] Faza 8: polish + sync docs
+- [ ] **CHECKPOINT 8:** full smoke — no regressions vs SPEC
+
+## Documentation Updates
+
+- [ ] Update `-tasks.md` after each subtask
+- [ ] Update `-context.md` if decisions change
+- [ ] Update `-plan.md` if requirements change

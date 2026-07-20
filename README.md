@@ -8,27 +8,31 @@ W przeciwieństwie do `arkusz-mapa` mapa **nie jest cyklicznie regenerowana** pr
 
 ## Status
 
-Dokumentacja Fazy 1–2 uzupełniona (mapa, Word, formatka, model statyczny). **Kod aplikacji jeszcze nie.**
+Dokumentacja Fazy 1–2 **gotowa do implementacji** (SPEC + ARCH + kontrakt Apps Script). Numer startowy: **`DM1`**.  
+**Kod aplikacji (mapa / `src/`) jeszcze nie** — zadanie: `dev_docs/active/0001_implementacja-druga-mila/`.
 
 ## Dokumentacja
 
 | Plik | Opis |
 |------|------|
 | [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) | Specyfikacja biznesowa |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Plan techniczny (build lokalny, Pages) |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Plan techniczny (build lokalny, Pages, moduły, testy) |
 | [`docs/FORMATKA_GOOGLE.md`](docs/FORMATKA_GOOGLE.md) | Mapowanie kolumn Google |
+| [`docs/FORMATKA_SHEET.md`](docs/FORMATKA_SHEET.md) | Deploy Apps Script + API Web App |
 | [`docs/SZABLON_WORD_tagi.md`](docs/SZABLON_WORD_tagi.md) | Tagi szablonu Word |
 | [`docs/pusty.docx`](docs/pusty.docx) | Szablon protokołu DM + tagi |
 | [`docs/podwyko lista.xlsx`](docs/podwyko%20lista.xlsx) | Przewoźnik + miejsca dostawy (kopia z `arkusz-mapa`) |
 | [`data/druga-mila.xlsx`](data/druga-mila.xlsx) | Punkty Załadunek / Rozładunek |
 | [`data/formatka-druga-mila.xlsx`](data/formatka-druga-mila.xlsx) | Wzór formatki Google |
+| [`.env.example`](.env.example) | `DRUGA_MILA_WEBAPP_URL`, ID arkusza, cache |
+| [`google-apps-script/formatka-log.gs`](google-apps-script/formatka-log.gs) | Kod Web App (wkleić do arkusza formatki) |
 
 ## Zakres w skrócie
 
 - Mapa: CD (niebieski), PLAC (zielony), puste (fiolet), Bolęcin (pomarańcz)
 - Search + filtr typu; combobox załadunku = nazwa skrócona (search po A/B/C; Word = pełna + adres)
 - Word: numer, załadunek, przewoźnik, dostawa, awizacja, data — wszystko opcjonalne
-- Google: formatka z „Czy protokół zrobiony” = tak; Stawka z modala (nie na Word); Numer faktury puste; numeracja `asd123`→`asd124`
+- Google: formatka z „Czy protokół zrobiony” = tak; Stawka z modala (nie na Word); Numer faktury puste; numeracja **`DM1`→`DM2`…**
 - Hosting: GitHub Pages (statyczny HTML)
 
 ## Aktualizacja danych (po wdrożeniu kodu)
@@ -44,7 +48,7 @@ Na razie w rootcie jest `index.html` (placeholder); po implementacji build zast�
 
 ## Następny krok
 
-Implementacja kodu (osobne zadanie) — bez Symfony/Vue/PostgreSQL w v1.
+Implementacja kodu wg `dev_docs/active/0001_implementacja-druga-mila/` — bez Symfony/Vue/PostgreSQL w v1.
 
 ## Sync reguł Cursora (opcjonalnie)
 

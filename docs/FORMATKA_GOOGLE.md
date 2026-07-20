@@ -11,7 +11,7 @@ Przy generacji protokołu z mapy Apps Script dopisuje **jeden wiersz** (kolejno�
 | 1 | Numer faktury | Zawsze puste (brak pola w UI) |
 | 2 | Stawka | Z pola „Stawka” w modalu generacji (opcjonalne; **nie** na protokole Word) |
 | 3 | Czy protokół zrobiony | Zawsze `tak` |
-| 4 | Nr zlecenia transportowego | Ten sam numer co w Word (auto alfanumeryczne lub ręczne) |
+| 4 | Nr zlecenia transportowego | Ten sam numer co w Word (**auto** z API; numer żyje po zapisie wiersza) |
 | 5 | Adres odbioru | Kolumna C (Adres) wybranego miejsca załadunku z `druga-mila.xlsx` |
 | 6 | Nazwa kontrahenta / podmiot handlowy | Kolumna A (Nazwa pełna) miejsca załadunku |
 | 7 | Data odbioru | Data załadunku z modala |
@@ -23,4 +23,5 @@ Przy generacji protokołu z mapy Apps Script dopisuje **jeden wiersz** (kolejno�
 | 13 | awizacja | = pole „Dane do awizacji” z modala / Word |
 | 14 | znacznik miejsca | Puste (v1) |
 
-Szczegóły numeracji i opcjonalności pól: [`SPECIFICATION.md`](SPECIFICATION.md).
+Szczegóły numeracji i opcjonalności pól: [`SPECIFICATION.md`](SPECIFICATION.md).  
+Deploy Web App + API: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md) (start numeru: **`DM1`**).
