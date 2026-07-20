@@ -36,7 +36,9 @@ Dokumentacja Fazy 1–2 uzupełniona (mapa, Word, formatka, model statyczny). **
 1. Edytuj `data/druga-mila.xlsx` i/lub `docs/podwyko lista.xlsx`.
 2. Lokalnie: `npm run generate`.
 3. Commit `site/` (+ cache geokodu) → push.
-4. Pages pokazuje nowe pinezki / listy — publikacja przez „Deploy from a branch”, **bez GitHub Actions**.
+4. Pages pokazuje nowe pinezki / listy — publikacja przez „Deploy from a branch” (`main`, folder `/site`), **bez GitHub Actions**.
+
+Na razie w `site/index.html` jest placeholder do sprawdzenia Pages; po implementacji build zastąpi go mapą.
 
 ## Następny krok
 
