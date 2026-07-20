@@ -21,7 +21,7 @@ Przy generacji protokołu z mapy Apps Script dopisuje **jeden wiersz** (kolejno�
 | 11 | Ile worków | Z modala |
 | 12 | rodzaj traportu | Z modala (pisownia kolumny jak w formatce) |
 | 13 | awizacja | = pole „Dane do awizacji” z modala / Word |
-| 14 | znacznik miejsca | Puste (v1) |
+| 14 | znacznik miejsca | Typ punktu z kolumny D Załadunek (`CD` / `PLAC` / puste) |
 
 Szczegóły numeracji i opcjonalności pól: [`SPECIFICATION.md`](SPECIFICATION.md).  
 Deploy Web App + API: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md) (start numeru: **`DM1`**).

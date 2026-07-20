@@ -72,7 +72,7 @@ Funkcja **`rebuildFormatkaCounterFromSheet`** (Run) — opcjonalna synchronizacj
   "ileWorkow": "10",
   "rodzajTransportu": "busy",
   "awizacja": "WX12345",
-  "znacznikMiejsca": ""
+  "znacznikMiejsca": "CD"
 }
 ```
 

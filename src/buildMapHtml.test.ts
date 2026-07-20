@@ -61,7 +61,7 @@ describe('buildMapHtml', () => {
           templateBase64: 'dGVzdA==',
           podwykoOptions: [{ label: 'Biosystem', value: '32-540 Bolęcin' }],
           loadPoints: [
-            { nazwaPelna: 'CD Test', nazwaSkrocona: 'TEST', adres: '00-001 Warszawa' },
+            { nazwaPelna: 'CD Test', nazwaSkrocona: 'TEST', adres: '00-001 Warszawa', typ: 'CD' },
           ],
         },
       },
@@ -73,6 +73,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('docxtemplater');
     expect(html).toContain('appendFormatkaRow');
     expect(html).toContain('czyProtokolZrobiony');
+    expect(html).toContain('znacznikMiejsca: String(zal.typ');
+    expect(html).toContain('"typ":"CD"');
     expect(html).toContain('map-bulk-panel');
     expect(html).toContain('openBulkDocModal');
     expect(html).toContain('map-manual-generate');

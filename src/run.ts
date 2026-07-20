@@ -52,6 +52,7 @@ async function main(): Promise<void> {
       nazwaPelna: p.nazwaPelna,
       nazwaSkrocona: p.nazwaSkrocona,
       adres: p.adres,
+      typ: p.typ,
     })),
   };
 

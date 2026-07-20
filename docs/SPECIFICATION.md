@@ -144,7 +144,7 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 | Ile worków | Z modala |
 | rodzaj traportu | Z modala |
 | awizacja | = Dane do awizacji |
-| znacznik miejsca | Puste (v1) |
+| znacznik miejsca | Typ punktu (kolumna D Załadunek: `CD` / `PLAC` / puste) |
 
 ### 8. Numeracja zlecenia
 
@@ -208,7 +208,7 @@ Geokodowanie adresów dzieje się **tylko przy rebuildzie** (cache JSON), nie pr
 - Edycja punktów z mapy.
 - Pinezki z arkusza Rozładunek.
 - Lista plomb w protokole.
-- Wypełnianie „Numer faktury” i „znacznik miejsca” z mapy (Stawka — tak, tylko w modalu → Google).
+- Wypełnianie „Numer faktury” z mapy (Stawka — tak, tylko w modalu → Google; znacznik miejsca = typ CD/PLAC z Załadunek).
 - Scalenie z mapą plomb.
 - Cykliczna regeneracja mapy przez GitHub Actions / `on.schedule` / zewnętrzny cron (model `arkusz-mapa`).
 

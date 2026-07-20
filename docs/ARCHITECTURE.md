@@ -177,11 +177,11 @@ Body POST (kierunek pól):
   "ileWorkow": "10",
   "rodzajTransportu": "…",
   "awizacja": "WX12345",
-  "znacznikMiejsca": ""
+  "znacznikMiejsca": "CD"
 }
 ```
 
-`numerFaktury` — zawsze puste (brak UI). `stawka` — z pola modala (opcjonalne; nie w Word).
+`numerFaktury` — zawsze puste (brak UI). `stawka` — z pola modala (opcjonalne; nie w Word). `znacznikMiejsca` — typ z kolumny D Załadunek (`CD` / `PLAC` / puste).
 
 ---
 

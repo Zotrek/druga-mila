@@ -9,6 +9,8 @@ export interface WordMapEmbed {
     nazwaPelna: string;
     nazwaSkrocona: string;
     adres: string;
+    /** Kolumna D z Załadunek (CD / PLAC / puste) → formatka „znacznik miejsca”. */
+    typ: string;
   }>;
 }
 
@@ -695,7 +697,7 @@ export function wordModalBrowserScript(): string {
       }
       var typed = document.getElementById('doc-sel-zaladunek');
       var t = typed ? String(typed.value).trim() : '';
-      return { nazwaPelna: t, nazwaSkrocona: t, adres: '' };
+      return { nazwaPelna: t, nazwaSkrocona: t, adres: '', typ: '' };
     }
     window.__docPreviewNumer = '';
     function previewNumerFromApi() {
@@ -777,7 +779,7 @@ export function wordModalBrowserScript(): string {
         ileWorkow: String(shared.worki || '').trim(),
         rodzajTransportu: String(shared.transport || '').trim(),
         awizacja: String(shared.awizacja || '').trim(),
-        znacznikMiejsca: ''
+        znacznikMiejsca: String(zal.typ || '').trim()
       };
     }
     function delayMs(ms) {
