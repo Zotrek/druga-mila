@@ -321,7 +321,11 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
         '<label><input type="radio" name="map-type-filter" value="bolecin" /> Bolęcin</label>' +
         '</div></div>' +
         (wordDocEnabled
-          ? '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
+          ? '<div class="map-manual-gen-wrap">' +
+            '<button type="button" id="map-manual-generate" class="map-manual-generate" title="Otwórz formularz i wybierz miejsce załadunku z listy">Generuj (wybór ręczny)</button>' +
+            '<button type="button" id="map-manual-bulk-generate" class="map-manual-bulk-generate" title="Zaznacz kilka miejsc z listy i generuj hurtowo">Hurtowo (wybór ręczny)</button>' +
+            '</div>' +
+            '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
             '<span id="map-bulk-count" class="map-bulk-count"></span>' +
             '<button type="button" id="map-bulk-generate" class="map-bulk-generate">Generuj hurtowo</button>' +
             '<button type="button" id="map-bulk-clear" class="map-bulk-clear">Wyczyść</button>' +
@@ -342,6 +346,10 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
 ${
   wordEnabled
     ? `
+    var manualGenBtn = document.getElementById('map-manual-generate');
+    if (manualGenBtn) manualGenBtn.addEventListener('click', function() { openDocModal(); });
+    var manualBulkGenBtn = document.getElementById('map-manual-bulk-generate');
+    if (manualBulkGenBtn) manualBulkGenBtn.addEventListener('click', function() { openManualBulkPicker(); });
     var bulkGenBtn = document.getElementById('map-bulk-generate');
     var bulkClearBtn = document.getElementById('map-bulk-clear');
     if (bulkGenBtn) bulkGenBtn.addEventListener('click', function() { openBulkDocModal(); });

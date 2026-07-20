@@ -44,6 +44,17 @@ export function wordModalCss(): string {
     .popup-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
     .popup-bulk-select { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: #333; margin: 0; font-weight: 400; }
     .popup-bulk-select input { margin: 0; flex-shrink: 0; }
+    .map-manual-gen-wrap { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8e8e8; display: flex; flex-direction: column; gap: 6px; }
+    .map-manual-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #0d6efd; background: #0d6efd; color: #fff; cursor: pointer; }
+    .map-manual-generate:hover { filter: brightness(1.05); }
+    .map-manual-bulk-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #198754; background: #198754; color: #fff; cursor: pointer; }
+    .map-manual-bulk-generate:hover { filter: brightness(1.05); }
+    .manual-bulk-list { margin-top: 8px; max-height: min(320px, 50vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
+    .manual-bulk-list label { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; font-weight: 400; color: #333; margin: 0; padding: 4px 2px; cursor: pointer; }
+    .manual-bulk-list label:hover { background: #eef5ff; border-radius: 4px; }
+    .manual-bulk-list input { margin: 2px 0 0; flex-shrink: 0; }
+    .manual-bulk-list .manual-bulk-meta { color: #666; font-size: 11px; }
+    .manual-bulk-count-hint { font-size: 12px; color: #0d6efd; margin: 8px 0 0; min-height: 1.2em; }
     .map-bulk-panel { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8e8e8; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .map-bulk-panel[hidden] { display: none !important; }
     .map-bulk-count { font-size: 12px; color: #333; flex: 1; min-width: 120px; }
@@ -53,7 +64,20 @@ export function wordModalCss(): string {
 }
 
 export function wordModalHtml(): string {
-  return `  <div id="doc-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
+  return `  <div id="manual-bulk-picker" class="doc-modal-overlay" style="display:none" aria-hidden="true">
+    <div class="doc-modal-panel" role="dialog" aria-labelledby="manual-bulk-title">
+      <h3 id="manual-bulk-title">Hurt — wybór załadunków</h3>
+      <label for="manual-bulk-search">Filtr listy</label>
+      <input type="search" id="manual-bulk-search" placeholder="Nazwa skrócona / pełna / adres…" autocomplete="off" spellcheck="false" />
+      <div id="manual-bulk-list" class="manual-bulk-list" role="group" aria-label="Miejsca załadunku"></div>
+      <p id="manual-bulk-count-hint" class="manual-bulk-count-hint" aria-live="polite">0 wybranych</p>
+      <div class="doc-modal-actions">
+        <button type="button" id="manual-bulk-cancel">Anuluj</button>
+        <button type="button" id="manual-bulk-next" class="primary">Dalej</button>
+      </div>
+    </div>
+  </div>
+  <div id="doc-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="doc-modal-title">
       <h3 id="doc-modal-title">Generuj protokół Word</h3>
       <div id="doc-single-numer-wrap">
@@ -259,7 +283,8 @@ export function wordModalBrowserScript(): string {
       window.__bulkDocLoadIdxs = [];
       setDocModalMode('single');
       resetDocModal();
-      if (typeof prefillIdx === 'number' && LOAD_POINTS[prefillIdx]) {
+      var hasPrefill = typeof prefillIdx === 'number' && LOAD_POINTS[prefillIdx];
+      if (hasPrefill) {
         selectZaladunek(prefillIdx);
       }
       var dateEl = document.getElementById('doc-inp-data');
@@ -268,11 +293,17 @@ export function wordModalBrowserScript(): string {
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       previewNumerFromApi();
+      if (!hasPrefill) {
+        var zalInp = document.getElementById('doc-sel-zaladunek');
+        if (zalInp) {
+          setTimeout(function() { zalInp.focus(); }, 0);
+        }
+      }
     }
-    function openBulkDocModal() {
+    function openBulkDocModal(indicesOpt) {
       var m = document.getElementById('doc-modal');
       if (!m || !wordDocEnabled) return;
-      var indices = getBulkSelectedLoadIdxs();
+      var indices = (indicesOpt && indicesOpt.length) ? indicesOpt.slice() : getBulkSelectedLoadIdxs();
       if (indices.length === 0) {
         alert('Zaznacz co najmniej jeden punkt do hurtu.');
         return;
@@ -309,6 +340,93 @@ export function wordModalBrowserScript(): string {
         .catch(function() {
           if (bulkNumerInfo) bulkNumerInfo.textContent = 'Nie udało się pobrać podglądu — przy generacji i tak auto z API.';
         });
+    }
+    window.__manualBulkPickIdxs = window.__manualBulkPickIdxs || {};
+    function getManualBulkPickIdxs() {
+      var out = [];
+      var sel = window.__manualBulkPickIdxs || {};
+      Object.keys(sel).forEach(function(k) {
+        if (!sel[k]) return;
+        var idx = parseInt(k, 10);
+        if (!isNaN(idx) && LOAD_POINTS[idx]) out.push(idx);
+      });
+      out.sort(function(a, b) { return a - b; });
+      return out;
+    }
+    function updateManualBulkCountHint() {
+      var el = document.getElementById('manual-bulk-count-hint');
+      if (!el) return;
+      var n = getManualBulkPickIdxs().length;
+      el.textContent = n === 1 ? '1 wybrany' : (n + ' wybranych');
+    }
+    function renderManualBulkList() {
+      var listEl = document.getElementById('manual-bulk-list');
+      var searchEl = document.getElementById('manual-bulk-search');
+      if (!listEl) return;
+      var q = normQ(searchEl ? searchEl.value : '');
+      listEl.innerHTML = '';
+      var shown = 0;
+      for (var i = 0; i < LOAD_POINTS.length; i++) {
+        var p = LOAD_POINTS[i];
+        if (!p) continue;
+        var label = p.nazwaSkrocona || p.nazwaPelna || '';
+        var hay = normQ(label + ' ' + (p.nazwaPelna || '') + ' ' + (p.adres || ''));
+        if (q && hay.indexOf(q) === -1) continue;
+        var row = document.createElement('label');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.loadIdx = String(i);
+        cb.checked = !!(window.__manualBulkPickIdxs && window.__manualBulkPickIdxs[i]);
+        cb.addEventListener('change', function() {
+          var ix = parseInt(this.dataset.loadIdx, 10);
+          if (!window.__manualBulkPickIdxs) window.__manualBulkPickIdxs = {};
+          if (this.checked) window.__manualBulkPickIdxs[ix] = true;
+          else delete window.__manualBulkPickIdxs[ix];
+          updateManualBulkCountHint();
+        });
+        var textWrap = document.createElement('span');
+        textWrap.innerHTML = escapeHtmlMap(label) +
+          '<div class="manual-bulk-meta">' + escapeHtmlMap(p.adres || '') + '</div>';
+        row.appendChild(cb);
+        row.appendChild(textWrap);
+        listEl.appendChild(row);
+        shown++;
+      }
+      if (shown === 0) {
+        var empty = document.createElement('p');
+        empty.className = 'manual-bulk-meta';
+        empty.textContent = 'Brak dopasowań';
+        listEl.appendChild(empty);
+      }
+      updateManualBulkCountHint();
+    }
+    function openManualBulkPicker() {
+      var m = document.getElementById('manual-bulk-picker');
+      if (!m || !wordDocEnabled) return;
+      window.__manualBulkPickIdxs = {};
+      var searchEl = document.getElementById('manual-bulk-search');
+      if (searchEl) searchEl.value = '';
+      renderManualBulkList();
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      if (searchEl) {
+        setTimeout(function() { searchEl.focus(); }, 0);
+      }
+    }
+    function closeManualBulkPicker() {
+      var m = document.getElementById('manual-bulk-picker');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+    }
+    function confirmManualBulkPicker() {
+      var indices = getManualBulkPickIdxs();
+      if (indices.length === 0) {
+        alert('Zaznacz co najmniej jedno miejsce załadunku.');
+        return;
+      }
+      closeManualBulkPicker();
+      openBulkDocModal(indices);
     }
     function closeDocModal() {
       var m = document.getElementById('doc-modal');
@@ -764,6 +882,18 @@ export function wordModalBrowserScript(): string {
     document.getElementById('doc-modal').addEventListener('click', function(ev) {
       if (ev.target === this) closeDocModal();
     });
+    var manualBulkCancel = document.getElementById('manual-bulk-cancel');
+    var manualBulkNext = document.getElementById('manual-bulk-next');
+    var manualBulkSearch = document.getElementById('manual-bulk-search');
+    var manualBulkPicker = document.getElementById('manual-bulk-picker');
+    if (manualBulkCancel) manualBulkCancel.addEventListener('click', closeManualBulkPicker);
+    if (manualBulkNext) manualBulkNext.addEventListener('click', confirmManualBulkPicker);
+    if (manualBulkSearch) manualBulkSearch.addEventListener('input', renderManualBulkList);
+    if (manualBulkPicker) {
+      manualBulkPicker.addEventListener('click', function(ev) {
+        if (ev.target === this) closeManualBulkPicker();
+      });
+    }
     var dateTextEl = document.getElementById('doc-inp-data');
     var datePickEl = document.getElementById('doc-inp-data-picker');
     var dateCalBtn = document.getElementById('doc-btn-data-cal');

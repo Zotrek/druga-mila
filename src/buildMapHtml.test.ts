@@ -75,6 +75,12 @@ describe('buildMapHtml', () => {
     expect(html).toContain('czyProtokolZrobiony');
     expect(html).toContain('map-bulk-panel');
     expect(html).toContain('openBulkDocModal');
+    expect(html).toContain('map-manual-generate');
+    expect(html).toContain('Generuj (wybór ręczny)');
+    expect(html).toContain('map-manual-bulk-generate');
+    expect(html).toContain('Hurtowo (wybór ręczny)');
+    expect(html).toContain('manual-bulk-picker');
+    expect(html).toContain('openManualBulkPicker');
     expect(html).toContain('Zaznacz do hurtu');
     expect(html).toContain('defaultDateZaladunkuYmd');
   });
