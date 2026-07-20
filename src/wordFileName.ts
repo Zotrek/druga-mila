@@ -1,5 +1,5 @@
 /**
- * Nazwa pliku .docx (SPEC / SZABLON_WORD_tagi).
+ * Nazwa pliku .docx + format daty jak arkusz-mapa (dd.mm.rrrr / dd.mm.rr).
  * `{nazwa_skrócona} {dd.mm.rr} {fragment_adresu}.docx`
  */
 
@@ -10,40 +10,74 @@ export function sanitizeFileNamePart(text: string): string {
     .trim();
 }
 
+export interface FormattedLoadDates {
+  /** Do Word i Google: `dd.mm.rrrr` (jak arkusz-mapa `dz`) */
+  doc: string;
+  /** Do nazwy pliku: `dd.mm.rr` (jak arkusz-mapa `dzPlik`) */
+  file: string;
+}
+
 /**
- * Data z modala (`dd.mm.rrrr` lub `yyyy-mm-dd`) → segment `dd.mm.rr` albo pusty.
+ * Konwertuje wartość z <input type="date"> (`yyyy-mm-dd`) lub już `dd.mm.rrrr`
+ * na formaty jak w mapie plomb.
  */
-export function formatDateForFileName(dataZaladunku: string): string {
+export function formatLoadDates(dataZaladunku: string): FormattedLoadDates {
   const s = dataZaladunku.trim();
   if (!s) {
-    return '';
+    return { doc: '', file: '' };
   }
+
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
-    return `${iso[3]}.${iso[2]}.${iso[1]!.slice(2)}`;
+    const yyyy = iso[1]!;
+    const mm = iso[2]!;
+    const dd = iso[3]!;
+    const y = Number(yyyy);
+    const mo = Number(mm) - 1;
+    const d = Number(dd);
+    const chk = new Date(y, mo, d);
+    if (chk.getFullYear() !== y || chk.getMonth() !== mo || chk.getDate() !== d) {
+      return { doc: s, file: sanitizeFileNamePart(s) };
+    }
+    return {
+      doc: `${dd}.${mm}.${yyyy}`,
+      file: `${dd}.${mm}.${yyyy.slice(-2)}`,
+    };
   }
-  const dotted = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+  const dotted = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   if (dotted) {
-    return `${dotted[1]}.${dotted[2]}.${dotted[3]!.slice(2)}`;
+    const dd = dotted[1]!.padStart(2, '0');
+    const mm = dotted[2]!.padStart(2, '0');
+    const yyyy = dotted[3]!;
+    return {
+      doc: `${dd}.${mm}.${yyyy}`,
+      file: `${dd}.${mm}.${yyyy.slice(-2)}`,
+    };
   }
-  const dottedShort = s.match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
-  if (dottedShort) {
-    return s;
+
+  const short = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+  if (short) {
+    const dd = short[1]!.padStart(2, '0');
+    const mm = short[2]!.padStart(2, '0');
+    const rr = short[3]!;
+    return {
+      doc: `${dd}.${mm}.20${rr}`,
+      file: `${dd}.${mm}.${rr}`,
+    };
   }
-  return sanitizeFileNamePart(s);
+
+  return { doc: s, file: sanitizeFileNamePart(s) };
 }
 
 /** Data do Word / Sheets: `dd.mm.rrrr`. */
 export function formatDateForDoc(dataZaladunku: string): string {
-  const s = dataZaladunku.trim();
-  if (!s) {
-    return '';
-  }
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (iso) {
-    return `${iso[3]}.${iso[2]}.${iso[1]}`;
-  }
-  return s;
+  return formatLoadDates(dataZaladunku).doc;
+}
+
+/** Segment nazwy pliku: `dd.mm.rr`. */
+export function formatDateForFileName(dataZaladunku: string): string {
+  return formatLoadDates(dataZaladunku).file;
 }
 
 export function buildDocxDownloadName(

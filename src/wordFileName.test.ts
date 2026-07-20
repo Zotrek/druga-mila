@@ -20,6 +20,12 @@ describe('wordFileName', () => {
 
   it('test_formatDateForDoc_iso_to_dotted', () => {
     expect(formatDateForDoc('2026-07-20')).toBe('20.07.2026');
+    expect(formatDateForDoc('2026-07-05')).toBe('05.07.2026');
+  });
+
+  it('test_formatDateForFileName_matches_arkusz_dzPlik', () => {
+    expect(formatDateForFileName('2026-07-20')).toBe('20.07.26');
+    expect(formatDateForFileName('05.07.2026')).toBe('05.07.26');
   });
 
   it('test_buildDocxDownloadName_uses_short_name_date_address', () => {

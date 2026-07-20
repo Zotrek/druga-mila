@@ -53,6 +53,11 @@
     .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; }
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
     .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
+    .doc-date-row { display: flex; gap: 8px; align-items: center; }
+    .doc-date-row #doc-inp-data { flex: 1; min-width: 0; }
+    .doc-date-cal-btn { width: 38px; height: 38px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #ccc; border-radius: 6px; background: #f8f8f8; color: #333; cursor: pointer; }
+    .doc-date-cal-btn:hover { background: #eee; }
+    .doc-date-picker-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; clip: rect(0,0,0,0); }
     .doc-bulk-points-wrap { margin-top: 8px; max-height: 160px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
     .doc-bulk-points-title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: #333; }
     .doc-bulk-points-list { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #444; line-height: 1.45; }
@@ -114,7 +119,15 @@
       <label for="doc-inp-awizacja">Dane do awizacji</label>
       <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
       <label for="doc-inp-data">Data załadunku</label>
-      <input type="date" id="doc-inp-data" />
+      <div class="doc-date-row">
+        <input type="text" id="doc-inp-data" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+        <button type="button" id="doc-btn-data-cal" class="doc-date-cal-btn" title="Kalendarz" aria-label="Wybierz datę z kalendarza">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+          </svg>
+        </button>
+        <input type="date" id="doc-inp-data-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+      </div>
       <label for="doc-inp-stawka">Stawka (tylko Google)</label>
       <input type="text" id="doc-inp-stawka" maxlength="80" autocomplete="off" />
       <label for="doc-inp-worki">Ile worków (tylko Google)</label>
@@ -506,7 +519,8 @@
         selectZaladunek(prefillIdx);
       }
       var dateEl = document.getElementById('doc-inp-data');
-      if (dateEl) dateEl.value = defaultDateZaladunkuYmd();
+      if (dateEl) dateEl.value = formatDateForDoc(defaultDateZaladunkuYmd());
+      syncDatePickerFromText();
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       previewNumerFromApi();
@@ -524,7 +538,8 @@
       resetDocModal();
       renderBulkPointsList(indices);
       var dateElBulk = document.getElementById('doc-inp-data');
-      if (dateElBulk) dateElBulk.value = defaultDateZaladunkuYmd();
+      if (dateElBulk) dateElBulk.value = formatDateForDoc(defaultDateZaladunkuYmd());
+      syncDatePickerFromText();
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
@@ -567,6 +582,7 @@
       });
       var z = document.getElementById('doc-sel-zbiorka'); if (z) z.value = '';
       var d = document.getElementById('doc-inp-data'); if (d) d.value = '';
+      var dp = document.getElementById('doc-inp-data-picker'); if (dp) dp.value = '';
       hideAllComboboxLists();
     }
     function hideAllComboboxLists() {
@@ -725,19 +741,70 @@
     function sanitizeFileNamePart(text) {
       return String(text).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
     }
+    /** Jak arkusz-mapa: dz = dd.mm.rrrr, dzPlik = dd.mm.rr */
+    function formatLoadDates(dataZaladunku) {
+      var s = String(dataZaladunku || '').trim();
+      if (!s) return { doc: '', file: '' };
+      var iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (iso) {
+        var yyyy = iso[1];
+        var mm = iso[2];
+        var dd = iso[3];
+        var y = parseInt(yyyy, 10);
+        var mo = parseInt(mm, 10) - 1;
+        var d = parseInt(dd, 10);
+        var chk = new Date(y, mo, d);
+        if (chk.getFullYear() !== y || chk.getMonth() !== mo || chk.getDate() !== d) {
+          return { doc: s, file: sanitizeFileNamePart(s) };
+        }
+        return { doc: dd + '.' + mm + '.' + yyyy, file: dd + '.' + mm + '.' + yyyy.slice(-2) };
+      }
+      var dotted = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      if (dotted) {
+        var dd2 = String(dotted[1]).padStart(2, '0');
+        var mm2 = String(dotted[2]).padStart(2, '0');
+        var yyyy2 = dotted[3];
+        return { doc: dd2 + '.' + mm2 + '.' + yyyy2, file: dd2 + '.' + mm2 + '.' + yyyy2.slice(-2) };
+      }
+      return { doc: s, file: sanitizeFileNamePart(s) };
+    }
     function formatDateForDoc(isoOrDot) {
-      var s = String(isoOrDot || '').trim();
-      var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m) return m[3] + '.' + m[2] + '.' + m[1];
-      return s;
+      return formatLoadDates(isoOrDot).doc;
     }
     function formatDateForFile(isoOrDot) {
-      var s = String(isoOrDot || '').trim();
-      var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m) return m[3] + '.' + m[2] + '.' + m[1].slice(2);
-      var d = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-      if (d) return d[1] + '.' + d[2] + '.' + d[3].slice(2);
-      return sanitizeFileNamePart(s);
+      return formatLoadDates(isoOrDot).file;
+    }
+    function docDateToIso(docDate) {
+      var formatted = formatLoadDates(docDate).doc;
+      var m = formatted.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+      if (!m) return '';
+      return m[3] + '-' + m[2] + '-' + m[1];
+    }
+    function syncDatePickerFromText() {
+      var textEl = document.getElementById('doc-inp-data');
+      var pickEl = document.getElementById('doc-inp-data-picker');
+      if (!textEl || !pickEl) return;
+      var iso = docDateToIso(textEl.value);
+      if (iso) pickEl.value = iso;
+    }
+    function syncDateTextFromPicker() {
+      var textEl = document.getElementById('doc-inp-data');
+      var pickEl = document.getElementById('doc-inp-data-picker');
+      if (!textEl || !pickEl || !pickEl.value) return;
+      textEl.value = formatDateForDoc(pickEl.value);
+    }
+    function openDateCalendar() {
+      var pickEl = document.getElementById('doc-inp-data-picker');
+      if (!pickEl) return;
+      syncDatePickerFromText();
+      try {
+        if (typeof pickEl.showPicker === 'function') {
+          pickEl.showPicker();
+          return;
+        }
+      } catch (err) { /* ignore */ }
+      pickEl.focus();
+      pickEl.click();
     }
     function buildDocxDownloadName(shortName, dataVal, adres) {
       var name = sanitizeFileNamePart(shortName) || 'protokol';
@@ -953,6 +1020,27 @@
     document.getElementById('doc-modal').addEventListener('click', function(ev) {
       if (ev.target === this) closeDocModal();
     });
+    var dateTextEl = document.getElementById('doc-inp-data');
+    var datePickEl = document.getElementById('doc-inp-data-picker');
+    var dateCalBtn = document.getElementById('doc-btn-data-cal');
+    if (dateTextEl) {
+      dateTextEl.addEventListener('blur', function() {
+        var f = formatLoadDates(dateTextEl.value).doc;
+        if (f) dateTextEl.value = f;
+        syncDatePickerFromText();
+      });
+      dateTextEl.addEventListener('change', syncDatePickerFromText);
+    }
+    if (datePickEl) {
+      datePickEl.addEventListener('change', syncDateTextFromPicker);
+      datePickEl.addEventListener('input', syncDateTextFromPicker);
+    }
+    if (dateCalBtn) {
+      dateCalBtn.addEventListener('click', function(ev) {
+        ev.preventDefault();
+        openDateCalendar();
+      });
+    }
   
     applyAddressSearch();
   </script>
