@@ -73,5 +73,15 @@ describe('buildMapHtml', () => {
     expect(html).toContain('docxtemplater');
     expect(html).toContain('appendFormatkaRow');
     expect(html).toContain('czyProtokolZrobiony');
+    expect(html).toContain('map-bulk-panel');
+    expect(html).toContain('openBulkDocModal');
+    expect(html).toContain('Zaznacz do hurtu');
+    expect(html).toContain('defaultDateZaladunkuYmd');
+  });
+
+  it('test_buildMapHtml_empty_points_shows_banner', () => {
+    const html = buildMapHtml([], { title: 'Druga Mila' });
+    expect(html).toContain('map-empty-banner');
+    expect(html).toContain('Brak punktów');
   });
 });

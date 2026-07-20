@@ -112,11 +112,16 @@ export function buildMapHtml(
     .map-type-filter-options { display: flex; flex-direction: column; gap: 4px; }
     .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
     .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
+    .map-empty-banner { position: absolute; z-index: 1100; left: 50%; top: 48px; transform: translateX(-50%); background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); max-width: min(420px, calc(100vw - 24px)); text-align: center; }
 ${wordEnabled ? wordModalCss() : ''}  </style>
 </head>
 <body>
   <div class="map-brand">${escapeHtml(title)}</div>
-  <div id="map"></div>
+${
+  points.length === 0
+    ? `  <div class="map-empty-banner" role="status">Brak punktów z współrzędnymi. Sprawdź Excel Załadunek i uruchom <code>npm run generate</code>.</div>\n`
+    : ''
+}  <div id="map"></div>
 ${wordEnabled ? wordModalHtml() : ''}  <script>
     const PUNKTY = ${JSON.stringify(payload)};
     const COLOR_COUNTS = ${JSON.stringify(counts)};
@@ -186,8 +191,6 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
 
     var markerEntries = [];
     PUNKTY.forEach(function(p) {
-      var marker = L.marker([p.lat, p.lon], { icon: pinIcon(p.kolor, false) });
-      var typeLabel = COLOR_LABEL[p.colorKind] || p.typ || '—';
       var loadIdx = -1;
       for (var li = 0; li < LOAD_POINTS.length; li++) {
         if (LOAD_POINTS[li].adres === p.adres && LOAD_POINTS[li].nazwaPelna === p.nazwaPelna) {
@@ -195,17 +198,20 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
           break;
         }
       }
-      var html =
+      var marker = L.marker([p.lat, p.lon], { icon: pinIcon(p.kolor, false) });
+      marker.bindPopup(wordDocEnabled ? '' : (
         '<div class="popup-name">' + escapeHtmlMap(p.nazwaPelna) + '</div>' +
         '<div class="popup-short">' + escapeHtmlMap(p.nazwaSkrocona) + '</div>' +
-        '<div class="popup-address">' + escapeHtmlMap(p.adres) + '</div>' +
-        '<div class="popup-type">Typ: ' + escapeHtmlMap(typeLabel) + '</div>';
-      if (wordDocEnabled && loadIdx >= 0) {
-        html += '<div class="popup-actions"><button type="button" onclick="openDocModal(' + loadIdx + ')">Generuj protokół</button></div>';
-      }
-      marker.bindPopup(html);
+        '<div class="popup-address">' + escapeHtmlMap(p.adres) + '</div>'
+      ));
       marker.addTo(map);
-      markerEntries.push({ p: p, marker: marker });
+      var entry = { p: p, marker: marker, loadIdx: loadIdx };
+      markerEntries.push(entry);
+      marker.on('popupopen', function() {
+        if (!wordDocEnabled) return;
+        marker.setPopupContent(buildPopupHtml(p, loadIdx));
+        wirePopupControls(marker, loadIdx);
+      });
     });
 
     if (markerEntries.length > 0) {
@@ -274,7 +280,11 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
         }
         entry.marker.setOpacity(1);
         setMarkerClickable(entry.marker, true);
-        entry.marker.setIcon(pinIcon(entry.p.kolor, hasSearch && sMatch));
+        if (typeof refreshMarkerIcon === 'function') {
+          refreshMarkerIcon(entry);
+        } else {
+          entry.marker.setIcon(pinIcon(entry.p.kolor, hasSearch && sMatch));
+        }
       });
 
       if (statusEl) {
@@ -309,7 +319,14 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
         '<label><input type="radio" name="map-type-filter" value="plac" /> PLAC</label>' +
         '<label><input type="radio" name="map-type-filter" value="puste" /> Puste</label>' +
         '<label><input type="radio" name="map-type-filter" value="bolecin" /> Bolęcin</label>' +
-        '</div></div>';
+        '</div></div>' +
+        (wordDocEnabled
+          ? '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
+            '<span id="map-bulk-count" class="map-bulk-count"></span>' +
+            '<button type="button" id="map-bulk-generate" class="map-bulk-generate">Generuj hurtowo</button>' +
+            '<button type="button" id="map-bulk-clear" class="map-bulk-clear">Wyczyść</button>' +
+            '</div>'
+          : '');
       L.DomEvent.disableClickPropagation(wrap);
       L.DomEvent.disableScrollPropagation(wrap);
       return wrap;
@@ -322,7 +339,16 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
     });
     document.getElementById('map-zoom-in').addEventListener('click', function() { map.zoomIn(); });
     document.getElementById('map-zoom-out').addEventListener('click', function() { map.zoomOut(); });
-
+${
+  wordEnabled
+    ? `
+    var bulkGenBtn = document.getElementById('map-bulk-generate');
+    var bulkClearBtn = document.getElementById('map-bulk-clear');
+    if (bulkGenBtn) bulkGenBtn.addEventListener('click', function() { openBulkDocModal(); });
+    if (bulkClearBtn) bulkClearBtn.addEventListener('click', function() { clearBulkSelection(); });
+`
+    : ''
+}
     var legend = L.control({ position: 'bottomright' });
     legend.onAdd = function() {
       var div = L.DomUtil.create('div', 'map-legend');
@@ -337,8 +363,8 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
     };
     legend.addTo(map);
 
+${wordEnabled ? wordModalBrowserScript() : '    void WEBAPP_URL;\n'}
     applyAddressSearch();
-${wordEnabled ? wordModalBrowserScript() : '    void WEBAPP_URL;'}
   </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 # Plan: Implementacja Druga Mila (mapa + Word + formatka)
 
 > **Data:** 2026-07-20  
-> **Status:** APPROVED (technicznie) — podpis biznesowy w ARCHITECTURE  
+> **Status:** IMPLEMENTED (Fazy 1–8)  
 > **Estymacja:** ~2–4 dni | Złożoność: MEDIUM  
 > **Numer startowy:** `DM1`
 

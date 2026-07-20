@@ -2,7 +2,7 @@
 
 > **Last Updated:** 2026-07-20  
 > **Task:** 0001_implementacja-druga-mila  
-> **Status:** Fazy 1–6 done — następna: Faza 7 (multi-select)
+> **Status:** DONE — Fazy 1–8 (mapa + Word + formatka + hurt)
 
 ## Progress
 
@@ -10,12 +10,18 @@
 |------|--------|
 | 1 Scaffold | ✅ |
 | 2 readPoints + classify | ✅ |
-| 3 geocode + cache | ✅ 50/50 OK (`data/geocode-cache.json`) |
-| 4 buildMapHtml | ✅ `index.html` 51 pinezek |
-| 5 Modal / Word | ✅ embed `pusty.docx` + Biosystem przy manualnej |
-| 6 Apps Script | ✅ POST przy generacji + GET preview (wymaga `DRUGA_MILA_WEBAPP_URL`) |
-| 7 Multi-select | ⏳ |
-| 8 Polish | ⏳ |
+| 3 geocode + cache | ✅ |
+| 4 buildMapHtml | ✅ |
+| 5 Modal / Word | ✅ |
+| 6 Apps Script POST/GET | ✅ |
+| 7 Multi-select / hurt | ✅ panel + kolejność Word/POST |
+| 8 Polish | ✅ empty banner, graceful bez Web App, README |
+
+### Completion summary
+
+Lokalny `npm run generate` → `index.html` (Leaflet, search, filtr, modal, hurt).  
+Runtime: Word w przeglądarce + opcjonalny POST do formatki (`DRUGA_MILA_WEBAPP_URL`).  
+Pages: branch `main`, folder `/`.
 
 ### Geocode note (2026-07-20)
 

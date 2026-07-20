@@ -1,5 +1,5 @@
 /**
- * Fragmenty HTML/CSS/JS modala Word (osadzane w buildMapHtml).
+ * Fragmenty HTML/CSS/JS modala Word + multi-select / hurt (osadzane w buildMapHtml).
  */
 
 export interface WordMapEmbed {
@@ -11,6 +11,9 @@ export interface WordMapEmbed {
     adres: string;
   }>;
 }
+
+/** Kolor pinezki zaznaczonej do hurtu. */
+export const COLOR_BULK_SELECTED = '#ea3aed';
 
 export function wordModalCss(): string {
   return `
@@ -27,8 +30,20 @@ export function wordModalCss(): string {
     .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; }
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
     .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
-    .popup-actions { margin-top: 10px; }
+    .doc-bulk-points-wrap { margin-top: 8px; max-height: 160px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
+    .doc-bulk-points-title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: #333; }
+    .doc-bulk-points-list { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #444; line-height: 1.45; }
+    .doc-bulk-numer-info { font-size: 12px; color: #0d6efd; margin: 8px 0 0; min-height: 1.2em; }
+    .popup-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
     .popup-actions button { padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #0d6efd; background: #0d6efd; color: #fff; cursor: pointer; }
+    .popup-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .popup-bulk-select { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: #333; margin: 0; font-weight: 400; }
+    .popup-bulk-select input { margin: 0; flex-shrink: 0; }
+    .map-bulk-panel { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8e8e8; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .map-bulk-panel[hidden] { display: none !important; }
+    .map-bulk-count { font-size: 12px; color: #333; flex: 1; min-width: 120px; }
+    .map-bulk-generate { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #198754; background: #198754; color: #fff; cursor: pointer; }
+    .map-bulk-clear { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer; }
   `;
 }
 
@@ -36,11 +51,17 @@ export function wordModalHtml(): string {
   return `  <div id="doc-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="doc-modal-title">
       <h3 id="doc-modal-title">Generuj protokół Word</h3>
-      <label for="doc-sel-zaladunek">Miejsce załadunku</label>
-      <div class="doc-combobox-wrap">
-        <input type="text" id="doc-sel-zaladunek" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Nazwa skrócona / pełna / adres…" />
-        <input type="hidden" id="doc-val-zaladunek" value="" />
-        <ul id="doc-sel-zaladunek-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      <div id="doc-single-zaladunek-wrap">
+        <label for="doc-sel-zaladunek">Miejsce załadunku</label>
+        <div class="doc-combobox-wrap">
+          <input type="text" id="doc-sel-zaladunek" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Nazwa skrócona / pełna / adres…" />
+          <input type="hidden" id="doc-val-zaladunek" value="" />
+          <ul id="doc-sel-zaladunek-list" class="doc-combobox-list" role="listbox" hidden></ul>
+        </div>
+      </div>
+      <div id="doc-bulk-points-wrap" class="doc-bulk-points-wrap" hidden>
+        <p class="doc-bulk-points-title">Wybrane punkty</p>
+        <ul id="doc-bulk-points-list" class="doc-bulk-points-list"></ul>
       </div>
       <label for="doc-sel-przewoznik">Przewoźnik</label>
       <div class="doc-combobox-wrap">
@@ -71,8 +92,11 @@ export function wordModalHtml(): string {
       <input type="text" id="doc-inp-worki" maxlength="40" autocomplete="off" />
       <label for="doc-inp-transport">Rodzaj transportu (tylko Google)</label>
       <input type="text" id="doc-inp-transport" maxlength="80" autocomplete="off" />
-      <label for="doc-inp-numer">Numer zlecenia</label>
-      <input type="text" id="doc-inp-numer" maxlength="120" placeholder="podgląd / auto" autocomplete="off" />
+      <div id="doc-single-numer-wrap">
+        <label for="doc-inp-numer">Numer zlecenia</label>
+        <input type="text" id="doc-inp-numer" maxlength="120" placeholder="podgląd / auto" autocomplete="off" />
+      </div>
+      <p id="doc-bulk-numer-info" class="doc-bulk-numer-info" hidden aria-live="polite"></p>
       <p class="doc-modal-hint" id="doc-modal-hint">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
       <div class="doc-modal-actions">
         <button type="button" id="doc-btn-cancel">Anuluj</button>
@@ -83,25 +107,200 @@ export function wordModalHtml(): string {
 `;
 }
 
-/** Skrypt przeglądarkowy — modal, comboboxy, Word (bez POST w Fazie 5 checkpoint). */
+/** Skrypt przeglądarkowy — modal, comboboxy, Word, POST, hurt. */
 export function wordModalBrowserScript(): string {
   return `
+    var COLOR_BULK_SELECTED = ${JSON.stringify(COLOR_BULK_SELECTED)};
+    window.__docModalMode = 'single';
+    window.__bulkSelectedLoadIdxs = window.__bulkSelectedLoadIdxs || {};
+    window.__bulkDocLoadIdxs = [];
+
+    function getBulkSelectedLoadIdxs() {
+      var out = [];
+      var sel = window.__bulkSelectedLoadIdxs || {};
+      Object.keys(sel).forEach(function(k) {
+        if (!sel[k]) return;
+        var idx = parseInt(k, 10);
+        if (!isNaN(idx) && LOAD_POINTS[idx]) out.push(idx);
+      });
+      out.sort(function(a, b) { return a - b; });
+      return out;
+    }
+    function isBulkLoadSelected(loadIdx) {
+      return !!(window.__bulkSelectedLoadIdxs && window.__bulkSelectedLoadIdxs[loadIdx]);
+    }
+    function setBulkLoadSelected(loadIdx, selected) {
+      if (!window.__bulkSelectedLoadIdxs) window.__bulkSelectedLoadIdxs = {};
+      if (selected) window.__bulkSelectedLoadIdxs[loadIdx] = true;
+      else delete window.__bulkSelectedLoadIdxs[loadIdx];
+      updateBulkSelectionUi();
+    }
+    function clearBulkSelection() {
+      window.__bulkSelectedLoadIdxs = {};
+      updateBulkSelectionUi();
+    }
+    function updateBulkSelectionUi() {
+      var indices = getBulkSelectedLoadIdxs();
+      var panel = document.getElementById('map-bulk-panel');
+      var countEl = document.getElementById('map-bulk-count');
+      if (panel) panel.hidden = indices.length === 0;
+      if (countEl) {
+        countEl.textContent = indices.length === 1
+          ? '1 punkt zaznaczony'
+          : indices.length + ' punktów zaznaczonych';
+      }
+      if (typeof markerEntries !== 'undefined') {
+        markerEntries.forEach(function(entry) {
+          refreshMarkerIcon(entry);
+        });
+      }
+    }
+    function refreshMarkerIcon(entry) {
+      if (!entry || !entry.marker) return;
+      var inputEl = document.getElementById('map-address-search');
+      var raw = inputEl ? inputEl.value : '';
+      var hasSearch = String(raw).trim().length > 0;
+      var sMatch = !hasSearch || mapPointMatchesSearchMap(entry.p, raw);
+      var bulk = entry.loadIdx >= 0 && isBulkLoadSelected(entry.loadIdx);
+      var fill = bulk ? COLOR_BULK_SELECTED : entry.p.kolor;
+      entry.marker.setIcon(pinIcon(fill, (hasSearch && sMatch) || bulk));
+    }
+    function buildPopupHtml(p, loadIdx) {
+      var typeLabel = COLOR_LABEL[p.colorKind] || p.typ || '—';
+      var bulkSelected = loadIdx >= 0 && isBulkLoadSelected(loadIdx);
+      var html =
+        '<div class="popup-name">' + escapeHtmlMap(p.nazwaPelna) + '</div>' +
+        '<div class="popup-short">' + escapeHtmlMap(p.nazwaSkrocona) + '</div>' +
+        '<div class="popup-address">' + escapeHtmlMap(p.adres) + '</div>' +
+        '<div class="popup-type">Typ: ' + escapeHtmlMap(typeLabel) + '</div>';
+      if (wordDocEnabled && loadIdx >= 0) {
+        html += '<div class="popup-actions">' +
+          '<label class="popup-bulk-select"><input type="checkbox" class="popup-bulk-cb" data-load-idx="' + loadIdx + '"' +
+          (bulkSelected ? ' checked' : '') + ' /> Zaznacz do hurtu</label>' +
+          '<button type="button" class="btn-gen-doc"' + (bulkSelected ? ' disabled' : '') +
+          ' data-load-idx="' + loadIdx + '">Generuj protokół</button></div>';
+      }
+      return html;
+    }
+    function wirePopupControls(marker, loadIdx) {
+      if (!wordDocEnabled || loadIdx < 0) return;
+      var el = marker.getPopup() && marker.getPopup().getElement();
+      if (!el) return;
+      var cb = el.querySelector('.popup-bulk-cb');
+      if (cb) {
+        cb.onchange = function() {
+          setBulkLoadSelected(loadIdx, cb.checked);
+          var entry = markerEntries.find(function(e) { return e.loadIdx === loadIdx; });
+          var point = entry ? entry.p : null;
+          if (point) {
+            marker.setPopupContent(buildPopupHtml(point, loadIdx));
+            wirePopupControls(marker, loadIdx);
+          }
+        };
+      }
+      var btn = el.querySelector('.btn-gen-doc');
+      if (btn && !btn.disabled) {
+        btn.onclick = function(ev) {
+          if (ev.stopPropagation) ev.stopPropagation();
+          openDocModal(loadIdx);
+        };
+      }
+    }
+
+    function setDocModalMode(mode) {
+      window.__docModalMode = mode;
+      var isBulk = mode === 'bulk';
+      var titleEl = document.getElementById('doc-modal-title');
+      var zalWrap = document.getElementById('doc-single-zaladunek-wrap');
+      var bulkWrap = document.getElementById('doc-bulk-points-wrap');
+      var numerWrap = document.getElementById('doc-single-numer-wrap');
+      var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
+      var okBtn = document.getElementById('doc-btn-generate');
+      var n = (window.__bulkDocLoadIdxs || []).length;
+      if (titleEl) {
+        titleEl.textContent = isBulk
+          ? 'Generuj protokoły Word (' + n + ' punktów)'
+          : 'Generuj protokół Word';
+      }
+      if (zalWrap) zalWrap.hidden = isBulk;
+      if (bulkWrap) bulkWrap.hidden = !isBulk;
+      if (numerWrap) numerWrap.hidden = isBulk;
+      if (bulkNumerInfo) bulkNumerInfo.hidden = !isBulk;
+      if (okBtn) okBtn.textContent = isBulk ? 'Pobierz wszystkie .docx' : 'Pobierz .docx';
+    }
+    function renderBulkPointsList(indices) {
+      var listEl = document.getElementById('doc-bulk-points-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      indices.forEach(function(idx) {
+        var p = LOAD_POINTS[idx];
+        if (!p) return;
+        var li = document.createElement('li');
+        li.textContent = (p.nazwaSkrocona || p.nazwaPelna) + ' — ' + p.adres;
+        listEl.appendChild(li);
+      });
+    }
     function openDocModal(prefillIdx) {
       var m = document.getElementById('doc-modal');
       if (!m || !wordDocEnabled) return;
+      window.__bulkDocLoadIdxs = [];
+      setDocModalMode('single');
       resetDocModal();
       if (typeof prefillIdx === 'number' && LOAD_POINTS[prefillIdx]) {
         selectZaladunek(prefillIdx);
       }
+      var dateEl = document.getElementById('doc-inp-data');
+      if (dateEl) dateEl.value = defaultDateZaladunkuYmd();
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       previewNumerFromApi();
+    }
+    function openBulkDocModal() {
+      var m = document.getElementById('doc-modal');
+      if (!m || !wordDocEnabled) return;
+      var indices = getBulkSelectedLoadIdxs();
+      if (indices.length === 0) {
+        alert('Zaznacz co najmniej jeden punkt do hurtu.');
+        return;
+      }
+      window.__bulkDocLoadIdxs = indices.slice();
+      setDocModalMode('bulk');
+      resetDocModal();
+      renderBulkPointsList(indices);
+      var dateElBulk = document.getElementById('doc-inp-data');
+      if (dateElBulk) dateElBulk.value = defaultDateZaladunkuYmd();
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
+      var hint = document.getElementById('doc-modal-hint');
+      if (!WEBAPP_URL) {
+        if (bulkNumerInfo) bulkNumerInfo.textContent = 'Bez Web App — Word lokalnie, bez zapisu i auto-numeru.';
+        if (hint) hint.textContent = 'Wspólne pola dla wszystkich punktów. Każdy punkt = osobny plik.';
+        return;
+      }
+      if (bulkNumerInfo) bulkNumerInfo.textContent = 'Pobieranie podglądu numeracji…';
+      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=modalData')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var preview = data && data.ok && data.numer ? String(data.numer) : '';
+          window.__docPreviewNumer = preview;
+          if (bulkNumerInfo) {
+            bulkNumerInfo.textContent = preview
+              ? ('Numery auto kolejno (od ' + preview + '). Każdy punkt = wiersz + .docx.')
+              : 'Numery zostaną nadane automatycznie kolejno.';
+          }
+          if (hint) hint.textContent = 'Wspólne pola (przewoźnik, dostawa, data…). Załadunek z zaznaczenia.';
+        })
+        .catch(function() {
+          if (bulkNumerInfo) bulkNumerInfo.textContent = 'Nie udało się pobrać podglądu — przy generacji i tak auto z API.';
+        });
     }
     function closeDocModal() {
       var m = document.getElementById('doc-modal');
       if (!m) return;
       m.style.display = 'none';
       m.setAttribute('aria-hidden', 'true');
+      window.__docModalMode = 'single';
     }
     function resetDocModal() {
       ['doc-sel-zaladunek','doc-sel-przewoznik','doc-sel-miejsce','doc-inp-awizacja','doc-inp-stawka','doc-inp-worki','doc-inp-transport','doc-inp-numer'].forEach(function(id) {
@@ -116,6 +315,28 @@ export function wordModalBrowserScript(): string {
     }
     function hideAllComboboxLists() {
       document.querySelectorAll('.doc-combobox-list').forEach(function(ul) { ul.hidden = true; });
+    }
+    /** Jak arkusz-mapa: pon–pt &lt;04:00 dziś; od 04:00 jutro; pt≥04 → pon; sob/niedz → pon. */
+    function defaultDateZaladunkuYmd() {
+      var d = new Date();
+      var dow = d.getDay();
+      var hour = d.getHours();
+      if (dow === 6) {
+        d.setDate(d.getDate() + 2);
+      } else if (dow === 0) {
+        d.setDate(d.getDate() + 1);
+      } else if (dow === 5) {
+        if (hour >= 4) {
+          d.setDate(d.getDate() + 3);
+        }
+      } else {
+        var dayOffset = hour >= 0 && hour < 4 ? 0 : 1;
+        d.setDate(d.getDate() + dayOffset);
+      }
+      var y = d.getFullYear();
+      var mo = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + mo + '-' + day;
     }
     function normQ(t) {
       return normalizeForAddressSearchMap(t);
@@ -323,7 +544,8 @@ export function wordModalBrowserScript(): string {
         body: JSON.stringify(payload)
       }).then(function(res) { return res.json(); });
     }
-    function renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer) {
+    function renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer, options) {
+      var opts = options || {};
       var miejsceWord = [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
       var zip = new PizZip(getWordTemplateBytes());
       var Doc = window.docxtemplater;
@@ -341,47 +563,61 @@ export function wordModalBrowserScript(): string {
         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       });
       saveAs(out, buildDocxDownloadName(zal.nazwaSkrocona || zal.nazwaPelna, dataVal, zal.adres));
-      closeDocModal();
+      if (opts.closeModal !== false) closeDocModal();
+    }
+    function collectSharedForm() {
+      return {
+        pr: resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik'),
+        md: resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce'),
+        dataVal: document.getElementById('doc-inp-data').value,
+        awizacja: document.getElementById('doc-inp-awizacja').value,
+        stawka: document.getElementById('doc-inp-stawka').value,
+        zbiorka: document.getElementById('doc-sel-zbiorka').value,
+        worki: document.getElementById('doc-inp-worki').value,
+        transport: document.getElementById('doc-inp-transport').value
+      };
+    }
+    function buildFormatkaPayload(zal, shared, numerOverride) {
+      return {
+        numer: numerOverride != null ? numerOverride : '',
+        numerFaktury: '',
+        stawka: String(shared.stawka || '').trim(),
+        czyProtokolZrobiony: 'tak',
+        adresOdbioru: zal.adres || '',
+        nazwaKontrahenta: zal.nazwaPelna || '',
+        dataOdbioru: formatDateForDoc(shared.dataVal),
+        ktoOdbiera: shared.pr.label || '',
+        miejsceZrzutu: shared.md.label || '',
+        rodzajZbiorki: String(shared.zbiorka || '').trim(),
+        ileWorkow: String(shared.worki || '').trim(),
+        rodzajTransportu: String(shared.transport || '').trim(),
+        awizacja: String(shared.awizacja || '').trim(),
+        znacznikMiejsca: ''
+      };
+    }
+    function delayMs(ms) {
+      return new Promise(function(resolve) { window.setTimeout(resolve, ms); });
     }
     function generateDocxLocal() {
       if (!wordDocEnabled) return;
+      if (window.__docModalMode === 'bulk') {
+        runBulkDocGenerate();
+        return;
+      }
       var btn = document.getElementById('doc-btn-generate');
       if (btn) btn.disabled = true;
       var zal = resolveZaladunek();
-      var pr = resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik');
-      var md = resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce');
-      var dataVal = document.getElementById('doc-inp-data').value;
-      var awizacja = document.getElementById('doc-inp-awizacja').value;
+      var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
-      var stawka = document.getElementById('doc-inp-stawka').value;
-      var zbiorka = document.getElementById('doc-sel-zbiorka').value;
-      var worki = document.getElementById('doc-inp-worki').value;
-      var transport = document.getElementById('doc-inp-transport').value;
 
       ensureDocxLibrariesLoaded().then(function() {
         if (!WEBAPP_URL) {
-          renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numerWpisany);
+          renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numerWpisany);
           return;
         }
-        // Z mapy: auto-numer (pusty w POST), chyba że użytkownik zmienił podgląd ręcznie.
         var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
-        var payload = {
-          numer: manual ? numerWpisany : '',
-          numerFaktury: '',
-          stawka: String(stawka || '').trim(),
-          czyProtokolZrobiony: 'tak',
-          adresOdbioru: zal.adres || '',
-          nazwaKontrahenta: zal.nazwaPelna || '',
-          dataOdbioru: formatDateForDoc(dataVal),
-          ktoOdbiera: pr.label || '',
-          miejsceZrzutu: md.label || '',
-          rodzajZbiorki: String(zbiorka || '').trim(),
-          ileWorkow: String(worki || '').trim(),
-          rodzajTransportu: String(transport || '').trim(),
-          awizacja: String(awizacja || '').trim(),
-          znacznikMiejsca: ''
-        };
+        var payload = buildFormatkaPayload(zal, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
           if (!resp || !resp.ok) {
             alert('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'));
@@ -389,11 +625,69 @@ export function wordModalBrowserScript(): string {
           }
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
-          renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer);
+          renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
         });
       }).catch(function(err) {
         console.error(err);
         alert('Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
+    }
+    function runBulkDocGenerate() {
+      var indices = window.__bulkDocLoadIdxs || [];
+      if (indices.length === 0) {
+        alert('Brak zaznaczonych punktów.');
+        return;
+      }
+      var btn = document.getElementById('doc-btn-generate');
+      var hint = document.getElementById('doc-modal-hint');
+      var shared = collectSharedForm();
+      if (btn) btn.disabled = true;
+      ensureDocxLibrariesLoaded().then(function() {
+        var generated = 0;
+        var failed = 0;
+        var chain = Promise.resolve();
+        indices.forEach(function(loadIdx, jobIdx) {
+          chain = chain.then(function() {
+            var zal = LOAD_POINTS[loadIdx];
+            if (!zal) return Promise.resolve();
+            if (hint) {
+              hint.textContent = 'Generowanie ' + (jobIdx + 1) + ' / ' + indices.length + ': ' +
+                (zal.nazwaSkrocona || zal.nazwaPelna);
+            }
+            if (!WEBAPP_URL) {
+              renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, '', { closeModal: false });
+              generated += 1;
+              return delayMs(400);
+            }
+            return appendFormatkaRow(buildFormatkaPayload(zal, shared, '')).then(function(resp) {
+              if (!resp || !resp.ok) {
+                throw new Error(resp && resp.error ? resp.error : 'błąd API');
+              }
+              renderAndDownloadDocx(
+                zal, shared.pr, shared.md, shared.dataVal, shared.awizacja,
+                String(resp.numer || ''),
+                { closeModal: false }
+              );
+              generated += 1;
+              return delayMs(450);
+            });
+          }).catch(function(err) {
+            console.error(err);
+            failed += 1;
+          });
+        });
+        return chain.then(function() {
+          clearBulkSelection();
+          closeDocModal();
+          if (failed > 0) {
+            alert('Hurt: zapisano/pobrano ' + generated + ', błędy: ' + failed + '.');
+          }
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się uruchomić generacji hurtowej.');
       }).finally(function() {
         if (btn) btn.disabled = false;
       });

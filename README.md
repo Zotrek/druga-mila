@@ -4,12 +4,9 @@ Osobna, **w miarę statyczna** mapa sieci **Druga Mila** na **GitHub Pages** —
 
 **Jedna strona:** punkty z Excela **Załadunek** (kolory: CD / PLAC / puste / Bolęcin), wyszukiwarka i filtr typu, generacja protokołu Word (szablon DM) oraz zapis do Google według formatki Druga Mila. Protokoły i Sheets działają w przeglądarce — **bez** przebudowy strony przy każdym zapisie.
 
-W przeciwieństwie do `arkusz-mapa` mapa **nie jest cyklicznie regenerowana** przez GitHub Actions. Lista punktów i podwykonawców aktualizowana rzadko przez pliki Excel w repo + lokalny rebuild.
-
 ## Status
 
-Implementacja w toku (`0001_implementacja-druga-mila`): **Fazy 1–5** — mapa Leaflet + modal Word (bez Web App). Numer startowy: **`DM1`**.  
-Następne: wdrożenie Apps Script (Faza 6), multi-select (Faza 7).
+Implementacja **Fazy 1–8** (mapa + Word + formatka + hurt). Numer startowy: **`DM1`**.
 
 ## Dokumentacja
 
@@ -21,46 +18,47 @@ Następne: wdrożenie Apps Script (Faza 6), multi-select (Faza 7).
 | [`docs/FORMATKA_SHEET.md`](docs/FORMATKA_SHEET.md) | Deploy Apps Script + API Web App |
 | [`docs/SZABLON_WORD_tagi.md`](docs/SZABLON_WORD_tagi.md) | Tagi szablonu Word |
 | [`docs/pusty.docx`](docs/pusty.docx) | Szablon protokołu DM + tagi |
-| [`docs/podwyko lista.xlsx`](docs/podwyko%20lista.xlsx) | Przewoźnik + miejsca dostawy (kopia z `arkusz-mapa`) |
+| [`docs/podwyko lista.xlsx`](docs/podwyko%20lista.xlsx) | Przewoźnik + miejsca dostawy |
 | [`data/druga-mila.xlsx`](data/druga-mila.xlsx) | Punkty Załadunek / Rozładunek |
-| [`data/formatka-druga-mila.xlsx`](data/formatka-druga-mila.xlsx) | Wzór formatki Google |
 | [`.env.example`](.env.example) | `DRUGA_MILA_WEBAPP_URL`, ID arkusza, cache |
-| [`google-apps-script/formatka-log.gs`](google-apps-script/formatka-log.gs) | Kod Web App (wkleić do arkusza formatki) |
-
-## Zakres w skrócie
-
-- Mapa: CD (niebieski), PLAC (zielony), puste (fiolet), Bolęcin (pomarańcz)
-- Search + filtr typu; combobox załadunku = nazwa skrócona (search po A/B/C; Word = pełna + adres)
-- Word: numer, załadunek, przewoźnik, dostawa, awizacja, data — wszystko opcjonalne
-- Google: formatka z „Czy protokół zrobiony” = tak; Stawka z modala (nie na Word); Numer faktury puste; numeracja **`DM1`→`DM2`…**
-- Hosting: GitHub Pages (statyczny HTML)
-
-## Aktualizacja danych (po wdrożeniu kodu)
-
-1. Edytuj `data/druga-mila.xlsx` i/lub `docs/podwyko lista.xlsx`.
-2. Lokalnie: `npm run generate`.
-3. Commit `index.html` (+ cache geokodu) → push.
-4. Pages pokazuje nowe pinezki / listy — publikacja przez „Deploy from a branch” (`main`, folder **`/ (root)`**), **bez GitHub Actions**.
-
-Na razie w rootcie jest `index.html` (placeholder); po implementacji build zastąpi go mapą.
-
-> Uwaga: GitHub Pages przy „Deploy from a branch” obsługuje tylko foldery `/` i `/docs` — stąd publikacja z roota, nie z `/site`.
+| [`google-apps-script/formatka-log.gs`](google-apps-script/formatka-log.gs) | Kod Web App |
 
 ## Lokalny rebuild
 
 ```bash
 cd druga-mila
-cp .env.example .env   # opcjonalnie: DRUGA_MILA_WEBAPP_URL
+cp .env.example .env
+# ustaw DRUGA_MILA_WEBAPP_URL=…/exec  (po wdrożeniu Apps Script — docs/FORMATKA_SHEET.md)
 npm install
 npm test
 npm run generate       # → index.html (+ data/geocode-cache.json)
 ```
 
-Otwórz `index.html` w przeglądarce (pinezki, search, filtr, modal Word).
+Otwórz `index.html` w przeglądarce.
 
-## Następny krok
+### Smoke checklist
 
-Faza 6: wdróż `google-apps-script/formatka-log.gs` do arkusza formatki, ustaw `DRUGA_MILA_WEBAPP_URL`, `npm run generate` — wg `docs/FORMATKA_SHEET.md`.
+- [ ] Pinezki + legenda + search + filtr typu
+- [ ] Popup → Generuj protokół → Word + wiersz w formatce (z Web App)
+- [ ] Zaznacz kilka punktów → Generuj hurtowo → osobne `.docx` i kolejne numery
+- [ ] Zbiórka `manualna` → podpowiedź dostawy **Biosystem**
+- [ ] Bez `DRUGA_MILA_WEBAPP_URL`: Word działa, bez zapisu do Sheets
+
+## Publikacja GitHub Pages
+
+1. Settings → Pages → Source: **Deploy from a branch**
+2. Branch: `main`, folder: **`/ (root)`**
+3. Commit i push `index.html` (+ ewentualnie `data/geocode-cache.json`)
+
+**Bez GitHub Actions.** Po zmianie Excela: lokalnie `npm run generate` → commit → push.
+
+> Pages przy branch deploy obsługuje tylko `/` lub `/docs` — stąd publikacja z roota.
+
+## Aktualizacja danych
+
+1. Edytuj `data/druga-mila.xlsx` i/lub `docs/podwyko lista.xlsx` / `docs/pusty.docx`.
+2. `npm run generate`
+3. Commit `index.html` (+ cache) → push → Pages odświeża pinezki / listy.
 
 ## Sync reguł Cursora (opcjonalnie)
 

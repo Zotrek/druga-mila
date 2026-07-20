@@ -32,13 +32,14 @@
 - [x] **CHECKPOINT 5:** pobranie `.docx` bez Web App ✅ (kod + embed; smoke w przeglądarce: pinezka → Generuj → Pobierz)
 - [x] Faza 6: wdrożenie Web App + POST/GET w mapie
 - [x] **CHECKPOINT 6:** POST przy „Pobierz .docx” + preview numeru ✅ (2026-07-20)
-- [ ] Faza 7: multi-select + README Pages
-- [ ] **CHECKPOINT 7:** smoke hurt + dokumentacja workflow
-- [ ] Faza 8: polish + sync docs
-- [ ] **CHECKPOINT 8:** full smoke — no regressions vs SPEC
+- [x] Faza 7: multi-select + README Pages
+- [x] **CHECKPOINT 7:** smoke hurt + dokumentacja workflow ✅ (2026-07-20)
+- [x] Faza 8: polish + sync docs
+- [x] **CHECKPOINT 8:** full smoke — no regressions vs SPEC ✅ (unit 60 pass; empty banner; graceful bez Web App)
 
 ## Documentation Updates
 
-- [ ] Update `-tasks.md` after each subtask
-- [ ] Update `-context.md` if decisions change
-- [ ] Update `-plan.md` if requirements change
+- [x] Update `-tasks.md` after each subtask
+- [x] Update `-context.md` if decisions change
+- [x] Update `-plan.md` if requirements change
+- [x] Update README (Pages + smoke checklist)
