@@ -33,6 +33,11 @@ Mapa wypełnia dokument tylko tam, gdzie w `.docx` są DOKŁADNIE takie fragment
 
 Wszystkie tagi mogą być pustymi stringami — pola nieobowiązkowe.
 
+## Formatowanie
+
+- Etykiety pól (np. „Miejsce załadunku:”) — **pogrubione**.
+- Wartości z formularza (`{{…}}`) — **zwykła czcionka** (osobny run w `.docx`, bez `w:b`).
+
 ## Jak wstawiać znaczniki
 
 1. Wklej **cały** znacznik naraz (np. `{{miejsce_zaladunku}}`), bez klikania w środek.

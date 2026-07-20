@@ -30,8 +30,8 @@
 - [x] **CHECKPOINT 4:** lokalny HTML — pinezki + filtry OK ✅ (2026-07-20, 51 pinezek)
 - [x] Faza 5: modal + Word + reguła Biosystem
 - [x] **CHECKPOINT 5:** pobranie `.docx` bez Web App ✅ (kod + embed; smoke w przeglądarce: pinezka → Generuj → Pobierz)
-- [ ] Faza 6: wdrożenie Web App + POST/GET w mapie
-- [ ] **CHECKPOINT 6:** wiersz w formatce, numer `DM1`→`DM2`
+- [x] Faza 6: wdrożenie Web App + POST/GET w mapie
+- [x] **CHECKPOINT 6:** POST przy „Pobierz .docx” + preview numeru ✅ (2026-07-20)
 - [ ] Faza 7: multi-select + README Pages
 - [ ] **CHECKPOINT 7:** smoke hurt + dokumentacja workflow
 - [ ] Faza 8: polish + sync docs

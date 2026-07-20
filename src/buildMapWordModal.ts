@@ -291,58 +291,109 @@ export function wordModalBrowserScript(): string {
       var t = typed ? String(typed.value).trim() : '';
       return { nazwaPelna: t, nazwaSkrocona: t, adres: '' };
     }
+    window.__docPreviewNumer = '';
     function previewNumerFromApi() {
       var numerEl = document.getElementById('doc-inp-numer');
       var hint = document.getElementById('doc-modal-hint');
+      window.__docPreviewNumer = '';
       if (!WEBAPP_URL) {
-        if (hint) hint.textContent = 'Brak Web App — Word lokalnie, wpisz numer ręcznie lub zostaw pusty.';
+        if (hint) hint.textContent = 'Brak Web App — Word lokalnie, bez zapisu do arkusza Google.';
         return;
       }
       if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
-      fetch(WEBAPP_URL + '?action=modalData')
+      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=modalData')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          if (data && data.ok && data.numer && numerEl && !String(numerEl.value).trim()) {
-            numerEl.value = String(data.numer);
+          if (data && data.ok && data.numer) {
+            window.__docPreviewNumer = String(data.numer);
+            if (numerEl && !String(numerEl.value).trim()) {
+              numerEl.value = window.__docPreviewNumer;
+            }
           }
-          if (hint) hint.textContent = 'Pola opcjonalne. Numer z podglądu — zapis do Sheets przy generacji (Faza 6).';
+          if (hint) hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word.';
         })
         .catch(function() {
-          if (hint) hint.textContent = 'Nie udało się pobrać numeru — możesz wpisać ręcznie.';
+          if (hint) hint.textContent = 'Nie udało się pobrać numeru — sprawdź Web App / sieć.';
         });
+    }
+    function appendFormatkaRow(payload) {
+      return fetch(WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }).then(function(res) { return res.json(); });
+    }
+    function renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer) {
+      var miejsceWord = [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
+      var zip = new PizZip(getWordTemplateBytes());
+      var Doc = window.docxtemplater;
+      var doc = new Doc(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
+      doc.render({
+        numer_zlecenia_transportowego: String(numer || '').trim(),
+        miejsce_zaladunku: miejsceWord,
+        przewoznik: pr.value || pr.label || '',
+        miejsce_dostawy: md.value || md.label || '',
+        dane_do_awizacji: String(awizacja || '').trim(),
+        data_zaladunku: formatDateForDoc(dataVal)
+      });
+      var out = doc.getZip().generate({
+        type: 'blob',
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
+      saveAs(out, buildDocxDownloadName(zal.nazwaSkrocona || zal.nazwaPelna, dataVal, zal.adres));
+      closeDocModal();
     }
     function generateDocxLocal() {
       if (!wordDocEnabled) return;
       var btn = document.getElementById('doc-btn-generate');
       if (btn) btn.disabled = true;
+      var zal = resolveZaladunek();
+      var pr = resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik');
+      var md = resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce');
+      var dataVal = document.getElementById('doc-inp-data').value;
+      var awizacja = document.getElementById('doc-inp-awizacja').value;
+      var numerEl = document.getElementById('doc-inp-numer');
+      var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
+      var stawka = document.getElementById('doc-inp-stawka').value;
+      var zbiorka = document.getElementById('doc-sel-zbiorka').value;
+      var worki = document.getElementById('doc-inp-worki').value;
+      var transport = document.getElementById('doc-inp-transport').value;
+
       ensureDocxLibrariesLoaded().then(function() {
-        var zal = resolveZaladunek();
-        var pr = resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik');
-        var md = resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce');
-        var dataVal = document.getElementById('doc-inp-data').value;
-        var awizacja = document.getElementById('doc-inp-awizacja').value;
-        var numer = document.getElementById('doc-inp-numer').value;
-        var miejsceWord = [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
-        var zip = new PizZip(getWordTemplateBytes());
-        var Doc = window.docxtemplater;
-        var doc = new Doc(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
-        doc.render({
-          numer_zlecenia_transportowego: String(numer || '').trim(),
-          miejsce_zaladunku: miejsceWord,
-          przewoznik: pr.value || pr.label || '',
-          miejsce_dostawy: md.value || md.label || '',
-          dane_do_awizacji: String(awizacja || '').trim(),
-          data_zaladunku: formatDateForDoc(dataVal)
+        if (!WEBAPP_URL) {
+          renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numerWpisany);
+          return;
+        }
+        // Z mapy: auto-numer (pusty w POST), chyba że użytkownik zmienił podgląd ręcznie.
+        var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
+        var payload = {
+          numer: manual ? numerWpisany : '',
+          numerFaktury: '',
+          stawka: String(stawka || '').trim(),
+          czyProtokolZrobiony: 'tak',
+          adresOdbioru: zal.adres || '',
+          nazwaKontrahenta: zal.nazwaPelna || '',
+          dataOdbioru: formatDateForDoc(dataVal),
+          ktoOdbiera: pr.label || '',
+          miejsceZrzutu: md.label || '',
+          rodzajZbiorki: String(zbiorka || '').trim(),
+          ileWorkow: String(worki || '').trim(),
+          rodzajTransportu: String(transport || '').trim(),
+          awizacja: String(awizacja || '').trim(),
+          znacznikMiejsca: ''
+        };
+        return appendFormatkaRow(payload).then(function(resp) {
+          if (!resp || !resp.ok) {
+            alert('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'));
+            return;
+          }
+          var numer = String(resp.numer || numerWpisany || '');
+          if (numerEl) numerEl.value = numer;
+          renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer);
         });
-        var out = doc.getZip().generate({
-          type: 'blob',
-          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-        saveAs(out, buildDocxDownloadName(zal.nazwaSkrocona || zal.nazwaPelna, dataVal, zal.adres));
-        closeDocModal();
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się wygenerować Word (biblioteki lub szablon).');
+        alert('Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
       }).finally(function() {
         if (btn) btn.disabled = false;
       });

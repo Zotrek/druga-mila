@@ -71,5 +71,7 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Biosystem');
     expect(html).toContain('openDocModal');
     expect(html).toContain('docxtemplater');
+    expect(html).toContain('appendFormatkaRow');
+    expect(html).toContain('czyProtokolZrobiony');
   });
 });
