@@ -1,0 +1,4 @@
+{
+  "source": "..",
+  "_comment": "Path to srodowisko_pracy (central rules). Sync: pwsh ../scripts/cursor-sync.ps1 -Source .."
+}
