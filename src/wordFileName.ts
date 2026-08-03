@@ -96,6 +96,24 @@ export function buildDocxDownloadName(
   return `${base}.docx`;
 }
 
+/**
+ * Nazwa pliku protokołu łączonego: skrócone nazwy + data + oba adresy (już sklejone `-`).
+ * `adresCombined` = `Adres1-Adres2`, `nazwaSkroconaCombined` = `Skr1-Skr2`.
+ */
+export function buildCombinedDocxDownloadName(
+  nazwaSkroconaCombined: string,
+  dataZaladunku: string,
+  adresCombined: string,
+  maxBaseLen = 80,
+): string {
+  return buildDocxDownloadName(
+    nazwaSkroconaCombined,
+    dataZaladunku,
+    adresCombined,
+    maxBaseLen,
+  );
+}
+
 /** Miejsce załadunku do Word: pełna nazwa + adres. */
 export function buildMiejsceZaladunkuWord(nazwaPelna: string, adres: string): string {
   return [nazwaPelna.trim(), adres.trim()].filter(Boolean).join(' ');

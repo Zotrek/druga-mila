@@ -24,7 +24,7 @@ Osobny proces i dane względem plomb: CD / place / Bolęcin, własna formatka Go
 | Persona | Rola | Potrzeby | Przykład |
 |---------|------|----------|----------|
 | Koordynator transportu | Operacje | Widzieć punkty, wyszukać, wygenerować protokół + zapis Google | Wybiera załadunek → przewoźnik → dostawa → pobiera Word |
-| Dyspozytor | Planowanie | Hurt wielu punktów | Multi-select → wspólne pola → seria dokumentów i wierszy |
+| Dyspozytor | Planowanie | Hurt wielu punktów; protokół łączony 2 miejsc | Multi-select → seria dokumentów; łączony → 1 Word + 1 wiersz |
 | Osoba utrzymująca dane | Excel w repo | Rzadka aktualizacja punktów / podwykonawców | Edycja `data/druga-mila.xlsx` lub `docs/podwyko lista.xlsx` → lokalny `npm run generate` → commit `index.html` (root) → push; Pages pokazuje nowe dane |
 
 ---
@@ -105,6 +105,7 @@ Klik pinezki może podpowiedzieć ten punkt w comboboxie; pole nadal edytowalne 
 | Dane do awizacji | Tak | „awizacja” | Nr rejestracyjny, **bez walidacji** |
 | Data załadunku | Tak | „Data odbioru” | Date picker jak arkusz-mapa (`dd.mm.rrrr`) |
 | Stawka | **Nie** | „Stawka” | Wpis ręczny w modalu; **nie** trafia do protokołu Word |
+| Okno awizacji | **Nie** | „OKNO AWIZACJI” | Wpis ręczny w modalu; **nie** trafia do protokołu Word |
 | Rodzaj zbiórki | **Nie** | „Rodzaj zbiórki” | Combobox + podpowiedź: `manualna` / `automatyczna` / `manualna i automatyczna` |
 | Ile worków | **Nie** | „Ile worków” | Wpis ręczny |
 | Rodzaj transportu | **Nie** | „rodzaj traportu” | Wpis ręczny |
@@ -123,20 +124,35 @@ Zmiana zbiórki w tej samej sesji nie kasuje ręcznie wybranego celu. Nowy modal
 
 Jak mapa plomb: zaznaczenie wielu → wspólne pola → osobny Word + osobny wiersz Google na punkt (kolejne numery z API).
 
+### 6a. Protokół łączony (dokładnie 2 miejsca)
+
+Osobny tryb UI (**nie** zmienia hurtu): przycisk „Protokół łączony” → wybór **dokładnie dwóch** miejsc załadunku → wspólne pola formularza → **jeden** numer `DM*`, **jeden** wiersz w formatce, **jeden** plik Word.
+
+| Pole | Sklejanie |
+|------|-----------|
+| Adres odbioru | `Adres1-Adres2` |
+| Nazwa kontrahenta | `NazwaPelna1-NazwaPelna2` |
+| znacznik miejsca | ten sam typ → jeden; różne → `Typ1-Typ2` (np. `CD-PLAC`) |
+| Word `miejsce_zaladunku` | `(pełna1 adres1)-(pełna2 adres2)` |
+| Nazwa pliku `.docx` | skrócone nazwy + data + oba adresy (sklejone `-`) |
+
+Kolejność sklejania = kolejność wyboru na liście (obojętna biznesowo). Przy celu Bolęcin/Biosystem — jeden twin-wiersz ze sklejonymi polami (jak przy pojedynczym zapisie).
+
 ### 7. Zapis do Google (formatka)
 
 Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga-mila.xlsx). Opis: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md).
 
-**Docelowy arkusz online**, do którego faktycznie dopisują się wpisy: [lista-druga-mila](https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit?usp=sharing) (ID: `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`, zakładka `Arkusz1`). Nagłówki zweryfikowane — zgodne z tabelą poniżej. Szczegóły Apps Script: [`ARCHITECTURE.md`](ARCHITECTURE.md#formatka-google).
+**Docelowy arkusz online**, do którego faktycznie dopisują się wpisy: [lista-druga-mila](https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit?usp=sharing) (ID: `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`). Wpisy idą na **zakładkę miesiąca** nazwaną `{MiesiącPL} {YYYY}` (np. `Sierpień 2026`) — zakładana automatycznie przy pierwszym transporcie w danym miesiącu (miesiąc z Data załadunku / Data odbioru). Numeracja zleceń **ciągła** przez wszystkie zakładki. Nagłówki zweryfikowane — zgodne z tabelą poniżej. Szczegóły Apps Script: [`ARCHITECTURE.md`](ARCHITECTURE.md#formatka-google), [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md).
 
 | Kolumna | Przy generacji z mapy |
 |---------|------------------------|
 | Numer faktury | Zawsze puste (brak pola w UI) |
 | Stawka | Z modala (opcjonalne; nie na Word) |
-| Czy protokół zrobiony | Zawsze **`tak`** |
+| Czy protokół zrobiony | **`tak`** przy generacji / realizacji; **`nie`** przy zapisie na `Planowane` |
 | Nr zlecenia transportowego | Ten sam co w Word |
-| Adres odbioru | Adres (C) miejsca załadunku |
-| Nazwa kontrahenta / podmiot handlowy | Nazwa pełna (A) |
+| OKNO AWIZACJI | Z modala (opcjonalne; nie na Word) |
+| Adres odbioru | Adres (C) miejsca załadunku; protokół łączony: `Adres1-Adres2` |
+| Nazwa kontrahenta / podmiot handlowy | Nazwa pełna (A); protokół łączony: `Nazwa1-Nazwa2` |
 | Data odbioru | Data z modala |
 | Kto odbiera | Przewoźnik |
 | Miejsce zrzutu | Miejsce dostawy |
@@ -144,7 +160,20 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 | Ile worków | Z modala |
 | rodzaj traportu | Z modala |
 | awizacja | = Dane do awizacji |
-| znacznik miejsca | Typ punktu (kolumna D Załadunek: `CD` / `PLAC` / puste) |
+| znacznik miejsca | Typ punktu (kolumna D Załadunek: `CD` / `PLAC` / puste); łączony: oba przy różnych typach |
+
+**Drugi arkusz (Bolęcin):** gdy miejsce dostawy = Bolęcin / Biosystem — ten sam transport jest też dopisywany do [arkusza Bolęcin](https://docs.google.com/spreadsheets/d/14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc/edit) (zakładki miesięczne; kolumny: Okno awizacji, Adres odbioru, Nazwa kontrahenta, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja). Zapis **równoległy** z formatką główną. Szczegóły: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md).
+
+### 7a. Planowane + realizacja
+
+Osobna ścieżka **bez** protokołu Word (jedyna w v1):
+
+1. **Zapisz planowane** (modal single) — rezerwacja `DM*` + wiersz na zakładkę **`Planowane`** (`Czy protokół = nie`). Bez Worda, bez arkusza Bolęcin. Pola jak dziś (opcjonalne).
+2. **Planowane** (przycisk na mapie) — lista z API → wybór → modal z prefillem (ten sam numer).
+3. **Realizacja** — „Pobierz .docx”: Word + wiersz w zakładce miesiąca (`Czy protokół = tak`) + Bolęcin jeśli cel Biosystem/Bolęcin + usunięcie z `Planowane`. Numer bez zmian.
+4. Opcjonalnie: zapis zmian w planowanym / usunięcie (anulowanie rezerwacji).
+
+Hurt i protokół łączony **nie** obsługują planowania w v1. Brak zapisu „bez protokołu” prosto do zakładki miesiąca.
 
 ### 8. Numeracja zlecenia
 
@@ -152,10 +181,10 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 - Ten sam numer → Word i kolumna „Nr zlecenia transportowego”.
 - Prefiks tekstowy: `asd123` → następny `asd124`; `ABC100` → `ABC101` (mieszane prefiksy OK).
 - Czysto numeryczne: `1460` → `1461`.
-- **Pusty arkusz / brak numerów:** pierwszy auto-numer = **`DM1`**, potem `DM2`, `DM3`, …
-- **Z mapy zawsze auto-numer** — nie wysyłamy pustego numeru przy generacji.
-- **Nie „palić” numeru przy podglądzie** — otwarcie modala / preview tylko pokazuje kandydat; rezerwacja dopiero po udanym zapisie wiersza do arkusza.
-- **Usunięcie wierszy z arkusza** — następny numer cofa się według tego, co zostało w kolumnie (źródło prawdy = arkusz). Przykład: były `DM1`…`DM5`, skasowano `DM4` i `DM5` → następny = `DM4`.
+- **Brak numerów na żadnej zakładce:** pierwszy auto-numer = **`DM1`**, potem `DM2`, `DM3`, … (ciągłość przez miesiące — nowa zakładka **nie** resetuje numeracji).
+- **Z mapy zawsze auto-numer** — nie wysyłamy pustego numeru przy generacji (przy realizacji: numer z planowanego).
+- **Nie „palić” numeru przy podglądzie** — otwarcie modala / preview tylko pokazuje kandydat; rezerwacja dopiero po udanym zapisie wiersza (`Planowane` lub miesiąc).
+- **Usunięcie wierszy** (w tym z `Planowane`) — następny numer cofa się według max na **wszystkich** zakładkach. Przykład: były `DM1`…`DM5`, skasowano `DM4` i `DM5` → następny = `DM4`.
 - Źródło prawdy i API: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md).
 
 ---
@@ -166,7 +195,7 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 - Bolęcin ma pierwszeństwo przed „puste” przy klasyfikacji koloru.
 - „Bolęcin” jako kolor/typ pinezki na mapie (z `druga-mila.xlsx`) i „Biosystem” jako pozycja listy dostawy (z `podwyko lista.xlsx`) to dwa różne, niepowiązane źródła — auto-podstawienie przy zbiórce manualnej wybiera etykietę **„Biosystem”** z listy dostawy, nie „Bolęcin”.
 - Wszystkie pola modala opcjonalne.
-- Przy zapisie z generacji: „Czy protokół zrobiony” = `tak`.
+- Przy zapisie z generacji / realizacji: „Czy protokół zrobiony” = `tak`; przy planowaniu = `nie`.
 - Bez Web App: Word możliwy lokalnie; bez auto-numeru / bez zapisu Sheets.
 - Mapa nie edytuje Excela punktów (źródło = plik w repo).
 - Generacja protokołu / zapis do Sheets **nie** wymaga przebudowy strony ani Actions.
@@ -208,7 +237,7 @@ Geokodowanie adresów dzieje się **tylko przy rebuildzie** (cache JSON), nie pr
 - Edycja punktów z mapy.
 - Pinezki z arkusza Rozładunek.
 - Lista plomb w protokole.
-- Wypełnianie „Numer faktury” z mapy (Stawka — tak, tylko w modalu → Google; znacznik miejsca = typ CD/PLAC z Załadunek).
+- Wypełnianie „Numer faktury” z mapy (Stawka / Okno awizacji — tak, tylko w modalu → Google; znacznik miejsca = typ CD/PLAC z Załadunek).
 - Scalenie z mapą plomb.
 - Cykliczna regeneracja mapy przez GitHub Actions / `on.schedule` / zewnętrzny cron (model `arkusz-mapa`).
 

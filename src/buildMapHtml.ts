@@ -324,6 +324,8 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
           ? '<div class="map-manual-gen-wrap">' +
             '<button type="button" id="map-manual-generate" class="map-manual-generate" title="Otwórz formularz i wybierz miejsce załadunku z listy">Generuj (wybór ręczny)</button>' +
             '<button type="button" id="map-manual-bulk-generate" class="map-manual-bulk-generate" title="Zaznacz kilka miejsc z listy i generuj hurtowo">Hurtowo (wybór ręczny)</button>' +
+            '<button type="button" id="map-manual-combined-generate" class="map-manual-combined-generate" title="Wybierz dokładnie dwa miejsca — jeden protokół i jeden wiersz ewidencji">Protokół łączony</button>' +
+            '<button type="button" id="map-planowane-generate" class="map-planowane-generate" title="Lista planowanych transportów — realizacja z protokołem">Planowane</button>' +
             '</div>' +
             '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
             '<span id="map-bulk-count" class="map-bulk-count"></span>' +
@@ -350,6 +352,10 @@ ${
     if (manualGenBtn) manualGenBtn.addEventListener('click', function() { openDocModal(); });
     var manualBulkGenBtn = document.getElementById('map-manual-bulk-generate');
     if (manualBulkGenBtn) manualBulkGenBtn.addEventListener('click', function() { openManualBulkPicker(); });
+    var manualCombinedGenBtn = document.getElementById('map-manual-combined-generate');
+    if (manualCombinedGenBtn) manualCombinedGenBtn.addEventListener('click', function() { openManualCombinedPicker(); });
+    var planowaneGenBtn = document.getElementById('map-planowane-generate');
+    if (planowaneGenBtn) planowaneGenBtn.addEventListener('click', function() { openPlanowanePicker(); });
     var bulkGenBtn = document.getElementById('map-bulk-generate');
     var bulkClearBtn = document.getElementById('map-bulk-clear');
     if (bulkGenBtn) bulkGenBtn.addEventListener('click', function() { openBulkDocModal(); });

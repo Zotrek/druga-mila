@@ -88,8 +88,8 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 - Nazwa: **lista-druga-mila**
 - URL: `https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit?usp=sharing`
 - Spreadsheet ID: `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`
-- Zakładka: `Arkusz1`
-- Nagłówki (wiersz 1) **zweryfikowane** — 14 kolumn zgodnych z [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md) / lokalnym wzorem: Numer faktury, Stawka, Czy protokół zrobiony, Nr zlecenia transportowego, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca
+- Zakładki: **miesięczne** `{MiesiącPL} {YYYY}` (np. `Sierpień 2026`) — tworzona przy pierwszym POST w miesiącu z `dataOdbioru`; numeracja skanuje **wszystkie** zakładki
+- Nagłówki (wiersz 1) **zweryfikowane** — 15 kolumn zgodnych z [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md) / lokalnym wzorem: Numer faktury, Stawka, Czy protokół zrobiony, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca
 - Apps Script Web App powinien być **container-bound** do tego arkusza (albo standalone + `SpreadsheetApp.openById('1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0')`).
 
 > Uwaga: wcześniejszy link (`11OQsQn-…` / lista-druga-mila2) był błędny / niedostępny — nie używać.
@@ -124,6 +124,7 @@ Plik: [`.env.example`](../.env.example). Lokalnie: `.env` (nie commitować).
 |---------|----------|------|
 | `DRUGA_MILA_WEBAPP_URL` | Do zapisu Sheets / auto-numeru | URL Web App (`…/exec`). Bez niej: Word lokalnie, bez POST / bez podglądu numeru |
 | `GOOGLE_FORMATKA_SHEETS_ID` | Nie (dokumentacja) | `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0` |
+| `GOOGLE_BOLECIN_SHEETS_ID` | Nie (dokumentacja) | `14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc` — drugi arkusz przy celu Bolęcin/Biosystem |
 | `GEOCODE_CACHE_PATH` | Nie | Domyślnie `./data/geocode-cache.json` |
 | `OUTPUT_HTML` | Nie | Domyślnie `./index.html` (root = Pages) |
 | `NOMINATIM_USER_AGENT` | Nie | Domyślnie stała w `config.ts` (nazwa + kontakt) |
@@ -139,9 +140,10 @@ Deploy + kontrakt: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md). Kod: [`google-apps-
 
 | Metoda | Akcja | Opis |
 |--------|-------|------|
-| GET | `action=previewNumber` | Podgląd następnego numeru (**skan arkusza**, bez rezerwacji) |
+| GET | `action=previewNumber` | Podgląd następnego numeru (**skan wszystkich zakładek**, bez rezerwacji) |
 | GET | `action=modalData` | **Tylko numer** `{ ok, numer }` — **bez** `lastTransportDate` (DM nie filtruje plomb) |
-| POST | JSON, `Content-Type: text/plain` | LockService → append → zwrot `{ ok, numer }` (numer zużyty dopiero po zapisie) |
+| GET | `action=listPlanowane` | Lista wierszy zakładki `Planowane` |
+| POST | JSON, `Content-Type: text/plain` | LockService → wg `mode`: `commit` (miesiąc±Bolęcin), `plan` (`Planowane`), `realize`, `updatePlan`, `deletePlan` → `{ ok, numer? }` |
 
 > `modalData` w plombach zwraca też ostatnią datę transportu. W DM **nie** — endpoint zostaje dla spójności UX (jeden GET przy otwarciu modala), ale payload to wyłącznie podgląd numeru.
 
@@ -149,8 +151,11 @@ Deploy + kontrakt: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md). Kod: [`google-apps-
 
 | Element | Decyzja |
 |---------|---------|
-| Start (pusty arkusz / brak numerów) | **`DM1`** |
-| Źródło prawdy | Kolumna „Nr zlecenia” w arkuszu (skan przy preview i POST) |
+| Start (brak numerów na żadnej zakładce) | **`DM1`** |
+| Zakładki miesięczne | Nazwa z `dataOdbioru` → `Sierpień 2026`; create + nagłówki przy pierwszym POST miesiąca |
+| Zakładka `Planowane` | Stała; te same 15 kolumn; rezerwacja numeru bez Word/Bolęcin (`mode: plan`) |
+| Arkusz Bolęcin | ID `14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc`; gdy cel = Bolęcin/Biosystem — dodatkowy append (10 kolumn, te same zakładki miesięczne); przy `commit`/`realize` też formatka główna; **nie** przy `plan` |
+| Źródło prawdy | Kolumna „Nr zlecenia” na **wszystkich** zakładkach formatki głównej w tym `Planowane` (skan przy preview i POST) |
 | Script Property `formatkaLastNumber` | Cache po udanym zapisie — **nie** pali numerów przy podglądzie |
 | Regex | `^(.*?)(\d+)$` → prefiks + liczba; samo `\d+` → prefiks pusty |
 | Auto next | Inkrement względem max w arkuszu; v1 **bez** paddingu zer (`DM9`→`DM10`, `ABC100`→`ABC101`) |
@@ -168,11 +173,13 @@ Body POST (kierunek pól):
   "numerFaktury": "",
   "stawka": "…",
   "czyProtokolZrobiony": "tak",
+  "oknoAwizacji": "…",
   "adresOdbioru": "…",
   "nazwaKontrahenta": "…",
   "dataOdbioru": "20.07.2026",
   "ktoOdbiera": "…",
   "miejsceZrzutu": "…",
+  "miejsceDostawyAdres": "…",
   "rodzajZbiorki": "manualna",
   "ileWorkow": "10",
   "rodzajTransportu": "…",
@@ -181,7 +188,7 @@ Body POST (kierunek pól):
 }
 ```
 
-`numerFaktury` — zawsze puste (brak UI). `stawka` — z pola modala (opcjonalne; nie w Word). `znacznikMiejsca` — typ z kolumny D Załadunek (`CD` / `PLAC` / puste).
+`numerFaktury` — zawsze puste (brak UI). `stawka` / `oknoAwizacji` — z pól modala (opcjonalne; nie w Word). `miejsceDostawyAdres` — adres z listy podwyko (do wykrycia Bolęcina; nie osobna kolumna). `znacznikMiejsca` — typ z kolumny D Załadunek (`CD` / `PLAC` / puste).
 
 ---
 
@@ -193,13 +200,16 @@ Body POST (kierunek pól):
 | Search mapy | Port `normalizeForAddressSearch` / `mapPointMatchesSearch` |
 | Filtr typu | Jak `ZbiorkaFilterMode` — tryby: wszystkie, cd, plac, puste, bolecin |
 | Combobox załadunku | Etykieta = skrócona; filter po A+B+C; value niesie A, B, C |
-| Word payload | `miejsce_zaladunku = pełna + " " + adres` |
+| Word payload | `miejsce_zaladunku = pełna + " " + adres`; łączony: oba miejsca sklejone `-` |
 | Przewoźnik / dostawa | Combobox jak phase6 + `podwyko` |
 | Stawka | Input w modalu → kolumna Google; **nie** w docxtemplater |
+| Okno awizacji | Input w modalu → kolumna „OKNO AWIZACJI”; **nie** w docxtemplater |
 | Zbiórka | Combobox 3 wartości; nie w docxtemplater |
 | Awizacja | Input text, bez walidacji |
 | Bolęcin default | Przy zbiórce zawierającej manualną (`manualna` lub `manualna i automatyczna`) ustaw dostawę na wpis **„Biosystem”** z `podwyko lista.xlsx` (adres tej pozycji = Bolęcin); na liście nie ma wiersza nazwanego literalnie „Bolęcin”. Przy czystej `automatyczna` — brak auto-podstawienia |
 | Bulk | Multi-select → pętla POST + docx |
+| Protokół łączony | Osobny tryb: dokładnie 2 miejsca → 1 POST + 1 docx; sklejanie `-` (`src/combineLoadPoints.ts`) |
+| Planowane | Przycisk listy + „Zapisz planowane”; realizacja = Word + `mode: realize` (bez planu w hurt/łączonym) |
 | Word | PizZip + docxtemplater; szablon base64 w HTML |
 
 Wszystkie pola opcjonalne — brak `alert` wymagalności przy generacji.
@@ -280,6 +290,8 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 | `src/buildMapHtml.ts` | Szablon Leaflet: pinezki, legenda, search, filtr, modal, embed docx/podwyko/URL Web App |
 | `src/run.ts` | Pipeline CLI: points → geocode → build → zapis `index.html` |
 | `src/nextNumber.ts` | Czysta funkcja inkrementu alfanumerycznego (testowana; lustro logiki `.gs`) |
+| `src/monthSheetName.ts` | Nazwa zakładki miesięcznej z `dataOdbioru` (testowana; lustro `.gs`) |
+| `src/isBolecinDestination.ts` | Wykrycie celu Bolęcin/Biosystem (testowane; lustro `.gs`) |
 | `src/searchNormalize.ts` | Port `normalizeForAddressSearch` / match z `arkusz-mapa` |
 | `src/*.test.ts` | Vitest |
 

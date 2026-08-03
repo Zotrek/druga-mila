@@ -81,10 +81,24 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Generuj (wybór ręczny)');
     expect(html).toContain('map-manual-bulk-generate');
     expect(html).toContain('Hurtowo (wybór ręczny)');
+    expect(html).toContain('map-manual-combined-generate');
+    expect(html).toContain('Protokół łączony');
+    expect(html).toContain('openManualCombinedPicker');
+    expect(html).toContain('combineLoadPoints');
+    expect(html).toContain("mode === 'combined'");
     expect(html).toContain('manual-bulk-picker');
     expect(html).toContain('openManualBulkPicker');
     expect(html).toContain('Zaznacz do hurtu');
     expect(html).toContain('defaultDateZaladunkuYmd');
+    expect(html).toContain('map-planowane-generate');
+    expect(html).toContain('Planowane');
+    expect(html).toContain('openPlanowanePicker');
+    expect(html).toContain('listPlanowane');
+    expect(html).toContain('Zapisz planowane');
+    expect(html).toContain("mode === 'realize'");
+    expect(html).toContain("'updatePlan' : 'plan'");
+    expect(html).toContain("realizePayload.mode = 'realize'");
+    expect(html).toContain('doc-btn-save-plan');
   });
 
   it('test_buildMapHtml_empty_points_shows_banner', () => {

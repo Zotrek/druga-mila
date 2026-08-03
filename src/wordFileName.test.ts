@@ -4,6 +4,7 @@ import {
   formatDateForFileName,
   formatDateForDoc,
   buildDocxDownloadName,
+  buildCombinedDocxDownloadName,
   buildMiejsceZaladunkuWord,
 } from './wordFileName.js';
 
@@ -40,5 +41,15 @@ describe('wordFileName', () => {
 
   it('test_buildMiejsceZaladunkuWord_joins_full_and_address', () => {
     expect(buildMiejsceZaladunkuWord('CD Test', '00-001 Wawa')).toBe('CD Test 00-001 Wawa');
+  });
+
+  it('test_buildCombinedDocxDownloadName_includes_both_addresses', () => {
+    expect(
+      buildCombinedDocxDownloadName(
+        'A-B',
+        '2026-07-20',
+        '00-001 Wawa-30-001 Kraków',
+      ),
+    ).toBe('A-B 20.07.26 00-001 Wawa-30-001 Kraków.docx');
   });
 });

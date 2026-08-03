@@ -1,5 +1,6 @@
 /**
- * Fragmenty HTML/CSS/JS modala Word + multi-select / hurt (osadzane w buildMapHtml).
+ * Fragmenty HTML/CSS/JS modala Word + multi-select / hurt / protokół łączony
+ * (osadzane w buildMapHtml).
  */
 
 export interface WordMapEmbed {
@@ -51,6 +52,18 @@ export function wordModalCss(): string {
     .map-manual-generate:hover { filter: brightness(1.05); }
     .map-manual-bulk-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #198754; background: #198754; color: #fff; cursor: pointer; }
     .map-manual-bulk-generate:hover { filter: brightness(1.05); }
+    .map-manual-combined-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #b45309; background: #b45309; color: #fff; cursor: pointer; }
+    .map-manual-combined-generate:hover { filter: brightness(1.05); }
+    .map-planowane-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #6f42c1; background: #6f42c1; color: #fff; cursor: pointer; }
+    .map-planowane-generate:hover { filter: brightness(1.05); }
+    .planowane-list { margin-top: 8px; max-height: min(360px, 55vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
+    .planowane-list-item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 8px 10px; margin: 0 0 6px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; color: #333; }
+    .planowane-list-item:hover { background: #f3eef9; border-color: #6f42c1; }
+    .planowane-list-item strong { font-size: 13px; }
+    .planowane-list-meta { color: #666; font-size: 11px; }
+    .planowane-list-empty { font-size: 12px; color: #666; margin: 8px 0; }
+    .doc-modal-actions button.secondary { background: #6f42c1; color: #fff; border-color: #6f42c1; }
+    .doc-modal-actions button.danger { background: #f8f8f8; color: #b02a37; border-color: #dc3545; }
     .manual-bulk-list { margin-top: 8px; max-height: min(320px, 50vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
     .manual-bulk-list label { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; font-weight: 400; color: #333; margin: 0; padding: 4px 2px; cursor: pointer; }
     .manual-bulk-list label:hover { background: #eef5ff; border-radius: 4px; }
@@ -76,6 +89,17 @@ export function wordModalHtml(): string {
       <div class="doc-modal-actions">
         <button type="button" id="manual-bulk-cancel">Anuluj</button>
         <button type="button" id="manual-bulk-next" class="primary">Dalej</button>
+      </div>
+    </div>
+  </div>
+  <div id="planowane-picker" class="doc-modal-overlay" style="display:none" aria-hidden="true">
+    <div class="doc-modal-panel" role="dialog" aria-labelledby="planowane-title">
+      <h3 id="planowane-title">Planowane transporty</h3>
+      <p id="planowane-status" class="doc-modal-hint" aria-live="polite">Ładowanie…</p>
+      <div id="planowane-list" class="planowane-list" role="list"></div>
+      <div class="doc-modal-actions">
+        <button type="button" id="planowane-cancel">Zamknij</button>
+        <button type="button" id="planowane-refresh" class="secondary">Odśwież</button>
       </div>
     </div>
   </div>
@@ -120,6 +144,8 @@ export function wordModalHtml(): string {
       </div>
       <label for="doc-inp-awizacja">Dane do awizacji</label>
       <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
+      <label for="doc-inp-okno-awizacji">Okno awizacji (tylko Google)</label>
+      <input type="text" id="doc-inp-okno-awizacji" maxlength="120" autocomplete="off" spellcheck="false" />
       <label for="doc-inp-data">Data załadunku</label>
       <div class="doc-date-row">
         <input type="text" id="doc-inp-data" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
@@ -139,6 +165,8 @@ export function wordModalHtml(): string {
       <p class="doc-modal-hint" id="doc-modal-hint">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
       <div class="doc-modal-actions">
         <button type="button" id="doc-btn-cancel">Anuluj</button>
+        <button type="button" id="doc-btn-delete-plan" class="danger" hidden>Usuń z planowanych</button>
+        <button type="button" id="doc-btn-save-plan" class="secondary" hidden>Zapisz planowane</button>
         <button type="button" id="doc-btn-generate" class="primary">Pobierz .docx</button>
       </div>
     </div>
@@ -146,13 +174,40 @@ export function wordModalHtml(): string {
 `;
 }
 
-/** Skrypt przeglądarkowy — modal, comboboxy, Word, POST, hurt. */
+/** Skrypt przeglądarkowy — modal, comboboxy, Word, POST, hurt, protokół łączony. */
 export function wordModalBrowserScript(): string {
   return `
     var COLOR_BULK_SELECTED = ${JSON.stringify(COLOR_BULK_SELECTED)};
     window.__docModalMode = 'single';
+    window.__manualPickerKind = 'bulk';
     window.__bulkSelectedLoadIdxs = window.__bulkSelectedLoadIdxs || {};
     window.__bulkDocLoadIdxs = [];
+    window.__realizePlan = null;
+
+    function joinWithDash(parts) {
+      return parts.map(function(p) { return String(p || '').trim(); })
+        .filter(function(p) { return p.length > 0; })
+        .join('-');
+    }
+    function combineZnacznikMiejsca(typA, typB) {
+      var a = String(typA || '').trim();
+      var b = String(typB || '').trim();
+      if (a && b) return a === b ? a : joinWithDash([a, b]);
+      return a || b;
+    }
+    function combineLoadPoints(a, b) {
+      var shortA = String((a && (a.nazwaSkrocona || a.nazwaPelna)) || '').trim();
+      var shortB = String((b && (b.nazwaSkrocona || b.nazwaPelna)) || '').trim();
+      var miejsceA = [a && a.nazwaPelna, a && a.adres].filter(Boolean).join(' ');
+      var miejsceB = [b && b.nazwaPelna, b && b.adres].filter(Boolean).join(' ');
+      return {
+        nazwaPelna: joinWithDash([a && a.nazwaPelna, b && b.nazwaPelna]),
+        nazwaSkrocona: joinWithDash([shortA, shortB]),
+        adres: joinWithDash([a && a.adres, b && b.adres]),
+        typ: combineZnacznikMiejsca(a && a.typ, b && b.typ),
+        miejsceZaladunkuWord: joinWithDash([miejsceA, miejsceB])
+      };
+    }
 
     function getBulkSelectedLoadIdxs() {
       var out = [];
@@ -249,23 +304,40 @@ export function wordModalBrowserScript(): string {
     function setDocModalMode(mode) {
       window.__docModalMode = mode;
       var isBulk = mode === 'bulk';
+      var isCombined = mode === 'combined';
+      var isRealize = mode === 'realize';
+      var isSingleLike = mode === 'single' || isRealize;
       var titleEl = document.getElementById('doc-modal-title');
       var zalWrap = document.getElementById('doc-single-zaladunek-wrap');
       var bulkWrap = document.getElementById('doc-bulk-points-wrap');
+      var bulkTitle = document.querySelector('#doc-bulk-points-wrap .doc-bulk-points-title');
       var numerWrap = document.getElementById('doc-single-numer-wrap');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
       var okBtn = document.getElementById('doc-btn-generate');
+      var savePlanBtn = document.getElementById('doc-btn-save-plan');
+      var deletePlanBtn = document.getElementById('doc-btn-delete-plan');
+      var numerEl = document.getElementById('doc-inp-numer');
       var n = (window.__bulkDocLoadIdxs || []).length;
       if (titleEl) {
-        titleEl.textContent = isBulk
-          ? 'Generuj protokoły Word (' + n + ' punktów)'
-          : 'Generuj protokół Word';
+        if (isRealize) titleEl.textContent = 'Realizuj planowane';
+        else if (isCombined) titleEl.textContent = 'Protokół łączony (2 miejsca)';
+        else if (isBulk) titleEl.textContent = 'Generuj protokoły Word (' + n + ' punktów)';
+        else titleEl.textContent = 'Generuj protokół Word';
       }
-      if (zalWrap) zalWrap.hidden = isBulk;
-      if (bulkWrap) bulkWrap.hidden = !isBulk;
+      if (zalWrap) zalWrap.hidden = isBulk || isCombined;
+      if (bulkWrap) bulkWrap.hidden = !(isBulk || isCombined);
+      if (bulkTitle) {
+        bulkTitle.textContent = isCombined ? 'Miejsca załadunku (łączone)' : 'Wybrane punkty';
+      }
       if (numerWrap) numerWrap.hidden = isBulk;
-      if (bulkNumerInfo) bulkNumerInfo.hidden = !isBulk;
+      if (bulkNumerInfo) bulkNumerInfo.hidden = !isBulk && !isCombined;
       if (okBtn) okBtn.textContent = isBulk ? 'Pobierz wszystkie .docx' : 'Pobierz .docx';
+      if (savePlanBtn) {
+        savePlanBtn.hidden = !isSingleLike;
+        savePlanBtn.textContent = isRealize ? 'Zapisz zmiany' : 'Zapisz planowane';
+      }
+      if (deletePlanBtn) deletePlanBtn.hidden = !isRealize;
+      if (numerEl) numerEl.readOnly = isRealize;
     }
     function renderBulkPointsList(indices) {
       var listEl = document.getElementById('doc-bulk-points-list');
@@ -283,6 +355,7 @@ export function wordModalBrowserScript(): string {
       var m = document.getElementById('doc-modal');
       if (!m || !wordDocEnabled) return;
       window.__bulkDocLoadIdxs = [];
+      window.__realizePlan = null;
       setDocModalMode('single');
       resetDocModal();
       var hasPrefill = typeof prefillIdx === 'number' && LOAD_POINTS[prefillIdx];
@@ -311,6 +384,7 @@ export function wordModalBrowserScript(): string {
         return;
       }
       window.__bulkDocLoadIdxs = indices.slice();
+      window.__realizePlan = null;
       setDocModalMode('bulk');
       resetDocModal();
       renderBulkPointsList(indices);
@@ -343,6 +417,38 @@ export function wordModalBrowserScript(): string {
           if (bulkNumerInfo) bulkNumerInfo.textContent = 'Nie udało się pobrać podglądu — przy generacji i tak auto z API.';
         });
     }
+    function openCombinedDocModal(indicesOpt) {
+      var m = document.getElementById('doc-modal');
+      if (!m || !wordDocEnabled) return;
+      var indices = (indicesOpt && indicesOpt.length) ? indicesOpt.slice() : [];
+      if (indices.length !== 2) {
+        alert('Protokół łączony wymaga dokładnie dwóch miejsc załadunku.');
+        return;
+      }
+      if (!LOAD_POINTS[indices[0]] || !LOAD_POINTS[indices[1]]) {
+        alert('Nieprawidłowy wybór miejsc załadunku.');
+        return;
+      }
+      window.__bulkDocLoadIdxs = indices.slice();
+      window.__realizePlan = null;
+      setDocModalMode('combined');
+      resetDocModal();
+      renderBulkPointsList(indices);
+      var dateEl = document.getElementById('doc-inp-data');
+      if (dateEl) dateEl.value = formatDateForDoc(defaultDateZaladunkuYmd());
+      syncDatePickerFromText();
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
+      var hint = document.getElementById('doc-modal-hint');
+      if (bulkNumerInfo) {
+        bulkNumerInfo.textContent = 'Jeden numer DM, jeden wiersz ewidencji, jeden protokół Word.';
+      }
+      if (hint) {
+        hint.textContent = 'Oba miejsca trafią do jednego wiersza (Adres1-Adres2). Wspólne pola jak w pojedynczym protokole.';
+      }
+      previewNumerFromApi();
+    }
     window.__manualBulkPickIdxs = window.__manualBulkPickIdxs || {};
     function getManualBulkPickIdxs() {
       var out = [];
@@ -359,7 +465,69 @@ export function wordModalBrowserScript(): string {
       var el = document.getElementById('manual-bulk-count-hint');
       if (!el) return;
       var n = getManualBulkPickIdxs().length;
+      if (window.__manualPickerKind === 'combined') {
+        el.textContent = n === 2 ? '2 wybrane — OK' : (n + ' / 2 wymagane');
+        return;
+      }
       el.textContent = n === 1 ? '1 wybrany' : (n + ' wybranych');
+    }
+    function syncManualPickerChrome() {
+      var titleEl = document.getElementById('manual-bulk-title');
+      var nextBtn = document.getElementById('manual-bulk-next');
+      var isCombined = window.__manualPickerKind === 'combined';
+      if (titleEl) {
+        titleEl.textContent = isCombined
+          ? 'Protokół łączony — wybór 2 załadunków'
+          : 'Hurt — wybór załadunków';
+      }
+      if (nextBtn) nextBtn.textContent = 'Dalej';
+      updateManualBulkCountHint();
+    }
+    function openManualBulkPicker() {
+      window.__manualPickerKind = 'bulk';
+      openManualLoadPicker();
+    }
+    function openManualCombinedPicker() {
+      window.__manualPickerKind = 'combined';
+      openManualLoadPicker();
+    }
+    function openManualLoadPicker() {
+      var m = document.getElementById('manual-bulk-picker');
+      if (!m || !wordDocEnabled) return;
+      window.__manualBulkPickIdxs = {};
+      var searchEl = document.getElementById('manual-bulk-search');
+      if (searchEl) searchEl.value = '';
+      syncManualPickerChrome();
+      renderManualBulkList();
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      if (searchEl) {
+        setTimeout(function() { searchEl.focus(); }, 0);
+      }
+    }
+    function closeManualBulkPicker() {
+      var m = document.getElementById('manual-bulk-picker');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+    }
+    function confirmManualBulkPicker() {
+      var indices = getManualBulkPickIdxs();
+      if (window.__manualPickerKind === 'combined') {
+        if (indices.length !== 2) {
+          alert('Zaznacz dokładnie dwa miejsca załadunku.');
+          return;
+        }
+        closeManualBulkPicker();
+        openCombinedDocModal(indices);
+        return;
+      }
+      if (indices.length === 0) {
+        alert('Zaznacz co najmniej jedno miejsce załadunku.');
+        return;
+      }
+      closeManualBulkPicker();
+      openBulkDocModal(indices);
     }
     function renderManualBulkList() {
       var listEl = document.getElementById('manual-bulk-list');
@@ -402,43 +570,18 @@ export function wordModalBrowserScript(): string {
       }
       updateManualBulkCountHint();
     }
-    function openManualBulkPicker() {
-      var m = document.getElementById('manual-bulk-picker');
-      if (!m || !wordDocEnabled) return;
-      window.__manualBulkPickIdxs = {};
-      var searchEl = document.getElementById('manual-bulk-search');
-      if (searchEl) searchEl.value = '';
-      renderManualBulkList();
-      m.style.display = 'flex';
-      m.setAttribute('aria-hidden', 'false');
-      if (searchEl) {
-        setTimeout(function() { searchEl.focus(); }, 0);
-      }
-    }
-    function closeManualBulkPicker() {
-      var m = document.getElementById('manual-bulk-picker');
-      if (!m) return;
-      m.style.display = 'none';
-      m.setAttribute('aria-hidden', 'true');
-    }
-    function confirmManualBulkPicker() {
-      var indices = getManualBulkPickIdxs();
-      if (indices.length === 0) {
-        alert('Zaznacz co najmniej jedno miejsce załadunku.');
-        return;
-      }
-      closeManualBulkPicker();
-      openBulkDocModal(indices);
-    }
     function closeDocModal() {
       var m = document.getElementById('doc-modal');
       if (!m) return;
       m.style.display = 'none';
       m.setAttribute('aria-hidden', 'true');
       window.__docModalMode = 'single';
+      window.__realizePlan = null;
+      var numerEl = document.getElementById('doc-inp-numer');
+      if (numerEl) numerEl.readOnly = false;
     }
     function resetDocModal() {
-      ['doc-sel-zaladunek','doc-sel-przewoznik','doc-sel-miejsce','doc-inp-awizacja','doc-inp-stawka','doc-inp-worki','doc-inp-transport','doc-inp-numer'].forEach(function(id) {
+      ['doc-sel-zaladunek','doc-sel-przewoznik','doc-sel-miejsce','doc-inp-awizacja','doc-inp-okno-awizacji','doc-inp-stawka','doc-inp-worki','doc-inp-transport','doc-inp-numer'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
       ['doc-val-zaladunek','doc-val-przewoznik','doc-val-miejsce'].forEach(function(id) {
@@ -697,6 +840,15 @@ export function wordModalBrowserScript(): string {
       }
       var typed = document.getElementById('doc-sel-zaladunek');
       var t = typed ? String(typed.value).trim() : '';
+      var plan = window.__realizePlan;
+      if (plan) {
+        return {
+          nazwaPelna: plan.nazwaKontrahenta || t,
+          nazwaSkrocona: t || plan.nazwaKontrahenta || '',
+          adres: plan.adresOdbioru || '',
+          typ: plan.znacznikMiejsca || ''
+        };
+      }
       return { nazwaPelna: t, nazwaSkrocona: t, adres: '', typ: '' };
     }
     window.__docPreviewNumer = '';
@@ -705,7 +857,17 @@ export function wordModalBrowserScript(): string {
       var hint = document.getElementById('doc-modal-hint');
       window.__docPreviewNumer = '';
       if (!WEBAPP_URL) {
-        if (hint) hint.textContent = 'Brak Web App — Word lokalnie, bez zapisu do arkusza Google.';
+        if (hint) {
+          hint.textContent = window.__docModalMode === 'combined'
+            ? 'Brak Web App — jeden Word lokalnie (oba miejsca), bez zapisu do Google.'
+            : 'Brak Web App — Word lokalnie, bez zapisu do arkusza Google.';
+        }
+        return;
+      }
+      if (window.__docModalMode === 'realize') {
+        if (hint) {
+          hint.textContent = 'Realizacja: „Pobierz .docx” zapisze do miesiąca, wygeneruje Word i usunie z Planowane. „Zapisz zmiany” aktualizuje plan.';
+        }
         return;
       }
       if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
@@ -718,7 +880,11 @@ export function wordModalBrowserScript(): string {
               numerEl.value = window.__docPreviewNumer;
             }
           }
-          if (hint) hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word.';
+          if (hint) {
+            hint.textContent = window.__docModalMode === 'combined'
+              ? 'Oba miejsca → jeden wiersz (Adres1-Adres2) i jeden protokół Word z tym numerem.'
+              : 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Zapisz planowane” tylko rezerwuje numer.';
+          }
         })
         .catch(function() {
           if (hint) hint.textContent = 'Nie udało się pobrać numeru — sprawdź Web App / sieć.';
@@ -731,9 +897,219 @@ export function wordModalBrowserScript(): string {
         body: JSON.stringify(payload)
       }).then(function(res) { return res.json(); });
     }
+    function findLoadIdxForPlanRow(row) {
+      if (!row) return -1;
+      var adres = String(row.adresOdbioru || '').trim();
+      var nazwa = String(row.nazwaKontrahenta || '').trim();
+      var i;
+      if (adres) {
+        for (i = 0; i < LOAD_POINTS.length; i++) {
+          if (String(LOAD_POINTS[i].adres || '').trim() === adres) return i;
+        }
+      }
+      if (nazwa) {
+        for (i = 0; i < LOAD_POINTS.length; i++) {
+          if (String(LOAD_POINTS[i].nazwaPelna || '').trim() === nazwa) return i;
+        }
+      }
+      return -1;
+    }
+    function selectPodwykoByLabel(hiddenId, inputId, label) {
+      var target = String(label || '').trim();
+      var inp = document.getElementById(inputId);
+      var hid = document.getElementById(hiddenId);
+      if (!target) {
+        if (inp) inp.value = '';
+        if (hid) hid.value = '';
+        return;
+      }
+      for (var i = 0; i < PODWYKOLISTA.length; i++) {
+        if (String(PODWYKOLISTA[i].label || '').trim() === target) {
+          if (inp) inp.value = PODWYKOLISTA[i].label;
+          if (hid) hid.value = String(i);
+          return;
+        }
+      }
+      if (inp) inp.value = target;
+      if (hid) hid.value = '';
+    }
+    function openPlanowanePicker() {
+      var m = document.getElementById('planowane-picker');
+      if (!m || !wordDocEnabled) return;
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      loadPlanowaneList();
+    }
+    function closePlanowanePicker() {
+      var m = document.getElementById('planowane-picker');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+    }
+    function loadPlanowaneList() {
+      var statusEl = document.getElementById('planowane-status');
+      var listEl = document.getElementById('planowane-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      if (!WEBAPP_URL) {
+        if (statusEl) statusEl.textContent = 'Brak Web App — nie można wczytać planowanych.';
+        return;
+      }
+      if (statusEl) statusEl.textContent = 'Ładowanie…';
+      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listPlanowane')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data || !data.ok) {
+            if (statusEl) statusEl.textContent = 'Błąd API: ' + (data && data.error ? data.error : 'nieznany');
+            return;
+          }
+          var rows = data.rows || [];
+          if (statusEl) {
+            statusEl.textContent = rows.length === 0
+              ? 'Brak planowanych transportów.'
+              : (rows.length + ' planowanych — kliknij, aby zrealizować.');
+          }
+          rows.forEach(function(row) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'planowane-list-item';
+            btn.setAttribute('role', 'listitem');
+            var title = (row.numer || '—') + ' · ' + (row.nazwaKontrahenta || row.adresOdbioru || 'bez nazwy');
+            btn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
+              '<span class="planowane-list-meta">' + escapeHtmlMap(row.adresOdbioru || '') + '</span>' +
+              '<span class="planowane-list-meta">' +
+              escapeHtmlMap([row.dataOdbioru, row.ktoOdbiera, row.miejsceZrzutu].filter(Boolean).join(' · ')) +
+              '</span>';
+            btn.addEventListener('click', function() {
+              closePlanowanePicker();
+              openRealizeDocModal(row);
+            });
+            listEl.appendChild(btn);
+          });
+        })
+        .catch(function(err) {
+          console.error(err);
+          if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy planowanych.';
+        });
+    }
+    function openRealizeDocModal(row) {
+      var m = document.getElementById('doc-modal');
+      if (!m || !wordDocEnabled || !row) return;
+      window.__bulkDocLoadIdxs = [];
+      window.__realizePlan = row;
+      setDocModalMode('realize');
+      resetDocModal();
+      var loadIdx = findLoadIdxForPlanRow(row);
+      if (loadIdx >= 0) {
+        selectZaladunek(loadIdx);
+      } else {
+        var zalInp = document.getElementById('doc-sel-zaladunek');
+        if (zalInp) zalInp.value = row.nazwaKontrahenta || row.adresOdbioru || '';
+      }
+      var numerEl = document.getElementById('doc-inp-numer');
+      if (numerEl) numerEl.value = String(row.numer || '');
+      window.__docPreviewNumer = String(row.numer || '');
+      var z = document.getElementById('doc-sel-zbiorka');
+      if (z) z.value = row.rodzajZbiorki || '';
+      selectPodwykoByLabel('doc-val-przewoznik', 'doc-sel-przewoznik', row.ktoOdbiera);
+      selectPodwykoByLabel('doc-val-miejsce', 'doc-sel-miejsce', row.miejsceZrzutu);
+      var aw = document.getElementById('doc-inp-awizacja');
+      if (aw) aw.value = row.awizacja || '';
+      var okno = document.getElementById('doc-inp-okno-awizacji');
+      if (okno) okno.value = row.oknoAwizacji || '';
+      var dateEl = document.getElementById('doc-inp-data');
+      if (dateEl) {
+        dateEl.value = row.dataOdbioru
+          ? formatDateForDoc(row.dataOdbioru)
+          : formatDateForDoc(defaultDateZaladunkuYmd());
+      }
+      syncDatePickerFromText();
+      var stawka = document.getElementById('doc-inp-stawka');
+      if (stawka) stawka.value = row.stawka || '';
+      var worki = document.getElementById('doc-inp-worki');
+      if (worki) worki.value = row.ileWorkow || '';
+      var transport = document.getElementById('doc-inp-transport');
+      if (transport) transport.value = row.rodzajTransportu || '';
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      previewNumerFromApi();
+    }
+    function savePlanowaneFromModal() {
+      if (!WEBAPP_URL) {
+        alert('Zapisz planowane wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
+      var isRealize = window.__docModalMode === 'realize';
+      var plan = window.__realizePlan;
+      if (isRealize && (!plan || !plan.rowIndex)) {
+        alert('Brak wiersza planowanego do aktualizacji.');
+        return;
+      }
+      var zal = resolveZaladunek();
+      var shared = collectSharedForm();
+      var numerEl = document.getElementById('doc-inp-numer');
+      var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
+      var btn = document.getElementById('doc-btn-save-plan');
+      if (btn) btn.disabled = true;
+      var payload = buildFormatkaPayload(zal, shared, isRealize ? numerWpisany : (numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '') ? numerWpisany : ''));
+      payload.mode = isRealize ? 'updatePlan' : 'plan';
+      payload.czyProtokolZrobiony = 'nie';
+      if (isRealize) payload.planowaneRow = plan.rowIndex;
+      appendFormatkaRow(payload).then(function(resp) {
+        if (!resp || !resp.ok) {
+          alert('Nie udało się zapisać planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          return;
+        }
+        var numer = String(resp.numer || numerWpisany || '');
+        if (numerEl) numerEl.value = numer;
+        if (isRealize && window.__realizePlan) {
+          window.__realizePlan.numer = numer;
+          alert('Zaktualizowano planowane (' + numer + ').');
+        } else {
+          alert('Zapisano w Planowane: ' + numer);
+          closeDocModal();
+        }
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się zapisać planowanego (sieć / Web App).');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
+    }
+    function deletePlanowaneFromModal() {
+      if (!WEBAPP_URL) {
+        alert('Usuwanie wymaga Web App.');
+        return;
+      }
+      var plan = window.__realizePlan;
+      if (!plan || !plan.rowIndex) {
+        alert('Brak wiersza planowanego.');
+        return;
+      }
+      if (!window.confirm('Usunąć ' + (plan.numer || '') + ' z Planowane? Numer wróci do puli.')) {
+        return;
+      }
+      var btn = document.getElementById('doc-btn-delete-plan');
+      if (btn) btn.disabled = true;
+      appendFormatkaRow({ mode: 'deletePlan', planowaneRow: plan.rowIndex }).then(function(resp) {
+        if (!resp || !resp.ok) {
+          alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          return;
+        }
+        closeDocModal();
+        openPlanowanePicker();
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się usunąć planowanego.');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
+    }
     function renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer, options) {
       var opts = options || {};
-      var miejsceWord = [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
+      var miejsceWord = zal.miejsceZaladunkuWord
+        ? String(zal.miejsceZaladunkuWord)
+        : [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
       var zip = new PizZip(getWordTemplateBytes());
       var Doc = window.docxtemplater;
       var doc = new Doc(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
@@ -758,6 +1134,7 @@ export function wordModalBrowserScript(): string {
         md: resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce'),
         dataVal: document.getElementById('doc-inp-data').value,
         awizacja: document.getElementById('doc-inp-awizacja').value,
+        oknoAwizacji: document.getElementById('doc-inp-okno-awizacji').value,
         stawka: document.getElementById('doc-inp-stawka').value,
         zbiorka: document.getElementById('doc-sel-zbiorka').value,
         worki: document.getElementById('doc-inp-worki').value,
@@ -770,11 +1147,13 @@ export function wordModalBrowserScript(): string {
         numerFaktury: '',
         stawka: String(shared.stawka || '').trim(),
         czyProtokolZrobiony: 'tak',
+        oknoAwizacji: String(shared.oknoAwizacji || '').trim(),
         adresOdbioru: zal.adres || '',
         nazwaKontrahenta: zal.nazwaPelna || '',
         dataOdbioru: formatDateForDoc(shared.dataVal),
         ktoOdbiera: shared.pr.label || '',
         miejsceZrzutu: shared.md.label || '',
+        miejsceDostawyAdres: shared.md.value || '',
         rodzajZbiorki: String(shared.zbiorka || '').trim(),
         ileWorkow: String(shared.worki || '').trim(),
         rodzajTransportu: String(shared.transport || '').trim(),
@@ -791,9 +1170,76 @@ export function wordModalBrowserScript(): string {
         runBulkDocGenerate();
         return;
       }
+      if (window.__docModalMode === 'combined') {
+        runCombinedDocGenerate();
+        return;
+      }
       var btn = document.getElementById('doc-btn-generate');
       if (btn) btn.disabled = true;
       var zal = resolveZaladunek();
+      var shared = collectSharedForm();
+      var numerEl = document.getElementById('doc-inp-numer');
+      var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
+      var isRealize = window.__docModalMode === 'realize';
+      var plan = window.__realizePlan;
+
+      ensureDocxLibrariesLoaded().then(function() {
+        if (!WEBAPP_URL) {
+          renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numerWpisany);
+          return;
+        }
+        if (isRealize) {
+          if (!plan || !plan.rowIndex) {
+            alert('Brak wiersza planowanego do realizacji.');
+            return;
+          }
+          var realizePayload = buildFormatkaPayload(zal, shared, numerWpisany || String(plan.numer || ''));
+          realizePayload.mode = 'realize';
+          realizePayload.planowaneRow = plan.rowIndex;
+          realizePayload.czyProtokolZrobiony = 'tak';
+          return appendFormatkaRow(realizePayload).then(function(resp) {
+            if (!resp || !resp.ok) {
+              alert('Nie udało się zrealizować planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'));
+              return;
+            }
+            var numer = String(resp.numer || numerWpisany || plan.numer || '');
+            if (numerEl) numerEl.value = numer;
+            renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
+          });
+        }
+        var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
+        var payload = buildFormatkaPayload(zal, shared, manual ? numerWpisany : '');
+        return appendFormatkaRow(payload).then(function(resp) {
+          if (!resp || !resp.ok) {
+            alert('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'));
+            return;
+          }
+          var numer = String(resp.numer || numerWpisany || '');
+          if (numerEl) numerEl.value = numer;
+          renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
+    }
+    function runCombinedDocGenerate() {
+      var indices = window.__bulkDocLoadIdxs || [];
+      if (indices.length !== 2) {
+        alert('Protokół łączony wymaga dokładnie dwóch miejsc załadunku.');
+        return;
+      }
+      var a = LOAD_POINTS[indices[0]];
+      var b = LOAD_POINTS[indices[1]];
+      if (!a || !b) {
+        alert('Nieprawidłowy wybór miejsc załadunku.');
+        return;
+      }
+      var zal = combineLoadPoints(a, b);
+      var btn = document.getElementById('doc-btn-generate');
+      if (btn) btn.disabled = true;
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
@@ -816,7 +1262,7 @@ export function wordModalBrowserScript(): string {
         });
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
+        alert('Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).');
       }).finally(function() {
         if (btn) btn.disabled = false;
       });
@@ -881,6 +1327,10 @@ export function wordModalBrowserScript(): string {
     }
     document.getElementById('doc-btn-cancel').addEventListener('click', closeDocModal);
     document.getElementById('doc-btn-generate').addEventListener('click', generateDocxLocal);
+    var savePlanBtnEl = document.getElementById('doc-btn-save-plan');
+    if (savePlanBtnEl) savePlanBtnEl.addEventListener('click', savePlanowaneFromModal);
+    var deletePlanBtnEl = document.getElementById('doc-btn-delete-plan');
+    if (deletePlanBtnEl) deletePlanBtnEl.addEventListener('click', deletePlanowaneFromModal);
     document.getElementById('doc-modal').addEventListener('click', function(ev) {
       if (ev.target === this) closeDocModal();
     });
@@ -894,6 +1344,16 @@ export function wordModalBrowserScript(): string {
     if (manualBulkPicker) {
       manualBulkPicker.addEventListener('click', function(ev) {
         if (ev.target === this) closeManualBulkPicker();
+      });
+    }
+    var planowaneCancel = document.getElementById('planowane-cancel');
+    var planowaneRefresh = document.getElementById('planowane-refresh');
+    var planowanePicker = document.getElementById('planowane-picker');
+    if (planowaneCancel) planowaneCancel.addEventListener('click', closePlanowanePicker);
+    if (planowaneRefresh) planowaneRefresh.addEventListener('click', loadPlanowaneList);
+    if (planowanePicker) {
+      planowanePicker.addEventListener('click', function(ev) {
+        if (ev.target === this) closePlanowanePicker();
       });
     }
     var dateTextEl = document.getElementById('doc-inp-data');
