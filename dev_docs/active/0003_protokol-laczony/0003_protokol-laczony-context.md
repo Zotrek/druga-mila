@@ -1,15 +1,15 @@
 # Context: Protokół łączony (dwa miejsca załadunku)
 
-> **Last Updated:** 2026-08-03 17:00  
+> **Last Updated:** 2026-08-03 17:30  
 > **Task:** 0003_protokol-laczony  
-> **Status:** IMPLEMENTED — kod + docs + `index.html` wygenerowane; czekamy na manual smoke / push Pages
+> **Status:** IMPLEMENTED — kod + docs + `index.html`; czekamy na manual smoke / push Pages
 
 ## Progress
 
 | Krok | Status |
 |------|--------|
-| Decyzje biznesowe | ✅ |
-| UX (Opcja A) | ✅ |
+| Decyzje biznesowe | ✅ (zaktualizowane 2026-08-03 17:26) |
+| UX (Opcja A + wybór z mapy) | ✅ |
 | Plan w `dev_docs` | ✅ |
 | Helper + testy | ✅ |
 | UI + generacja | ✅ |
@@ -21,32 +21,35 @@
 
 | Plik | Rola |
 |------|------|
-| `src/combineLoadPoints.ts` | Sklejanie adresów / nazw / znacznika / Word |
-| `src/wordFileName.ts` | `buildCombinedDocxDownloadName` |
-| `src/buildMapWordModal.ts` | Tryb `combined`, picker, 1 POST + 1 Word |
-| `src/buildMapHtml.ts` | Przycisk „Protokół łączony” |
+| `src/combineLoadPoints.ts` | Sklejanie adresów / nazw / znacznika (ewidencja) |
+| `src/wordFileName.ts` | Nazwy plików Word (per miejsce) |
+| `src/buildMapWordModal.ts` | Tryb `combined`, picker, mapa, 1 POST + 2 Word |
+| `src/buildMapHtml.ts` | Przyciski + panel mapy łączonego |
 | `index.html` | Wygenerowany artefakt Pages |
 | `docs/SPECIFICATION.md` | §6a |
 | `docs/FORMATKA_GOOGLE.md` | Sklejanie kolumn |
 | `docs/ARCHITECTURE.md` | Flow łączony |
-| `docs/SZABLON_WORD_tagi.md` | `miejsce_zaladunku` łączony |
+| `docs/SZABLON_WORD_tagi.md` | `miejsce_zaladunku` per plik |
 
 ## Decisions (2026-08-03)
 
 | Decyzja | Wartość |
 |---------|---------|
 | Cardinality | Dokładnie 2 |
-| Word + wiersz + numer | 1 + 1 + 1 |
-| Separator | `-` |
-| Kolejność | Kolejność wyboru na liście (obojętna biznesowo) |
+| Word | **2** pliki — te same dane formularza, inne tylko `miejsce_zaladunku` |
+| Ewidencja | **1** wiersz (`Adres1; Adres2`, nazwy `-`) |
+| Numer | **Ten sam** `DM*` na obu Wordach |
+| Separator adresów | `; ` |
+| Separator nazw / znacznika | `-` |
+| Kolejność | Kolejność wyboru |
 | Znacznik | Oba przy różnicy typów; jeden gdy typ wspólny |
-| Plik Word | Oba adresy w nazwie |
-| Bolęcin twin | Tak (ten sam payload → istniejąca logika Apps Script) |
-| UX | Opcja A — osobny przycisk; hurt bez zmian |
+| Bolęcin twin | Tak (jeden twin ze sklejonymi polami) |
+| UX | Mapa (checkbox) + wybór ręczny; hurt bez zmian |
 | Apps Script | Bez zmian API — agregacja po stronie klienta |
 
 ## Implementation notes
 
-- Picker listy załadunków współdzielony z hurtem (`__manualPickerKind`: `bulk` \| `combined`).
-- Modal mode `combined`: lista 2 punktów + pole numeru (jak single) + jeden download.
-- `renderAndDownloadDocx` respektuje `zal.miejsceZaladunkuWord` gdy obecne.
+- Picker listy współdzielony z hurtem (`__manualPickerKind`: `bulk` \| `combined`).
+- Zaznaczenie z mapy: `__combinedSelectedLoadIdxs` + panel „Generuj łączony” (max 2).
+- Modal mode `combined`: lista 2 punktów + numer + „Pobierz 2× .docx”.
+- `runCombinedDocGenerate`: 1× `appendFormatkaRow(combineLoadPoints)` → 2× `renderAndDownloadDocx` (po punkcie, ten sam numer).

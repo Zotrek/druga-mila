@@ -48,8 +48,8 @@ describe('wordFileName', () => {
       buildCombinedDocxDownloadName(
         'A-B',
         '2026-07-20',
-        '00-001 Wawa-30-001 Kraków',
+        '00-001 Wawa; 30-001 Kraków',
       ),
-    ).toBe('A-B 20.07.26 00-001 Wawa-30-001 Kraków.docx');
+    ).toBe('A-B 20.07.26 00-001 Wawa; 30-001 Kraków.docx');
   });
 });

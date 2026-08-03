@@ -97,8 +97,8 @@ export function buildDocxDownloadName(
 }
 
 /**
- * Nazwa pliku protokołu łączonego: skrócone nazwy + data + oba adresy (już sklejone `-`).
- * `adresCombined` = `Adres1-Adres2`, `nazwaSkroconaCombined` = `Skr1-Skr2`.
+ * Nazwa pliku protokołu łączonego: skrócone nazwy + data + oba adresy (już sklejone `; `).
+ * `adresCombined` = `Adres1; Adres2`, `nazwaSkroconaCombined` = `Skr1-Skr2`.
  */
 export function buildCombinedDocxDownloadName(
   nazwaSkroconaCombined: string,

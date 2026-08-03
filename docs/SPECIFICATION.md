@@ -24,7 +24,7 @@ Osobny proces i dane względem plomb: CD / place / Bolęcin, własna formatka Go
 | Persona | Rola | Potrzeby | Przykład |
 |---------|------|----------|----------|
 | Koordynator transportu | Operacje | Widzieć punkty, wyszukać, wygenerować protokół + zapis Google | Wybiera załadunek → przewoźnik → dostawa → pobiera Word |
-| Dyspozytor | Planowanie | Hurt wielu punktów; protokół łączony 2 miejsc | Multi-select → seria dokumentów; łączony → 1 Word + 1 wiersz |
+| Dyspozytor | Planowanie | Hurt wielu punktów; protokół łączony 2 miejsc | Multi-select → seria dokumentów; łączony → 2 Word (ten sam DM*) + 1 wiersz |
 | Osoba utrzymująca dane | Excel w repo | Rzadka aktualizacja punktów / podwykonawców | Edycja `data/druga-mila.xlsx` lub `docs/podwyko lista.xlsx` → lokalny `npm run generate` → commit `index.html` (root) → push; Pages pokazuje nowe dane |
 
 ---
@@ -62,7 +62,7 @@ Klasyfikacja (kolejność reguł):
 3. **PLAC** — Typ = `PLAC` → `#198754`
 4. **Puste** — Typ pusty i nie Bolęcin → `#6f42c1`
 
-Legenda na mapie. Popup: nazwy, adres, typ; akcje: generuj / zaznacz do hurtu.
+Legenda na mapie. Popup: nazwy, adres, typ; akcje: generuj / zaznacz do hurtu / zaznacz do łączonego.
 
 ### 2. Wyszukiwarka na mapie
 
@@ -126,15 +126,15 @@ Jak mapa plomb: zaznaczenie wielu → wspólne pola → osobny Word + osobny wie
 
 ### 6a. Protokół łączony (dokładnie 2 miejsca)
 
-Osobny tryb UI (**nie** zmienia hurtu): przycisk „Protokół łączony” → wybór **dokładnie dwóch** miejsc załadunku → wspólne pola formularza → **jeden** numer `DM*`, **jeden** wiersz w formatce, **jeden** plik Word.
+Osobny tryb UI (**nie** zmienia hurtu): zaznaczenie **dokładnie dwóch** miejsc na mapie (checkbox „Zaznacz do łączonego”) **lub** przycisk „Protokół łączony (wybór ręczny)” → wspólne pola formularza → **jeden** numer `DM*`, **jeden** wiersz w formatce (adresy sklejone `; `), **dwa** pliki Word (po jednym miejscu załadunku, ten sam numer).
 
 | Pole | Sklejanie |
 |------|-----------|
-| Adres odbioru | `Adres1-Adres2` |
-| Nazwa kontrahenta | `NazwaPelna1-NazwaPelna2` |
+| Adres odbioru (ewidencja) | `Adres1; Adres2` |
+| Nazwa kontrahenta (ewidencja) | `NazwaPelna1-NazwaPelna2` |
 | znacznik miejsca | ten sam typ → jeden; różne → `Typ1-Typ2` (np. `CD-PLAC`) |
-| Word `miejsce_zaladunku` | `(pełna1 adres1)-(pełna2 adres2)` |
-| Nazwa pliku `.docx` | skrócone nazwy + data + oba adresy (sklejone `-`) |
+| Word `miejsce_zaladunku` | **Osobno w każdym pliku** — pełna + adres danego miejsca |
+| Nazwa pliku `.docx` | skrócona nazwa + data + adres **tego** miejsca (2 pliki) |
 
 Kolejność sklejania = kolejność wyboru na liście (obojętna biznesowo). Przy celu Bolęcin/Biosystem — jeden twin-wiersz ze sklejonymi polami (jak przy pojedynczym zapisie).
 
@@ -151,7 +151,7 @@ Wzór kolumn (offline): [`data/formatka-druga-mila.xlsx`](../data/formatka-druga
 | Czy protokół zrobiony | **`tak`** przy generacji / realizacji; **`nie`** przy zapisie na `Planowane` |
 | Nr zlecenia transportowego | Ten sam co w Word |
 | OKNO AWIZACJI | Z modala (opcjonalne; nie na Word) |
-| Adres odbioru | Adres (C) miejsca załadunku; protokół łączony: `Adres1-Adres2` |
+| Adres odbioru | Adres (C) miejsca załadunku; protokół łączony: `Adres1; Adres2` |
 | Nazwa kontrahenta / podmiot handlowy | Nazwa pełna (A); protokół łączony: `Nazwa1-Nazwa2` |
 | Data odbioru | Data z modala |
 | Kto odbiera | Przewoźnik |

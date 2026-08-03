@@ -1,11 +1,14 @@
 /**
  * Sklejanie dwóch miejsc załadunku w protokół łączony.
- * Separator: `-` (Adres1-Adres2, Nazwa1-Nazwa2, …).
+ * Nazwy / znacznik: `-` (Nazwa1-Nazwa2, CD-PLAC).
+ * Adresy (i miejsce Word): `; ` — żeby nie kolidować z kodem pocztowym `00-001`.
  */
 
 import { buildMiejsceZaladunkuWord } from './wordFileName.js';
 
 export const COMBINE_SEP = '-';
+/** Separator adresów / miejsc w protokole łączonym. */
+export const COMBINE_ADDR_SEP = '; ';
 
 export interface CombinableLoadPoint {
   nazwaPelna: string;
@@ -23,12 +26,22 @@ export interface CombinedLoadPoint {
   miejsceZaladunkuWord: string;
 }
 
-/** Skleja niepuste fragmenty separatorem `-`. */
-export function joinWithDash(parts: string[]): string {
+/** Skleja niepuste fragmenty podanym separatorem. */
+export function joinParts(parts: string[], sep: string): string {
   return parts
     .map((p) => p.trim())
     .filter((p) => p.length > 0)
-    .join(COMBINE_SEP);
+    .join(sep);
+}
+
+/** Skleja niepuste fragmenty separatorem `-` (nazwy, znacznik). */
+export function joinWithDash(parts: string[]): string {
+  return joinParts(parts, COMBINE_SEP);
+}
+
+/** Skleja niepuste fragmenty separatorem `; ` (adresy). */
+export function joinWithAddrSep(parts: string[]): string {
+  return joinParts(parts, COMBINE_ADDR_SEP);
 }
 
 /**
@@ -56,9 +69,9 @@ export function combineLoadPoints(
   return {
     nazwaPelna: joinWithDash([a.nazwaPelna, b.nazwaPelna]),
     nazwaSkrocona: joinWithDash([shortA, shortB]),
-    adres: joinWithDash([a.adres, b.adres]),
+    adres: joinWithAddrSep([a.adres, b.adres]),
     typ: combineZnacznikMiejsca(a.typ, b.typ),
-    miejsceZaladunkuWord: joinWithDash([
+    miejsceZaladunkuWord: joinWithAddrSep([
       buildMiejsceZaladunkuWord(a.nazwaPelna, a.adres),
       buildMiejsceZaladunkuWord(b.nazwaPelna, b.adres),
     ]),

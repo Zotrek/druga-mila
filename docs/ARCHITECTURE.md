@@ -200,7 +200,7 @@ Body POST (kierunek pól):
 | Search mapy | Port `normalizeForAddressSearch` / `mapPointMatchesSearch` |
 | Filtr typu | Jak `ZbiorkaFilterMode` — tryby: wszystkie, cd, plac, puste, bolecin |
 | Combobox załadunku | Etykieta = skrócona; filter po A+B+C; value niesie A, B, C |
-| Word payload | `miejsce_zaladunku = pełna + " " + adres`; łączony: oba miejsca sklejone `-` |
+| Word payload | `miejsce_zaladunku = pełna + " " + adres`; łączony: **2× Word** (po jednym miejscu), ten sam `numer` |
 | Przewoźnik / dostawa | Combobox jak phase6 + `podwyko` |
 | Stawka | Input w modalu → kolumna Google; **nie** w docxtemplater |
 | Okno awizacji | Input w modalu → kolumna „OKNO AWIZACJI”; **nie** w docxtemplater |
@@ -208,7 +208,7 @@ Body POST (kierunek pól):
 | Awizacja | Input text, bez walidacji |
 | Bolęcin default | Przy zbiórce zawierającej manualną (`manualna` lub `manualna i automatyczna`) ustaw dostawę na wpis **„Biosystem”** z `podwyko lista.xlsx` (adres tej pozycji = Bolęcin); na liście nie ma wiersza nazwanego literalnie „Bolęcin”. Przy czystej `automatyczna` — brak auto-podstawienia |
 | Bulk | Multi-select → pętla POST + docx |
-| Protokół łączony | Osobny tryb: dokładnie 2 miejsca → 1 POST + 1 docx; sklejanie `-` (`src/combineLoadPoints.ts`) |
+| Protokół łączony | Osobny tryb: dokładnie 2 miejsca (mapa lub lista) → 1 POST (sklejone pola) + 2 docx (ten sam DM*); nazwy `-`, adresy `; ` (`src/combineLoadPoints.ts`) |
 | Planowane | Przycisk listy + „Zapisz planowane”; realizacja = Word + `mode: realize` (bez planu w hurt/łączonym) |
 | Word | PizZip + docxtemplater; szablon base64 w HTML |
 

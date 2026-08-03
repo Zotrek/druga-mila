@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   joinWithDash,
+  joinWithAddrSep,
   combineZnacznikMiejsca,
   combineLoadPoints,
 } from './combineLoadPoints.js';
@@ -10,6 +11,12 @@ describe('combineLoadPoints', () => {
     expect(joinWithDash(['A', 'B'])).toBe('A-B');
     expect(joinWithDash(['  A  ', '', 'B'])).toBe('A-B');
     expect(joinWithDash(['', ''])).toBe('');
+  });
+
+  it('test_joinWithAddrSep_joins_non_empty_with_semicolon', () => {
+    expect(joinWithAddrSep(['A', 'B'])).toBe('A; B');
+    expect(joinWithAddrSep(['  A  ', '', 'B'])).toBe('A; B');
+    expect(joinWithAddrSep(['', ''])).toBe('');
   });
 
   it('test_combineZnacznikMiejsca_same_type_returns_one', () => {
@@ -43,12 +50,12 @@ describe('combineLoadPoints', () => {
         typ: 'PLAC',
       },
     );
-    expect(combined.adres).toBe('00-001 Wawa-30-001 Kraków');
+    expect(combined.adres).toBe('00-001 Wawa; 30-001 Kraków');
     expect(combined.nazwaPelna).toBe('Centrum A-Centrum B');
     expect(combined.nazwaSkrocona).toBe('A-B');
     expect(combined.typ).toBe('CD-PLAC');
     expect(combined.miejsceZaladunkuWord).toBe(
-      'Centrum A 00-001 Wawa-Centrum B 30-001 Kraków',
+      'Centrum A 00-001 Wawa; Centrum B 30-001 Kraków',
     );
   });
 

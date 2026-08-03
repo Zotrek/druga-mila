@@ -17,6 +17,8 @@ export interface WordMapEmbed {
 
 /** Kolor pinezki zaznaczonej do hurtu. */
 export const COLOR_BULK_SELECTED = '#ea3aed';
+/** Kolor pinezki zaznaczonej do protokołu łączonego. */
+export const COLOR_COMBINED_SELECTED = '#b45309';
 
 export function wordModalCss(): string {
   return `
@@ -75,6 +77,8 @@ export function wordModalCss(): string {
     .map-bulk-count { font-size: 12px; color: #333; flex: 1; min-width: 120px; }
     .map-bulk-generate { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #198754; background: #198754; color: #fff; cursor: pointer; }
     .map-bulk-clear { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f9fa; cursor: pointer; }
+    .map-combined-generate { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #b45309; background: #b45309; color: #fff; cursor: pointer; }
+    .map-combined-generate:disabled { opacity: 0.45; cursor: not-allowed; }
   `;
 }
 
@@ -178,9 +182,11 @@ export function wordModalHtml(): string {
 export function wordModalBrowserScript(): string {
   return `
     var COLOR_BULK_SELECTED = ${JSON.stringify(COLOR_BULK_SELECTED)};
+    var COLOR_COMBINED_SELECTED = ${JSON.stringify(COLOR_COMBINED_SELECTED)};
     window.__docModalMode = 'single';
     window.__manualPickerKind = 'bulk';
     window.__bulkSelectedLoadIdxs = window.__bulkSelectedLoadIdxs || {};
+    window.__combinedSelectedLoadIdxs = window.__combinedSelectedLoadIdxs || {};
     window.__bulkDocLoadIdxs = [];
     window.__realizePlan = null;
 
@@ -188,6 +194,11 @@ export function wordModalBrowserScript(): string {
       return parts.map(function(p) { return String(p || '').trim(); })
         .filter(function(p) { return p.length > 0; })
         .join('-');
+    }
+    function joinWithAddrSep(parts) {
+      return parts.map(function(p) { return String(p || '').trim(); })
+        .filter(function(p) { return p.length > 0; })
+        .join('; ');
     }
     function combineZnacznikMiejsca(typA, typB) {
       var a = String(typA || '').trim();
@@ -203,9 +214,9 @@ export function wordModalBrowserScript(): string {
       return {
         nazwaPelna: joinWithDash([a && a.nazwaPelna, b && b.nazwaPelna]),
         nazwaSkrocona: joinWithDash([shortA, shortB]),
-        adres: joinWithDash([a && a.adres, b && b.adres]),
+        adres: joinWithAddrSep([a && a.adres, b && b.adres]),
         typ: combineZnacznikMiejsca(a && a.typ, b && b.typ),
-        miejsceZaladunkuWord: joinWithDash([miejsceA, miejsceB])
+        miejsceZaladunkuWord: joinWithAddrSep([miejsceA, miejsceB])
       };
     }
 
@@ -225,8 +236,15 @@ export function wordModalBrowserScript(): string {
     }
     function setBulkLoadSelected(loadIdx, selected) {
       if (!window.__bulkSelectedLoadIdxs) window.__bulkSelectedLoadIdxs = {};
-      if (selected) window.__bulkSelectedLoadIdxs[loadIdx] = true;
-      else delete window.__bulkSelectedLoadIdxs[loadIdx];
+      if (selected) {
+        if (isCombinedLoadSelected(loadIdx)) {
+          delete window.__combinedSelectedLoadIdxs[loadIdx];
+          updateCombinedSelectionUi();
+        }
+        window.__bulkSelectedLoadIdxs[loadIdx] = true;
+      } else {
+        delete window.__bulkSelectedLoadIdxs[loadIdx];
+      }
       updateBulkSelectionUi();
     }
     function clearBulkSelection() {
@@ -243,11 +261,72 @@ export function wordModalBrowserScript(): string {
           ? '1 punkt zaznaczony'
           : indices.length + ' punktów zaznaczonych';
       }
-      if (typeof markerEntries !== 'undefined') {
-        markerEntries.forEach(function(entry) {
-          refreshMarkerIcon(entry);
-        });
+      refreshAllMarkerIcons();
+    }
+    function getCombinedSelectedLoadIdxs() {
+      var out = [];
+      var sel = window.__combinedSelectedLoadIdxs || {};
+      Object.keys(sel).forEach(function(k) {
+        if (!sel[k]) return;
+        var idx = parseInt(k, 10);
+        if (!isNaN(idx) && LOAD_POINTS[idx]) out.push(idx);
+      });
+      out.sort(function(a, b) { return a - b; });
+      return out;
+    }
+    function isCombinedLoadSelected(loadIdx) {
+      return !!(window.__combinedSelectedLoadIdxs && window.__combinedSelectedLoadIdxs[loadIdx]);
+    }
+    function setCombinedLoadSelected(loadIdx, selected) {
+      if (!window.__combinedSelectedLoadIdxs) window.__combinedSelectedLoadIdxs = {};
+      if (selected) {
+        var cur = getCombinedSelectedLoadIdxs();
+        if (cur.length >= 2 && !isCombinedLoadSelected(loadIdx)) {
+          alert('Protokół łączony: maksymalnie 2 miejsca. Odznacz jedno, żeby dodać inne.');
+          refreshPopupForLoadIdx(loadIdx);
+          return false;
+        }
+        if (isBulkLoadSelected(loadIdx)) {
+          delete window.__bulkSelectedLoadIdxs[loadIdx];
+          updateBulkSelectionUi();
+        }
+        window.__combinedSelectedLoadIdxs[loadIdx] = true;
+      } else {
+        delete window.__combinedSelectedLoadIdxs[loadIdx];
       }
+      updateCombinedSelectionUi();
+      return true;
+    }
+    function clearCombinedSelection() {
+      window.__combinedSelectedLoadIdxs = {};
+      updateCombinedSelectionUi();
+    }
+    function updateCombinedSelectionUi() {
+      var indices = getCombinedSelectedLoadIdxs();
+      var panel = document.getElementById('map-combined-panel');
+      var countEl = document.getElementById('map-combined-count');
+      var genBtn = document.getElementById('map-combined-generate');
+      if (panel) panel.hidden = indices.length === 0;
+      if (countEl) {
+        countEl.textContent = indices.length === 2
+          ? '2 / 2 miejsca — gotowe'
+          : (indices.length + ' / 2 miejsca zaznaczone');
+      }
+      if (genBtn) genBtn.disabled = indices.length !== 2;
+      refreshAllMarkerIcons();
+    }
+    function refreshAllMarkerIcons() {
+      if (typeof markerEntries === 'undefined') return;
+      markerEntries.forEach(function(entry) {
+        refreshMarkerIcon(entry);
+      });
+    }
+    function refreshPopupForLoadIdx(loadIdx) {
+      if (typeof markerEntries === 'undefined') return;
+      var entry = markerEntries.find(function(e) { return e.loadIdx === loadIdx; });
+      if (!entry || !entry.marker || !entry.p) return;
+      entry.marker.setPopupContent(buildPopupHtml(entry.p, loadIdx));
+      wirePopupControls(entry.marker, loadIdx);
     }
     function refreshMarkerIcon(entry) {
       if (!entry || !entry.marker) return;
@@ -256,12 +335,15 @@ export function wordModalBrowserScript(): string {
       var hasSearch = String(raw).trim().length > 0;
       var sMatch = !hasSearch || mapPointMatchesSearchMap(entry.p, raw);
       var bulk = entry.loadIdx >= 0 && isBulkLoadSelected(entry.loadIdx);
-      var fill = bulk ? COLOR_BULK_SELECTED : entry.p.kolor;
-      entry.marker.setIcon(pinIcon(fill, (hasSearch && sMatch) || bulk));
+      var combined = entry.loadIdx >= 0 && isCombinedLoadSelected(entry.loadIdx);
+      var fill = combined ? COLOR_COMBINED_SELECTED : (bulk ? COLOR_BULK_SELECTED : entry.p.kolor);
+      entry.marker.setIcon(pinIcon(fill, (hasSearch && sMatch) || bulk || combined));
     }
     function buildPopupHtml(p, loadIdx) {
       var typeLabel = COLOR_LABEL[p.colorKind] || p.typ || '—';
       var bulkSelected = loadIdx >= 0 && isBulkLoadSelected(loadIdx);
+      var combinedSelected = loadIdx >= 0 && isCombinedLoadSelected(loadIdx);
+      var multiSelected = bulkSelected || combinedSelected;
       var html =
         '<div class="popup-name">' + escapeHtmlMap(p.nazwaPelna) + '</div>' +
         '<div class="popup-short">' + escapeHtmlMap(p.nazwaSkrocona) + '</div>' +
@@ -271,7 +353,9 @@ export function wordModalBrowserScript(): string {
         html += '<div class="popup-actions">' +
           '<label class="popup-bulk-select"><input type="checkbox" class="popup-bulk-cb" data-load-idx="' + loadIdx + '"' +
           (bulkSelected ? ' checked' : '') + ' /> Zaznacz do hurtu</label>' +
-          '<button type="button" class="btn-gen-doc"' + (bulkSelected ? ' disabled' : '') +
+          '<label class="popup-bulk-select"><input type="checkbox" class="popup-combined-cb" data-load-idx="' + loadIdx + '"' +
+          (combinedSelected ? ' checked' : '') + ' /> Zaznacz do łączonego</label>' +
+          '<button type="button" class="btn-gen-doc"' + (multiSelected ? ' disabled' : '') +
           ' data-load-idx="' + loadIdx + '">Generuj protokół</button></div>';
       }
       return html;
@@ -284,12 +368,14 @@ export function wordModalBrowserScript(): string {
       if (cb) {
         cb.onchange = function() {
           setBulkLoadSelected(loadIdx, cb.checked);
-          var entry = markerEntries.find(function(e) { return e.loadIdx === loadIdx; });
-          var point = entry ? entry.p : null;
-          if (point) {
-            marker.setPopupContent(buildPopupHtml(point, loadIdx));
-            wirePopupControls(marker, loadIdx);
-          }
+          refreshPopupForLoadIdx(loadIdx);
+        };
+      }
+      var cbCombined = el.querySelector('.popup-combined-cb');
+      if (cbCombined) {
+        cbCombined.onchange = function() {
+          setCombinedLoadSelected(loadIdx, cbCombined.checked);
+          refreshPopupForLoadIdx(loadIdx);
         };
       }
       var btn = el.querySelector('.btn-gen-doc');
@@ -331,7 +417,11 @@ export function wordModalBrowserScript(): string {
       }
       if (numerWrap) numerWrap.hidden = isBulk;
       if (bulkNumerInfo) bulkNumerInfo.hidden = !isBulk && !isCombined;
-      if (okBtn) okBtn.textContent = isBulk ? 'Pobierz wszystkie .docx' : 'Pobierz .docx';
+      if (okBtn) {
+        if (isBulk) okBtn.textContent = 'Pobierz wszystkie .docx';
+        else if (isCombined) okBtn.textContent = 'Pobierz 2× .docx';
+        else okBtn.textContent = 'Pobierz .docx';
+      }
       if (savePlanBtn) {
         savePlanBtn.hidden = !isSingleLike;
         savePlanBtn.textContent = isRealize ? 'Zapisz zmiany' : 'Zapisz planowane';
@@ -420,7 +510,7 @@ export function wordModalBrowserScript(): string {
     function openCombinedDocModal(indicesOpt) {
       var m = document.getElementById('doc-modal');
       if (!m || !wordDocEnabled) return;
-      var indices = (indicesOpt && indicesOpt.length) ? indicesOpt.slice() : [];
+      var indices = (indicesOpt && indicesOpt.length) ? indicesOpt.slice() : getCombinedSelectedLoadIdxs();
       if (indices.length !== 2) {
         alert('Protokół łączony wymaga dokładnie dwóch miejsc załadunku.');
         return;
@@ -442,10 +532,10 @@ export function wordModalBrowserScript(): string {
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
       var hint = document.getElementById('doc-modal-hint');
       if (bulkNumerInfo) {
-        bulkNumerInfo.textContent = 'Jeden numer DM, jeden wiersz ewidencji, jeden protokół Word.';
+        bulkNumerInfo.textContent = 'Jeden numer DM, jeden wiersz ewidencji, dwa protokoły Word (po jednym miejscu).';
       }
       if (hint) {
-        hint.textContent = 'Oba miejsca trafią do jednego wiersza (Adres1-Adres2). Wspólne pola jak w pojedynczym protokole.';
+        hint.textContent = 'Ewidencja: Adres1; Adres2. Word: dwa pliki z tym samym numerem — inne tylko miejsce załadunku.';
       }
       previewNumerFromApi();
     }
@@ -859,7 +949,7 @@ export function wordModalBrowserScript(): string {
       if (!WEBAPP_URL) {
         if (hint) {
           hint.textContent = window.__docModalMode === 'combined'
-            ? 'Brak Web App — jeden Word lokalnie (oba miejsca), bez zapisu do Google.'
+            ? 'Brak Web App — dwa Word lokalnie (po jednym miejscu, ten sam numer), bez zapisu do Google.'
             : 'Brak Web App — Word lokalnie, bez zapisu do arkusza Google.';
         }
         return;
@@ -882,7 +972,7 @@ export function wordModalBrowserScript(): string {
           }
           if (hint) {
             hint.textContent = window.__docModalMode === 'combined'
-              ? 'Oba miejsca → jeden wiersz (Adres1-Adres2) i jeden protokół Word z tym numerem.'
+              ? 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word z tym numerem.'
               : 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Zapisz planowane” tylko rezerwuje numer.';
           }
         })
@@ -1237,20 +1327,42 @@ export function wordModalBrowserScript(): string {
         alert('Nieprawidłowy wybór miejsc załadunku.');
         return;
       }
-      var zal = combineLoadPoints(a, b);
+      var zalSheet = combineLoadPoints(a, b);
+      var wordPoints = [a, b];
       var btn = document.getElementById('doc-btn-generate');
+      var hint = document.getElementById('doc-modal-hint');
       if (btn) btn.disabled = true;
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
 
+      function downloadBothWord(numer) {
+        var chain = Promise.resolve();
+        wordPoints.forEach(function(p, jobIdx) {
+          chain = chain.then(function() {
+            if (hint) {
+              hint.textContent = 'Pobieranie protokołu ' + (jobIdx + 1) + ' / 2: ' +
+                (p.nazwaSkrocona || p.nazwaPelna);
+            }
+            renderAndDownloadDocx(
+              p, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer,
+              { closeModal: false }
+            );
+            return delayMs(450);
+          });
+        });
+        return chain.then(function() {
+          clearCombinedSelection();
+          closeDocModal();
+        });
+      }
+
       ensureDocxLibrariesLoaded().then(function() {
         if (!WEBAPP_URL) {
-          renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numerWpisany);
-          return;
+          return downloadBothWord(numerWpisany);
         }
         var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
-        var payload = buildFormatkaPayload(zal, shared, manual ? numerWpisany : '');
+        var payload = buildFormatkaPayload(zalSheet, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
           if (!resp || !resp.ok) {
             alert('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'));
@@ -1258,7 +1370,7 @@ export function wordModalBrowserScript(): string {
           }
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
-          renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
+          return downloadBothWord(numer);
         });
       }).catch(function(err) {
         console.error(err);

@@ -7,7 +7,7 @@ Mapa wypełnia dokument tylko tam, gdzie w `.docx` są DOKŁADNIE takie fragment
 | Tag | Znaczenie |
 |-----|-----------|
 | `{{numer_zlecenia_transportowego}}` | Numer z pola / API (ten sam co w formatce Google) |
-| `{{miejsce_zaladunku}}` | Nazwa pełna + Adres (kolumny A+C z Załadunek), jedna linia; protokół łączony: oba miejsca sklejone `-` |
+| `{{miejsce_zaladunku}}` | Nazwa pełna + Adres (kolumny A+C z Załadunek), jedna linia; protokół łączony: **osobna wartość w każdym z dwóch plików** (to samo zlecenie / numer) |
 | `{{przewoznik}}` | Treść z kolumny B listy podwyko dla wybranej nazwy |
 | `{{miejsce_dostawy}}` | Jak przewoźnik: kolumna B dla wybranej nazwy z listy |
 | `{{dane_do_awizacji}}` | Nr rejestracyjny z pola awizacji (bez walidacji) |

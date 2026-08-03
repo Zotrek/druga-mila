@@ -324,13 +324,18 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
           ? '<div class="map-manual-gen-wrap">' +
             '<button type="button" id="map-manual-generate" class="map-manual-generate" title="Otwórz formularz i wybierz miejsce załadunku z listy">Generuj (wybór ręczny)</button>' +
             '<button type="button" id="map-manual-bulk-generate" class="map-manual-bulk-generate" title="Zaznacz kilka miejsc z listy i generuj hurtowo">Hurtowo (wybór ręczny)</button>' +
-            '<button type="button" id="map-manual-combined-generate" class="map-manual-combined-generate" title="Wybierz dokładnie dwa miejsca — jeden protokół i jeden wiersz ewidencji">Protokół łączony</button>' +
+            '<button type="button" id="map-manual-combined-generate" class="map-manual-combined-generate" title="Wybierz dokładnie dwa miejsca — jeden wiersz ewidencji i dwa protokoły Word z tym samym numerem">Protokół łączony (wybór ręczny)</button>' +
             '<button type="button" id="map-planowane-generate" class="map-planowane-generate" title="Lista planowanych transportów — realizacja z protokołem">Planowane</button>' +
             '</div>' +
             '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
             '<span id="map-bulk-count" class="map-bulk-count"></span>' +
             '<button type="button" id="map-bulk-generate" class="map-bulk-generate">Generuj hurtowo</button>' +
             '<button type="button" id="map-bulk-clear" class="map-bulk-clear">Wyczyść</button>' +
+            '</div>' +
+            '<div id="map-combined-panel" class="map-bulk-panel" hidden>' +
+            '<span id="map-combined-count" class="map-bulk-count"></span>' +
+            '<button type="button" id="map-combined-generate" class="map-combined-generate" disabled>Generuj łączony</button>' +
+            '<button type="button" id="map-combined-clear" class="map-bulk-clear">Wyczyść</button>' +
             '</div>'
           : '');
       L.DomEvent.disableClickPropagation(wrap);
@@ -360,6 +365,10 @@ ${
     var bulkClearBtn = document.getElementById('map-bulk-clear');
     if (bulkGenBtn) bulkGenBtn.addEventListener('click', function() { openBulkDocModal(); });
     if (bulkClearBtn) bulkClearBtn.addEventListener('click', function() { clearBulkSelection(); });
+    var combinedGenBtn = document.getElementById('map-combined-generate');
+    var combinedClearBtn = document.getElementById('map-combined-clear');
+    if (combinedGenBtn) combinedGenBtn.addEventListener('click', function() { openCombinedDocModal(); });
+    if (combinedClearBtn) combinedClearBtn.addEventListener('click', function() { clearCombinedSelection(); });
 `
     : ''
 }
