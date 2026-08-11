@@ -120,8 +120,12 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Dodaj do Harmonogramu');
     expect(html).toContain('harm-add-kto-list');
     expect(html).toContain('harm-add-zrzut-list');
+    expect(html).toContain('harm-add-nazwa-list');
+    expect(html).toContain('harm-add-dzien-cb');
+    expect(html).toContain('collectHarmAddDzienOdbioru');
     expect(html).toContain('id="harm-add-zbiorka"');
     expect(html).toContain("wireCombobox('harm-add-kto'");
+    expect(html).toContain("wireCombobox('harm-add-nazwa'");
     expect(html).toContain("resolvePodwyko('harm-add-val-kto'");
   });
 

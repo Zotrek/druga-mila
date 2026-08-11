@@ -77,6 +77,9 @@ export function wordModalCss(): string {
     .harm-dates-list-row { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }
     .harm-dates-list-row input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
     .harm-dates-list-row button { flex-shrink: 0; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; }
+    .harm-weekday-group { margin-top: 4px; display: flex; flex-direction: column; gap: 4px; border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
+    .harm-weekday-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 400; color: #333; margin: 0; cursor: pointer; }
+    .harm-weekday-group input { margin: 0; flex-shrink: 0; }
     .doc-modal-actions button.harm-secondary { background: #0d9488; color: #fff; border-color: #0d9488; }
     .doc-modal-actions button.secondary { background: #6f42c1; color: #fff; border-color: #6f42c1; }
     .doc-modal-actions button.danger { background: #f8f8f8; color: #b02a37; border-color: #dc3545; }
@@ -140,12 +143,24 @@ export function wordModalHtml(): string {
       <input type="text" id="harm-add-stawka" maxlength="80" autocomplete="off" />
       <label for="harm-add-uwagi">Uwagi</label>
       <input type="text" id="harm-add-uwagi" maxlength="200" autocomplete="off" />
+      <label for="harm-add-nazwa">Nazwa kontrahenta</label>
+      <div class="doc-combobox-wrap">
+        <input type="text" id="harm-add-nazwa" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Nazwa skrócona / pełna / adres…" />
+        <input type="hidden" id="harm-add-val-nazwa" value="" />
+        <ul id="harm-add-nazwa-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
       <label for="harm-add-adres">Adres odbioru</label>
       <input type="text" id="harm-add-adres" maxlength="200" autocomplete="off" />
-      <label for="harm-add-nazwa">Nazwa kontrahenta</label>
-      <input type="text" id="harm-add-nazwa" maxlength="200" autocomplete="off" />
-      <label for="harm-add-dzien">Dzień odbioru</label>
-      <input type="text" id="harm-add-dzien" maxlength="120" placeholder="poniedziałek lub poniedziałek/środa/piątek" autocomplete="off" spellcheck="false" />
+      <label id="harm-add-dzien-label">Dzień odbioru</label>
+      <div class="harm-weekday-group" role="group" aria-labelledby="harm-add-dzien-label">
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="poniedziałek" /> poniedziałek</label>
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="wtorek" /> wtorek</label>
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="środa" /> środa</label>
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="czwartek" /> czwartek</label>
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="piątek" /> piątek</label>
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="sobota" /> sobota</label>
+        <label><input type="checkbox" class="harm-add-dzien-cb" value="niedziela" /> niedziela</label>
+      </div>
       <label for="harm-add-kto">Kto odbiera</label>
       <div class="doc-combobox-wrap">
         <input type="text" id="harm-add-kto" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
@@ -961,6 +976,18 @@ export function wordModalBrowserScript(): string {
         document.getElementById('harm-add-zrzut').value = it.label;
       }
     );
+    wireCombobox('harm-add-nazwa', 'harm-add-val-nazwa', 'harm-add-nazwa-list',
+      function() { return LOAD_POINTS; },
+      function(it) { return it.nazwaSkrocona || it.nazwaPelna; },
+      function(ix, it) {
+        document.getElementById('harm-add-val-nazwa').value = String(ix);
+        document.getElementById('harm-add-nazwa').value = it.nazwaPelna || it.nazwaSkrocona || '';
+        var adresEl = document.getElementById('harm-add-adres');
+        if (adresEl) adresEl.value = it.adres || '';
+        var znacznikEl = document.getElementById('harm-add-znacznik');
+        if (znacznikEl) znacznikEl.value = it.typ || '';
+      }
+    );
 
     function findBiosystemIdx() {
       for (var i = 0; i < MIEJSCA_DOSTAWY.length; i++) {
@@ -1521,11 +1548,22 @@ export function wordModalBrowserScript(): string {
       previewNumerFromApi();
     }
     function resetHarmonogramAddForm() {
-      ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-dzien',
+      ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-val-nazwa',
         'harm-add-kto','harm-add-val-kto','harm-add-zrzut','harm-add-val-zrzut','harm-add-zbiorka',
         'harm-add-worki','harm-add-transport','harm-add-awizacja','harm-add-znacznik'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
+      document.querySelectorAll('.harm-add-dzien-cb').forEach(function(cb) {
+        cb.checked = false;
+      });
+    }
+    function collectHarmAddDzienOdbioru() {
+      var days = [];
+      document.querySelectorAll('.harm-add-dzien-cb:checked').forEach(function(cb) {
+        var v = String(cb.value || '').trim();
+        if (v) days.push(v);
+      });
+      return days.join('/');
     }
     function openHarmonogramAddForm() {
       var m = document.getElementById('harmonogram-add');
@@ -1547,20 +1585,31 @@ export function wordModalBrowserScript(): string {
       }
       var pr = resolvePodwyko('harm-add-val-kto', 'harm-add-kto');
       var md = resolveMiejsceDostawy('harm-add-val-zrzut', 'harm-add-zrzut');
+      var nazwaHid = document.getElementById('harm-add-val-nazwa');
+      var nazwaInp = document.getElementById('harm-add-nazwa');
+      var nazwaKontrahenta = nazwaInp ? String(nazwaInp.value).trim() : '';
+      var adresOdbioru = (document.getElementById('harm-add-adres') || {}).value || '';
+      var znacznikMiejsca = (document.getElementById('harm-add-znacznik') || {}).value || '';
+      if (nazwaHid && nazwaHid.value !== '' && LOAD_POINTS[Number(nazwaHid.value)]) {
+        var lp = LOAD_POINTS[Number(nazwaHid.value)];
+        nazwaKontrahenta = lp.nazwaPelna || lp.nazwaSkrocona || nazwaKontrahenta;
+        if (!String(adresOdbioru).trim()) adresOdbioru = lp.adres || '';
+        if (!String(znacznikMiejsca).trim()) znacznikMiejsca = lp.typ || '';
+      }
       var payload = {
         mode: 'addHarmonogram',
         stawka: (document.getElementById('harm-add-stawka') || {}).value || '',
         uwagi: (document.getElementById('harm-add-uwagi') || {}).value || '',
-        adresOdbioru: (document.getElementById('harm-add-adres') || {}).value || '',
-        nazwaKontrahenta: (document.getElementById('harm-add-nazwa') || {}).value || '',
-        dzienOdbioru: (document.getElementById('harm-add-dzien') || {}).value || '',
+        adresOdbioru: adresOdbioru,
+        nazwaKontrahenta: nazwaKontrahenta,
+        dzienOdbioru: collectHarmAddDzienOdbioru(),
         ktoOdbiera: pr.label || ((document.getElementById('harm-add-kto') || {}).value || ''),
         miejsceZrzutu: md.label || ((document.getElementById('harm-add-zrzut') || {}).value || ''),
         rodzajZbiorki: (document.getElementById('harm-add-zbiorka') || {}).value || '',
         ileWorkow: (document.getElementById('harm-add-worki') || {}).value || '',
         rodzajTransportu: (document.getElementById('harm-add-transport') || {}).value || '',
         awizacja: (document.getElementById('harm-add-awizacja') || {}).value || '',
-        znacznikMiejsca: (document.getElementById('harm-add-znacznik') || {}).value || ''
+        znacznikMiejsca: znacznikMiejsca
       };
       if (!String(payload.nazwaKontrahenta).trim() && !String(payload.adresOdbioru).trim()) {
         alert('Podaj nazwę kontrahenta lub adres odbioru.');
