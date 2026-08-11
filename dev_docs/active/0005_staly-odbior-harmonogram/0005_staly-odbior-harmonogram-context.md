@@ -8,17 +8,17 @@
 
 | Plik | Rola |
 |------|------|
-| `google-apps-script/formatka-log.gs` | Uwagi col 16, GMH, listHarmonogram, addHarmonogram, commitHarm |
+| `google-apps-script/formatka-log.gs` | Uwagi col 16, DMH, listHarmonogram, addHarmonogram, commitHarm |
 | `src/harmonogramDates.ts` | Parser „Dzień odbioru” + daty miesiąca |
-| `src/nextNumber.ts` | Filtr prefiksu GMH (lustro .gs) |
+| `src/nextNumber.ts` | Filtr prefiksu DMH (lustro .gs) |
 | `src/buildMapWordModal.ts` | UI picker / modal / multi-gen |
 | `src/buildMapHtml.ts` | Przycisk mapy |
 | `index.html` | Wygenerowany 2026-08-11 |
 
 ## Decisions
 
-- Seria numerów stałego odbioru: **GMH1+** (osobna od DM)
+- Seria numerów stałego odbioru: **DMH1+** (osobna od DM)
 - Harmonogram nie jest usuwany przy generacji
 - Daty: propozycja → edycja w popupie → dopiero Pobierz .docx
 - Uwagi: tylko formatka miesiąca / Planowane; nie Bolęcin; nie Word
-- Skan DM pomija `GMH*`; skan GMH tylko `GMH*`
+- Skan DM pomija `DMH*`; skan DMH tylko `DMH*`

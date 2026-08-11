@@ -21,8 +21,6 @@ export interface MapHtmlPoint {
   nazwaSkrocona: string;
   adres: string;
   typ: string;
-  /** tak / nie / '' — z kolumny E „Wg harmonogramu”. */
-  wgHarmonogramu?: string;
   colorKind: PointColorKind;
   lat: number;
   lon: number;
@@ -56,7 +54,6 @@ export function buildMapHtml(
     nazwaSkrocona: p.nazwaSkrocona,
     adres: p.adres,
     typ: p.typ,
-    wgHarmonogramu: p.wgHarmonogramu ?? '',
     colorKind: p.colorKind,
     lat: p.lat,
     lon: p.lon,
@@ -114,10 +111,6 @@ export function buildMapHtml(
     .map-type-filter-title { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
     .map-type-filter-options { display: flex; flex-direction: column; gap: 4px; }
     .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
-    .map-harmonogram-filter { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8e8e8; }
-    .map-harmonogram-filter-title { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
-    .map-harmonogram-filter-options { display: flex; flex-direction: column; gap: 4px; }
-    .map-harmonogram-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
     .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
     .map-empty-banner { position: absolute; z-index: 1100; left: 50%; top: 48px; transform: translateX(-50%); background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); max-width: min(420px, calc(100vw - 24px)); text-align: center; }
 ${wordEnabled ? wordModalCss() : ''}  </style>
@@ -193,18 +186,6 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
       return mode === 'wszystkie' || colorKind === mode;
     }
 
-    function normalizeWgHarmonogramuMap(raw) {
-      var s = String(raw || '').trim().toLowerCase();
-      if (s === 'tak') return 'tak';
-      if (s === 'nie') return 'nie';
-      return '';
-    }
-
-    function mapPointMatchesWgHarmonogramuFilterMap(wgHarmonogramu, mode) {
-      if (mode === 'wszystkie') return true;
-      return normalizeWgHarmonogramuMap(wgHarmonogramu) === mode;
-    }
-
     function escapeHtmlMap(s) {
       return String(s)
         .replace(/&/g, '&amp;')
@@ -248,11 +229,6 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
       return el ? el.value : 'wszystkie';
     }
 
-    function getWgHarmonogramuFilterMode() {
-      var el = document.querySelector('input[name="map-harmonogram-filter"]:checked');
-      return el ? el.value : 'wszystkie';
-    }
-
     function setMarkerClickable(marker, on) {
       if (on) {
         if (marker._icon) marker._icon.style.pointerEvents = '';
@@ -283,15 +259,13 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
       var raw = inputEl ? inputEl.value : '';
       var hasSearch = String(raw).trim().length > 0;
       var mode = getColorFilterMode();
-      var harmMode = getWgHarmonogramuFilterMode();
       var matchMarkers = [];
       var matchCount = 0;
       var visibleCount = 0;
 
       markerEntries.forEach(function(entry) {
         var cMatch = mapPointMatchesColorFilterMap(entry.p.colorKind, mode);
-        var hMatch = mapPointMatchesWgHarmonogramuFilterMap(entry.p.wgHarmonogramu, harmMode);
-        if (!cMatch || !hMatch) {
+        if (!cMatch) {
           entry.marker.setOpacity(0);
           setMarkerClickable(entry.marker, false);
           entry.marker.setIcon(pinIcon(entry.p.kolor, false));
@@ -351,13 +325,6 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
         '<label><input type="radio" name="map-type-filter" value="puste" /> Puste</label>' +
         '<label><input type="radio" name="map-type-filter" value="bolecin" /> Bolęcin</label>' +
         '</div></div>' +
-        '<div class="map-harmonogram-filter" role="group" aria-labelledby="map-harmonogram-filter-title">' +
-        '<span id="map-harmonogram-filter-title" class="map-harmonogram-filter-title">Wg harmonogramu</span>' +
-        '<div class="map-harmonogram-filter-options">' +
-        '<label><input type="radio" name="map-harmonogram-filter" value="wszystkie" checked /> Wszystkie</label>' +
-        '<label><input type="radio" name="map-harmonogram-filter" value="tak" /> Tak</label>' +
-        '<label><input type="radio" name="map-harmonogram-filter" value="nie" /> Nie</label>' +
-        '</div></div>' +
         (wordDocEnabled
           ? '<div class="map-manual-gen-wrap">' +
             '<button type="button" id="map-manual-generate" class="map-manual-generate" title="Otwórz formularz i wybierz miejsce załadunku z listy">Generuj (wybór ręczny)</button>' +
@@ -385,9 +352,6 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
 
     document.getElementById('map-address-search').addEventListener('input', applyAddressSearch);
     document.querySelectorAll('input[name="map-type-filter"]').forEach(function(el) {
-      el.addEventListener('change', applyAddressSearch);
-    });
-    document.querySelectorAll('input[name="map-harmonogram-filter"]').forEach(function(el) {
       el.addEventListener('change', applyAddressSearch);
     });
     document.getElementById('map-zoom-in').addEventListener('click', function() { map.zoomIn(); });

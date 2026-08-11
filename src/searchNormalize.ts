@@ -63,33 +63,3 @@ export function mapPointMatchesColorFilter(
 ): boolean {
   return mode === 'wszystkie' || colorKind === mode;
 }
-
-/** Wartość kolumny „Wg harmonogramu” po normalizacji. */
-export type WgHarmonogramuValue = 'tak' | 'nie' | '';
-
-export type WgHarmonogramuFilterMode = 'wszystkie' | 'tak' | 'nie';
-
-/** „tak” / „nie” (bez wielkości liter); inne / puste → ''. */
-export function normalizeWgHarmonogramu(raw: string): WgHarmonogramuValue {
-  const s = String(raw || '')
-    .trim()
-    .toLowerCase();
-  if (s === 'tak') {
-    return 'tak';
-  }
-  if (s === 'nie') {
-    return 'nie';
-  }
-  return '';
-}
-
-/** Czy punkt jest widoczny przy filtrze „Wg harmonogramu”. */
-export function mapPointMatchesWgHarmonogramuFilter(
-  wgHarmonogramu: string,
-  mode: WgHarmonogramuFilterMode,
-): boolean {
-  if (mode === 'wszystkie') {
-    return true;
-  }
-  return normalizeWgHarmonogramu(wgHarmonogramu) === mode;
-}

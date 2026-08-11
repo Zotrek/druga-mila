@@ -18,7 +18,7 @@
 ## Apps Script
 
 - [x] `HEADER_ROW` / `COL.uwagi` (16)
-- [x] Skan DM bez GMH; skan / preview / resolve GMH
+- [x] Skan DM bez DMH; skan / preview / resolve DMH
 - [x] GET `listHarmonogram`, `previewNumberHarm`
 - [x] POST `addHarmonogram`, `commitHarm`
 
@@ -30,7 +30,7 @@
 
 ## Tests / generate
 
-- [x] Embed tests (harmonogram, GMH, uwagi)
+- [x] Embed tests (harmonogram, DMH, uwagi)
 - [x] **CHECKPOINT 2:** full `npm test` — 113 passed ✅
 - [x] `npm run generate`
 - [ ] **CHECKPOINT 3:** smoke po deploy `.gs` ⏳
@@ -39,6 +39,6 @@
 
 1. [ ] Wklej `google-apps-script/formatka-log.gs` → **Deploy → Manage deployments → Edit → New version**
 2. [ ] Przycisk „Generuj stały odbiór” → lista z Harmonogramu
-3. [ ] Wybór wiersza → popup z datami; edycja; Pobierz .docx → N× GMH + Word; Harmonogram bez ubytku
+3. [ ] Wybór wiersza → popup z datami; edycja; Pobierz .docx → N× DMH + Word; Harmonogram bez ubytku
 4. [ ] Pole Uwagi trafia do miesiąca, nie do Bolęcin / Word
 5. [ ] Dodaj nowy w pickerze → nowy wiersz Harmonogramu

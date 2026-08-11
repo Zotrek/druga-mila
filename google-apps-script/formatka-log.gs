@@ -5,7 +5,7 @@
  *
  * GET ?action=modalData          → { ok, numer }  (podgląd DM* — NIE rezerwuje)
  * GET ?action=previewNumber      → { ok, numer }  (jak wyżej)
- * GET ?action=previewNumberHarm  → { ok, numer }  (podgląd GMH* — NIE rezerwuje)
+ * GET ?action=previewNumberHarm  → { ok, numer }  (podgląd DMH* — NIE rezerwuje)
  * GET ?action=listPlanowane      → { ok, rows: [...] }
  * GET ?action=listHarmonogram    → { ok, rows: [...] }
  * POST (body JSON, Content-Type: text/plain) — wg body.mode:
@@ -15,18 +15,18 @@
  *   updatePlan    → nadpis wiersza Planowane
  *   deletePlan    → usunięcie z Planowane
  *   addHarmonogram → append do Harmonogram (szablon stały, bez numeru)
- *   commitHarm    → append miesiąca + Bolęcin (seria GMH*; Harmonogram bez zmian)
+ *   commitHarm    → append miesiąca + Bolęcin (seria DMH*; Harmonogram bez zmian)
  *
  * Zakładki miesięczne: przy pierwszym transporcie miesiąca tworzona jest zakładka
  * „Sierpień 2026” (z dataOdbioru / Data załadunku). Numeracja DM* ciągła — skan zakładek
- * (w tym „Planowane”), z pominięciem numerów GMH*. Seria GMH* osobna (start GMH1).
+ * (w tym „Planowane”), z pominięciem numerów DMH*. Seria DMH* osobna (start DMH1).
  *
  * Transport do Bolęcina (Biosystem / Bolęcin w miejscu zrzutu lub adresie dostawy):
  * dodatkowo wiersz do arkusza BOLECIN_SHEETS_ID (węższe kolumny, też zakładki miesięczne).
  * Zapis commit/realize/commitHarm: formatka główna + (jeśli Bolęcin) drugi arkusz.
  *
  * Źródło prawdy numeracji = kolumna „Nr zlecenia” we wszystkich zakładkach formatki głównej.
- * Start DM: DM1 | Start GMH: GMH1. Kolumna Uwagi (16) tylko formatka / Planowane — nie Bolęcin.
+ * Start DM: DM1 | Start DMH: DMH1. Kolumna uwagi (D w układzie Sierpień) tylko formatka / Planowane — nie Bolęcin.
  *
  * Dokumentacja: docs/FORMATKA_SHEET.md
  */
@@ -35,25 +35,27 @@ var COL = {
   numerFaktury: 1,
   stawka: 2,
   czyProtokolZrobiony: 3,
-  numerZlecenia: 4,
-  oknoAwizacji: 5,
-  adresOdbioru: 6,
-  nazwaKontrahenta: 7,
-  dataOdbioru: 8,
-  ktoOdbiera: 9,
-  miejsceZrzutu: 10,
-  rodzajZbiorki: 11,
-  ileWorkow: 12,
-  rodzajTransportu: 13,
-  awizacja: 14,
-  znacznikMiejsca: 15,
-  uwagi: 16,
+  uwagi: 4,
+  numerZlecenia: 5,
+  oknoAwizacji: 6,
+  adresOdbioru: 7,
+  nazwaKontrahenta: 8,
+  dataOdbioru: 9,
+  ktoOdbiera: 10,
+  miejsceZrzutu: 11,
+  rodzajZbiorki: 12,
+  ileWorkow: 13,
+  rodzajTransportu: 14,
+  awizacja: 15,
+  znacznikMiejsca: 16,
 };
 
+/** Kolejność jak zakładka Sierpień 2026 — uwagi PRZED nr zlecenia. */
 var HEADER_ROW = [
   'Numer faktury',
   'Stawka',
   'Czy protokół zrobiony',
+  'uwagi',
   'Nr zlecenia transportowego',
   'OKNO AWIZACJI',
   'Adres odbioru',
@@ -66,7 +68,6 @@ var HEADER_ROW = [
   'rodzaj traportu',
   'awizacja',
   'znacznik miejsca',
-  'Uwagi',
 ];
 
 var PLANOWANE_SHEET_NAME = 'Planowane';
@@ -137,8 +138,8 @@ var MONTH_NAMES_PL = [
 /** Cache pomocniczy — synchronizowany po udanym zapisie; preview liczy ze skanu arkusza. */
 var FORMATKA_LAST_NUMBER_KEY = 'formatkaLastNumber';
 var START_NUMBER = 'DM1';
-var START_NUMBER_HARM = 'GMH1';
-var HARM_NUMBER_PREFIX = 'GMH';
+var START_NUMBER_HARM = 'DMH1';
+var HARM_NUMBER_PREFIX = 'DMH';
 
 function doGet(e) {
   try {
@@ -241,7 +242,7 @@ function handleRealizePost_(body) {
   var numer =
     body && body.numer != null && String(body.numer).trim() !== ''
       ? String(body.numer).trim()
-      : String(sheet.getRange(rowIndex, COL.numerZlecenia).getValue() || '').trim();
+      : String(sheet.getRange(rowIndex, findNumerZleceniaCol_(sheet)).getValue() || '').trim();
   if (!numer) {
     throw new Error('realize requires numer');
   }
@@ -261,7 +262,7 @@ function handleUpdatePlanPost_(body) {
   if (rowIndex < 2 || rowIndex > sheet.getLastRow()) {
     throw new Error('planowaneRow out of range');
   }
-  var existingNumer = String(sheet.getRange(rowIndex, COL.numerZlecenia).getValue() || '').trim();
+  var existingNumer = String(sheet.getRange(rowIndex, findNumerZleceniaCol_(sheet)).getValue() || '').trim();
   var numer =
     body && body.numer != null && String(body.numer).trim() !== ''
       ? String(body.numer).trim()
@@ -271,7 +272,8 @@ function handleUpdatePlanPost_(body) {
   }
   var planBody = mergeBody_(body, { czyProtokolZrobiony: 'nie' });
   // getRange(row, column, numRows, numColumns) — 3./4. to liczba wierszy/kolumn, NIE endRow/endCol
-  sheet.getRange(rowIndex, 1, 1, HEADER_ROW.length).setValues([buildFormatkaRowValues_(numer, planBody)]);
+  var rowVals = buildFormatkaRowValuesForSheet_(sheet, numer, planBody);
+  sheet.getRange(rowIndex, 1, 1, rowVals.length).setValues([rowVals]);
   return jsonResponse({ ok: true, numer: String(numer) });
 }
 
@@ -281,7 +283,7 @@ function handleDeletePlanPost_(body) {
   if (rowIndex < 2 || rowIndex > sheet.getLastRow()) {
     throw new Error('planowaneRow out of range');
   }
-  var numer = String(sheet.getRange(rowIndex, COL.numerZlecenia).getValue() || '').trim();
+  var numer = String(sheet.getRange(rowIndex, findNumerZleceniaCol_(sheet)).getValue() || '').trim();
   sheet.deleteRow(rowIndex);
   syncCounterAfterWrite_(numer);
   return jsonResponse({ ok: true, numer: numer || undefined });
@@ -353,7 +355,7 @@ function incrementAlphanumeric_(value) {
 }
 
 /**
- * Podgląd DM*: skan zakładek z pominięciem GMH* → max + 1. NIE zapisuje property.
+ * Podgląd DM*: skan zakładek z pominięciem DMH* → max + 1. NIE zapisuje property.
  */
 function getPreviewNumber_() {
   var last = scanMaxNumberFromAllSheets_();
@@ -364,7 +366,7 @@ function getPreviewNumber_() {
   return next != null ? next : START_NUMBER;
 }
 
-/** Podgląd GMH*: tylko seria GMH. NIE rezerwuje. */
+/** Podgląd DMH*: tylko seria DMH. NIE rezerwuje. */
 function getPreviewNumberHarm_() {
   var last = scanMaxNumberWithPrefix_(HARM_NUMBER_PREFIX);
   if (last == null) {
@@ -540,30 +542,27 @@ function listPlanowaneRows_() {
   if (lastRow < 2) {
     return [];
   }
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var numDataRows = lastRow - 1;
-  var values = sheet.getRange(2, 1, numDataRows, HEADER_ROW.length).getValues();
+  var values = sheet.getRange(2, 1, numDataRows, lastCol).getValues();
   var rows = [];
   for (var i = 0; i < values.length; i++) {
     var r = values[i];
-    rows.push({
-      rowIndex: i + 2,
-      numerFaktury: cellStr_(r[COL.numerFaktury - 1]),
-      stawka: cellStr_(r[COL.stawka - 1]),
-      czyProtokolZrobiony: cellStr_(r[COL.czyProtokolZrobiony - 1]),
-      numer: cellStr_(r[COL.numerZlecenia - 1]),
-      oknoAwizacji: cellStr_(r[COL.oknoAwizacji - 1]),
-      adresOdbioru: cellStr_(r[COL.adresOdbioru - 1]),
-      nazwaKontrahenta: cellStr_(r[COL.nazwaKontrahenta - 1]),
-      dataOdbioru: cellStr_(r[COL.dataOdbioru - 1]),
-      ktoOdbiera: cellStr_(r[COL.ktoOdbiera - 1]),
-      miejsceZrzutu: cellStr_(r[COL.miejsceZrzutu - 1]),
-      rodzajZbiorki: cellStr_(r[COL.rodzajZbiorki - 1]),
-      ileWorkow: cellStr_(r[COL.ileWorkow - 1]),
-      rodzajTransportu: cellStr_(r[COL.rodzajTransportu - 1]),
-      awizacja: cellStr_(r[COL.awizacja - 1]),
-      znacznikMiejsca: cellStr_(r[COL.znacznikMiejsca - 1]),
-      uwagi: cellStr_(r[COL.uwagi - 1]),
-    });
+    var obj = { rowIndex: i + 2 };
+    for (var c = 0; c < headers.length; c++) {
+      var key = fieldKeyFromHeader_(headers[c]);
+      if (!key) {
+        continue;
+      }
+      var val = cellStr_(r[c]);
+      if (key === 'numer') {
+        obj.numer = val;
+      } else {
+        obj[key] = val;
+      }
+    }
+    rows.push(obj);
   }
   return rows;
 }
@@ -623,11 +622,16 @@ function buildHarmonogramRowValues_(body) {
   ];
 }
 
+/**
+ * Kanoniczna kolejność (Sierpień 2026): uwagi w kolumnie D, nr zlecenia w E.
+ * Starsze zakładki (Lipiec / Planowane) mogą mieć inny układ — użyj buildFormatkaRowValuesForSheet_.
+ */
 function buildFormatkaRowValues_(numer, body) {
   return [
     body.numerFaktury != null ? String(body.numerFaktury) : '',
     body.stawka != null ? String(body.stawka) : '',
     body.czyProtokolZrobiony != null ? String(body.czyProtokolZrobiony) : 'tak',
+    body.uwagi != null ? String(body.uwagi) : '',
     numer,
     body.oknoAwizacji != null ? String(body.oknoAwizacji) : '',
     body.adresOdbioru != null ? String(body.adresOdbioru) : '',
@@ -640,18 +644,130 @@ function buildFormatkaRowValues_(numer, body) {
     body.rodzajTransportu != null ? String(body.rodzajTransportu) : '',
     body.awizacja != null ? String(body.awizacja) : '',
     body.znacznikMiejsca != null ? String(body.znacznikMiejsca) : '',
-    body.uwagi != null ? String(body.uwagi) : '',
   ];
+}
+
+function normalizeHeaderKey_(h) {
+  return String(h || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Mapuje nagłówek kolumny → klucz body / 'numer'. */
+function fieldKeyFromHeader_(h) {
+  var n = normalizeHeaderKey_(h);
+  if (!n) {
+    return '';
+  }
+  if (n.indexOf('numer faktury') >= 0) {
+    return 'numerFaktury';
+  }
+  if (n === 'stawka') {
+    return 'stawka';
+  }
+  if (n.indexOf('protok') >= 0) {
+    return 'czyProtokolZrobiony';
+  }
+  if (n === 'uwagi' || n.indexOf('uwagi') === 0) {
+    return 'uwagi';
+  }
+  if (n.indexOf('nr zlecenia') >= 0 || n.indexOf('zlecenia transport') >= 0) {
+    return 'numer';
+  }
+  if (n.indexOf('okno') >= 0) {
+    return 'oknoAwizacji';
+  }
+  if (n.indexOf('adres odbioru') >= 0) {
+    return 'adresOdbioru';
+  }
+  if (n.indexOf('nazwa kontrahenta') >= 0 || n.indexOf('podmiot handlowy') >= 0) {
+    return 'nazwaKontrahenta';
+  }
+  if (n.indexOf('data odbioru') >= 0) {
+    return 'dataOdbioru';
+  }
+  if (n.indexOf('kto odbiera') >= 0) {
+    return 'ktoOdbiera';
+  }
+  if (n.indexOf('miejsce zrzutu') >= 0) {
+    return 'miejsceZrzutu';
+  }
+  if (n.indexOf('rodzaj zbi') >= 0) {
+    return 'rodzajZbiorki';
+  }
+  if (n.indexOf('ile work') >= 0) {
+    return 'ileWorkow';
+  }
+  if (n.indexOf('traport') >= 0 || n.indexOf('transport') >= 0) {
+    return 'rodzajTransportu';
+  }
+  if (n === 'awizacja') {
+    return 'awizacja';
+  }
+  if (n.indexOf('znacznik') >= 0) {
+    return 'znacznikMiejsca';
+  }
+  return '';
+}
+
+/**
+ * Buduje wiersz wg rzeczywistych nagłówków zakładki (Sierpień: uwagi@D;
+ * Lipiec/Planowane: numer@D, Uwagi na końcu lub brak).
+ */
+function buildFormatkaRowValuesForSheet_(sheet, numer, body) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return buildFormatkaRowValues_(numer, body);
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var hasRecognized = false;
+  var row = [];
+  for (var i = 0; i < headers.length; i++) {
+    var key = fieldKeyFromHeader_(headers[i]);
+    if (key) {
+      hasRecognized = true;
+    }
+    if (key === 'numer') {
+      row.push(numer);
+    } else if (key === 'czyProtokolZrobiony') {
+      row.push(
+        body.czyProtokolZrobiony != null ? String(body.czyProtokolZrobiony) : 'tak',
+      );
+    } else if (key && body[key] != null) {
+      row.push(String(body[key]));
+    } else {
+      row.push('');
+    }
+  }
+  if (!hasRecognized) {
+    return buildFormatkaRowValues_(numer, body);
+  }
+  return row;
+}
+
+function findNumerZleceniaCol_(sheet) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return COL.numerZlecenia;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  for (var i = 0; i < headers.length; i++) {
+    if (fieldKeyFromHeader_(headers[i]) === 'numer') {
+      return i + 1;
+    }
+  }
+  return COL.numerZlecenia;
 }
 
 function appendFormatkaRow_(numer, body) {
   var sheet = getOrCreateMonthSheet_(body);
-  sheet.appendRow(buildFormatkaRowValues_(numer, body));
+  sheet.appendRow(buildFormatkaRowValuesForSheet_(sheet, numer, body));
 }
 
 function appendPlanowaneRow_(numer, body) {
   var sheet = getOrCreatePlanowaneSheet_();
-  sheet.appendRow(buildFormatkaRowValues_(numer, body));
+  sheet.appendRow(buildFormatkaRowValuesForSheet_(sheet, numer, body));
 }
 
 /** Węższy wiersz do arkusza Bolęcin (bez numeracji / stawki / znacznika). */
@@ -675,8 +791,8 @@ function appendBolecinRow_(body) {
 
 /**
  * Skan kolumny Nr zlecenia na zakładkach formatki: największa liczba końcowa,
- * z pominięciem numerów serii GMH* (osobna pula). Remis → późniejszy wiersz.
- * Mieszane prefiksy poza GMH OK (ABC100 wygrywa z DM5).
+ * z pominięciem numerów serii DMH* (osobna pula). Remis → późniejszy wiersz.
+ * Mieszane prefiksy poza DMH OK (ABC100 wygrywa z DM5).
  */
 function scanMaxNumberFromAllSheets_() {
   return scanMaxNumberFiltered_(function(s) {
@@ -684,7 +800,7 @@ function scanMaxNumberFromAllSheets_() {
   });
 }
 
-/** Skan tylko numerów z dokładnym prefiksem (np. GMH). */
+/** Skan tylko numerów z dokładnym prefiksem (np. DMH). */
 function scanMaxNumberWithPrefix_(prefix) {
   return scanMaxNumberFiltered_(function(s) {
     var m = String(s || '').trim().match(/^(.*?)(\d+)$/);
@@ -715,7 +831,8 @@ function scanMaxNumberFiltered_(acceptFn) {
       continue;
     }
     var numDataRows = lastRow - 1;
-    var values = sheet.getRange(2, COL.numerZlecenia, numDataRows, 1).getValues();
+    var numerCol = findNumerZleceniaCol_(sheet);
+    var values = sheet.getRange(2, numerCol, numDataRows, 1).getValues();
     for (var i = 0; i < values.length; i++) {
       var raw = values[i][0];
       if (raw == null || raw === '') {

@@ -9,9 +9,9 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 - **Nazwa:** lista-druga-mila
 - **ID:** `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`
 - **URL:** https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit
-- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/GMH). Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
-- **Wiersz 1 — nagłówki (16 kolumn):** Numer faktury, Stawka, Czy protokół zrobiony, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca, **Uwagi**
-- **Migracja istniejących zakładek:** ręcznie wstaw kolumnę **OKNO AWIZACJI** przed „Adres odbioru” oraz kolumnę **Uwagi** na końcu (nowe zakładki miesięczne dostaną nagłówki automatycznie).
+- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/DMH). Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
+- **Wiersz 1 — nagłówki (16 kolumn, jak Sierpień 2026):** Numer faktury, Stawka, Czy protokół zrobiony, **uwagi**, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca
+- **Migracja:** Starsze zakładki (np. Lipiec) mogą mieć `Uwagi` na końcu albo bez tej kolumny — Apps Script mapuje zapis/odczyt **po nagłówkach**. Nowe zakładki dostają układ Sierpień.
 
 ### Zakładki miesięczne
 
@@ -22,7 +22,7 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 | Źródło miesiąca | Pole `dataOdbioru` z POST (= Data załadunku / Data odbioru z modala, format `dd.mm.rrrr`) |
 | Brak / zła data | Fallback: data bieżąca (timezone skryptu Google) |
 | Nagłówki | Przy tworzeniu zakładki kopiowane wiersz 1 (16 kolumn jak wyżej) |
-| Numeracja | **Ciągła seria DM*** — skan kolumny „Nr zlecenia” (w tym `Planowane`), **z pominięciem** `GMH*` |
+| Numeracja | **Ciągła seria DM*** — skan kolumny „Nr zlecenia” (w tym `Planowane`), **z pominięciem** `DMH*` |
 
 ### Zakładka Planowane
 
@@ -42,9 +42,9 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 | Nazwa | Stała: `Harmonogram` |
 | Kolumny (12) | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **Dzień odbioru**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
 | Lista | GET `action=listHarmonogram` |
-| Dodaj | POST `mode: "addHarmonogram"` — tylko szablon; bez DM/GMH, bez miesiąca, bez Bolęcin |
-| Generacja z mapy | UI proponuje daty z „Dzień odbioru” (edytowalne) → N× POST `commitHarm` (seria **GMH1…**) + Word; wiersz Harmonogramu **zostaje** |
-| Numeracja GMH | Osobna pula; GET `previewNumberHarm`; skan tylko `GMH*` |
+| Dodaj | POST `mode: "addHarmonogram"` — tylko szablon; bez DM/DMH, bez miesiąca, bez Bolęcin |
+| Generacja z mapy | UI proponuje daty z „Dzień odbioru” (edytowalne) → N× POST `commitHarm` (seria **DMH1…**) + Word; wiersz Harmonogramu **zostaje** |
+| Numeracja DMH | Osobna pula; GET `previewNumberHarm`; skan tylko `DMH*` |
 
 > Osobny arkusz i osobny Web App względem mapy plomb (`arkusz-mapa`) — **nie** współdzielić numeracji.
 
@@ -78,9 +78,9 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 
 | Metoda | Parametry | Opis |
 |--------|-----------|------|
-| GET | `action=previewNumber` | Podgląd następnego **DM*** (skan bez `GMH*`, bez rezerwacji) |
+| GET | `action=previewNumber` | Podgląd następnego **DM*** (skan bez `DMH*`, bez rezerwacji) |
 | GET | `action=modalData` | Jak previewNumber |
-| GET | `action=previewNumberHarm` | Podgląd następnego **GMH*** (bez rezerwacji) |
+| GET | `action=previewNumberHarm` | Podgląd następnego **DMH*** (bez rezerwacji) |
 | GET | `action=listPlanowane` | `{ ok, rows: [{ rowIndex, numer, …pola kolumn }] }` |
 | GET | `action=listHarmonogram` | `{ ok, rows: [{ rowIndex, dzienOdbioru, …12 pól }] }` |
 | POST | JSON w body (`Content-Type: text/plain`) | LockService → wg `mode` (poniżej); zwrot `{ ok, numer? }` |
@@ -95,7 +95,7 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 | `updatePlan` | Wymaga `planowaneRow`; nadpisuje pola wiersza (numer bez zmian); bez Bolęcina |
 | `deletePlan` | Wymaga `planowaneRow`; usuwa wiersz z `Planowane` (numer wraca do puli przy następnym skanie) |
 | `addHarmonogram` | Append wiersza do `Harmonogram` (12 kolumn); bez numeru / miesiąca / Bolęcin |
-| `commitHarm` | Jak commit, ale seria **GMH***; Harmonogram bez zmian |
+| `commitHarm` | Jak commit, ale seria **DMH***; Harmonogram bez zmian |
 
 > Przeglądarka często wysyła POST jako `text/plain` (unikanie preflight CORS) — Web App musi czytać `e.postData.contents` i `JSON.parse`, nie polegać na `application/json`.
 
@@ -103,14 +103,14 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 
 | Reguła | Zachowanie |
 |--------|------------|
-| Start DM | Brak numerów DM (poza GMH) → **`DM1`** |
-| Start GMH | Brak `GMH*` → **`GMH1`** |
-| Źródło prawdy DM | Kolumna „Nr zlecenia” — skan z **pominięciem** `GMH*` |
-| Źródło prawdy GMH | Ten sam skan, **tylko** `^GMH\d+$` |
+| Start DM | Brak numerów DM (poza DMH) → **`DM1`** |
+| Start DMH | Brak `DMH*` → **`DMH1`** |
+| Źródło prawdy DM | Kolumna „Nr zlecenia” — skan z **pominięciem** `DMH*` |
+| Źródło prawdy DMH | Ten sam skan, **tylko** `^DMH\d+$` |
 | Auto | Inkrement końcowej liczby w danej serii |
 | Podgląd | **Nie pali** numeru |
 | Usunięcie wierszy | Następny numer **cofa się** w danej serii |
-| Mieszane prefiksy (poza GMH) | Max po liczbie końcowej; remis → późniejszy wiersz (zaakceptowane) |
+| Mieszane prefiksy (poza DMH) | Max po liczbie końcowej; remis → późniejszy wiersz (zaakceptowane) |
 | Property `formatkaLastNumber` | Cache po udanym zapisie — nie jest źródłem prawdy przy preview |
 
 Funkcja **`rebuildFormatkaCounterFromSheet`** (Run) — opcjonalna synchronizacja cache po dużej ręcznej edycji; do poprawnego preview/POST **nie jest wymagana** (i tak jest skan).

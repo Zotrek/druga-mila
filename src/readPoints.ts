@@ -10,20 +10,16 @@ import {
   COL_NAZWA_PELNA,
   COL_NAZWA_SKROCONA,
   COL_TYP,
-  COL_WG_HARMONOGRAMU,
   SHEET_NAME_ZALADUNEK,
   type PointColorKind,
 } from './config.js';
 import { classifyPointColor } from './classify.js';
-import { normalizeWgHarmonogramu, type WgHarmonogramuValue } from './searchNormalize.js';
 
 export interface LoadPoint {
   nazwaPelna: string;
   nazwaSkrocona: string;
   adres: string;
   typ: string;
-  /** Znormalizowane: tak / nie / '' (puste lub nierozpoznane). */
-  wgHarmonogramu: WgHarmonogramuValue;
   colorKind: PointColorKind;
 }
 
@@ -48,14 +44,12 @@ export function parseLoadRow(row: unknown[]): LoadPoint | null {
   const nazwaPelna = cellStr(row, COL_NAZWA_PELNA);
   const nazwaSkrocona = cellStr(row, COL_NAZWA_SKROCONA);
   const typ = cellStr(row, COL_TYP);
-  const wgHarmonogramu = normalizeWgHarmonogramu(cellStr(row, COL_WG_HARMONOGRAMU));
 
   return {
     nazwaPelna,
     nazwaSkrocona,
     adres,
     typ,
-    wgHarmonogramu,
     colorKind: classifyPointColor({ nazwaPelna, nazwaSkrocona, adres, typ }),
   };
 }

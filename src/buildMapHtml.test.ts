@@ -37,9 +37,6 @@ describe('buildMapHtml', () => {
     expect(html).toContain('map-address-search');
     expect(html).toContain('name="map-type-filter"');
     expect(html).toContain('value="bolecin"');
-    expect(html).toContain('name="map-harmonogram-filter"');
-    expect(html).toContain('Wg harmonogramu');
-    expect(html).toContain('mapPointMatchesWgHarmonogramuFilterMap');
     expect(html).toContain(COLOR_CD);
     expect(html).toContain(COLOR_BOLECIN);
     expect(html).toContain('normalizeForAddressSearchMap');

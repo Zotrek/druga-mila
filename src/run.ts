@@ -57,7 +57,6 @@ async function main(): Promise<void> {
       nazwaSkrocona: p.nazwaSkrocona,
       adres: p.adres,
       typ: p.typ,
-      wgHarmonogramu: p.wgHarmonogramu,
     })),
   };
 
@@ -67,7 +66,6 @@ async function main(): Promise<void> {
       nazwaSkrocona: p.nazwaSkrocona,
       adres: p.adres,
       typ: p.typ,
-      wgHarmonogramu: p.wgHarmonogramu,
       colorKind: p.colorKind,
       lat: p.lat!,
       lon: p.lon!,

@@ -19,8 +19,6 @@ export const COL_NAZWA_SKROCONA = 1;
 export const COL_ADRES = 2;
 /** D — Typ (CD / PLAC / puste) */
 export const COL_TYP = 3;
-/** E — Wg harmonogramu (tak / nie) */
-export const COL_WG_HARMONOGRAMU = 4;
 
 // --- Kolumny podwyko lista.xlsx ---
 /** A — etykieta UI */

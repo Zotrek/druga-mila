@@ -1141,7 +1141,7 @@ export function wordModalBrowserScript(): string {
           }
           if (hint) {
             if (window.__docModalMode === 'harmonogram') {
-              hint.textContent = 'Stały odbiór: każdy termin = wiersz GMH* + .docx. Harmonogram bez zmian.';
+              hint.textContent = 'Stały odbiór: każdy termin = wiersz DMH* + .docx. Harmonogram bez zmian.';
             } else if (window.__docModalMode === 'combined') {
               hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word z tym numerem.';
             } else {

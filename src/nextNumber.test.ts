@@ -43,14 +43,14 @@ describe('nextNumber', () => {
     expect(nextNumberFromSheet(['ABC100', 'DM50'], 'DM1')).toBe('ABC101');
   });
 
-  it('test_nextNumberWithPrefix_GMH_start_and_increment', () => {
-    expect(nextNumberWithPrefix([], 'GMH', 'GMH1')).toBe('GMH1');
-    expect(nextNumberWithPrefix(['GMH1', 'GMH2'], 'GMH', 'GMH1')).toBe('GMH3');
-    expect(maxAlphanumericWithPrefix(['DM350', 'GMH2', 'GMH10'], 'GMH')).toBe('GMH10');
+  it('test_nextNumberWithPrefix_DMH_start_and_increment', () => {
+    expect(nextNumberWithPrefix([], 'DMH', 'DMH1')).toBe('DMH1');
+    expect(nextNumberWithPrefix(['DMH1', 'DMH2'], 'DMH', 'DMH1')).toBe('DMH3');
+    expect(maxAlphanumericWithPrefix(['DM350', 'DMH2', 'DMH10'], 'DMH')).toBe('DMH10');
   });
 
-  it('test_nextNumberExcludingPrefix_ignores_GMH_for_DM_series', () => {
-    expect(nextNumberExcludingPrefix(['DM350', 'GMH400'], 'GMH', 'DM1')).toBe('DM351');
-    expect(nextNumberExcludingPrefix(['GMH1', 'GMH99'], 'GMH', 'DM1')).toBe('DM1');
+  it('test_nextNumberExcludingPrefix_ignores_DMH_for_DM_series', () => {
+    expect(nextNumberExcludingPrefix(['DM350', 'DMH400'], 'DMH', 'DM1')).toBe('DM351');
+    expect(nextNumberExcludingPrefix(['DMH1', 'DMH99'], 'DMH', 'DM1')).toBe('DM1');
   });
 });

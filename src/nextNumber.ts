@@ -59,18 +59,18 @@ export function nextNumberFromSheet(values: string[], startNumber: string): stri
   return incrementAlphanumeric(max) ?? startNumber;
 }
 
-/** True gdy numer ma dokładny prefiks (np. GMH1 → GMH). */
+/** True gdy numer ma dokładny prefiks (np. DMH1 → DMH). */
 export function hasExactPrefix(value: string, prefix: string): boolean {
   const parsed = parseAlphanumeric(value);
   return parsed != null && parsed.prefix === prefix;
 }
 
-/** Max po końcówce, tylko wartości z dokładnym prefiksem (seria GMH). */
+/** Max po końcówce, tylko wartości z dokładnym prefiksem (seria DMH). */
 export function maxAlphanumericWithPrefix(values: string[], prefix: string): string | null {
   return maxAlphanumeric(values.filter((v) => hasExactPrefix(v, prefix)));
 }
 
-/** Max po końcówce, pomijając wartości z wykluczonym prefiksem (DM skan bez GMH). */
+/** Max po końcówce, pomijając wartości z wykluczonym prefiksem (DM skan bez DMH). */
 export function maxAlphanumericExcludingPrefix(values: string[], excludePrefix: string): string | null {
   return maxAlphanumeric(values.filter((v) => !hasExactPrefix(v, excludePrefix)));
 }
