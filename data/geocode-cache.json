@@ -13,6 +13,13 @@
     "displayName": "Gama Dom i Ogród, 1, Olszowa, Syndykat, Sokołów Podlaski, powiat sokołowski, województwo mazowieckie, 08-300, Polska",
     "queriedAt": "2026-07-20T10:45:11.690Z"
   },
+  "09-400 płock kostrogaj 21": {
+    "lat": 52.5677681,
+    "lon": 19.7066369,
+    "status": "ok",
+    "displayName": "21, Kostrogaj, Płock, województwo mazowieckie, 09-400, Polska",
+    "queriedAt": "2026-08-11T18:12:14.639Z"
+  },
   "09-408 płock lubuska 15": {
     "lat": 52.5205865,
     "lon": 19.7642722,
@@ -68,6 +75,13 @@
     "status": "ok",
     "displayName": "Gizet, 53, Krzywe Koło, Lubartów, powiat lubartowski, województwo lubelskie, 21-100, Polska",
     "queriedAt": "2026-07-20T10:43:47.834Z"
+  },
+  "21-100 lubartów wandy śliwiny 26": {
+    "lat": 51.4589855,
+    "lon": 22.6033206,
+    "status": "ok",
+    "displayName": "26, Wandy Śliwiny, Lubartów, powiat lubartowski, województwo lubelskie, 21-100, Polska",
+    "queriedAt": "2026-08-11T18:12:06.382Z"
   },
   "22-600 tomaszów lubelski lipowa 14": {
     "lat": 50.4549106,
@@ -265,6 +279,13 @@
     "displayName": "2, Kasztanowa, Zaodrze, Oława, powiat oławski, województwo dolnośląskie, 55-200, Polska",
     "queriedAt": "2026-07-20T10:44:50.766Z"
   },
+  "59-430 wądroże wielkie wądroże wielkie 246": {
+    "lat": 51.1224659,
+    "lon": 16.3374288,
+    "status": "ok",
+    "displayName": "246, Wądroże Wielkie, gmina Wądroże Wielkie, powiat jaworski, województwo dolnośląskie, 59-430, Polska",
+    "queriedAt": "2026-08-11T18:12:09.910Z"
+  },
   "59-800 lubań bazaltowa 1": {
     "lat": 51.0986159,
     "lon": 15.2737302,
@@ -292,6 +313,13 @@
     "status": "ok",
     "displayName": "54a, Szczawiowa, Pomorzany, Zachód, Szczecin, województwo zachodniopomorskie, 70-010, Polska",
     "queriedAt": "2026-07-20T10:44:55.930Z"
+  },
+  "82-500 górki górki 26": {
+    "lat": 52.628797,
+    "lon": 18.9555521,
+    "status": "ok",
+    "displayName": "Raben Logistics Polska sp. z o.o., Górka, Pikutkowo, gmina Brześć Kujawski, powiat włocławski, województwo kujawsko-pomorskie, 87-880, Polska",
+    "queriedAt": "2026-08-11T18:12:11.809Z"
   },
   "84-207 koleczkowo": {
     "lat": 54.4864358,

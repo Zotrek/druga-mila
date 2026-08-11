@@ -6,6 +6,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { getConfig } from './config.js';
 import { readPoints } from './readPoints.js';
 import { readPodwyko } from './readPodwyko.js';
+import { readUnloadDelivery } from './readUnloadDelivery.js';
 import { attachCoords, geocodeAddresses } from './geocode.js';
 import { buildMapHtml } from './buildMapHtml.js';
 
@@ -15,8 +16,10 @@ async function main(): Promise<void> {
 
   const points = readPoints(cfg.pointsXlsxPath);
   const podwyko = readPodwyko(cfg.podwykoXlsxPath);
+  const delivery = readUnloadDelivery(cfg.pointsXlsxPath);
   console.log(`  punkty (z adresem): ${points.length}`);
   console.log(`  podwyko: ${podwyko.length}`);
+  console.log(`  miejsca dostawy (Rozładunek): ${delivery.length}`);
 
   const byKind = { bolecin: 0, cd: 0, plac: 0, puste: 0 };
   for (const p of points) {
@@ -48,6 +51,7 @@ async function main(): Promise<void> {
   const wordEmbed = {
     templateBase64: templateBytes.toString('base64'),
     podwykoOptions: podwyko.map((e) => ({ label: e.label, value: e.value })),
+    deliveryOptions: delivery.map((e) => ({ label: e.label, value: e.value })),
     loadPoints: points.map((p) => ({
       nazwaPelna: p.nazwaPelna,
       nazwaSkrocona: p.nazwaSkrocona,

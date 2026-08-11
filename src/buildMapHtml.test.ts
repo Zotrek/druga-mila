@@ -59,7 +59,8 @@ describe('buildMapHtml', () => {
       {
         wordEmbed: {
           templateBase64: 'dGVzdA==',
-          podwykoOptions: [{ label: 'Biosystem', value: '32-540 Bolęcin' }],
+          podwykoOptions: [{ label: 'BLUECARGO', value: 'BLUECARGO Sp. z o.o.' }],
+          deliveryOptions: [{ label: 'BIOSYSTEM', value: '32-540 Bolęcin Fabryczna 5' }],
           loadPoints: [
             { nazwaPelna: 'CD Test', nazwaSkrocona: 'TEST', adres: '00-001 Warszawa', typ: 'CD' },
           ],
@@ -68,7 +69,9 @@ describe('buildMapHtml', () => {
     );
     expect(html).toContain('doc-modal');
     expect(html).toContain('Generuj protokół');
-    expect(html).toContain('Biosystem');
+    expect(html).toContain('BIOSYSTEM');
+    expect(html).toContain('MIEJSCA_DOSTAWY');
+    expect(html).toContain('resolveMiejsceDostawy');
     expect(html).toContain('openDocModal');
     expect(html).toContain('docxtemplater');
     expect(html).toContain('appendFormatkaRow');

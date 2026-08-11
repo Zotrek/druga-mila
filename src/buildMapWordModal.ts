@@ -5,7 +5,13 @@
 
 export interface WordMapEmbed {
   templateBase64: string;
+  /** Przewoźnik — z docs/podwyko lista.xlsx. */
   podwykoOptions: Array<{ label: string; value: string }>;
+  /**
+   * Miejsce dostawy — z arkusza Rozładunek (data/druga-mila.xlsx).
+   * Gdy brak / puste, modal używa podwykoOptions jako fallback.
+   */
+  deliveryOptions?: Array<{ label: string; value: string }>;
   loadPoints: Array<{
     nazwaPelna: string;
     nazwaSkrocona: string;
@@ -767,7 +773,7 @@ export function wordModalBrowserScript(): string {
       }
     );
     wireCombobox('doc-sel-miejsce', 'doc-val-miejsce', 'doc-sel-miejsce-list',
-      function() { return PODWYKOLISTA; },
+      function() { return MIEJSCA_DOSTAWY; },
       function(it) { return it.label; },
       function(ix, it) {
         document.getElementById('doc-val-miejsce').value = String(ix);
@@ -776,8 +782,8 @@ export function wordModalBrowserScript(): string {
     );
 
     function findBiosystemIdx() {
-      for (var i = 0; i < PODWYKOLISTA.length; i++) {
-        if (String(PODWYKOLISTA[i].label).toLowerCase() === 'biosystem') return i;
+      for (var i = 0; i < MIEJSCA_DOSTAWY.length; i++) {
+        if (String(MIEJSCA_DOSTAWY[i].label).toLowerCase() === 'biosystem') return i;
       }
       return -1;
     }
@@ -788,7 +794,7 @@ export function wordModalBrowserScript(): string {
         if (v === 'manualna' || v === 'manualna i automatyczna') {
           var bi = findBiosystemIdx();
           if (bi >= 0) {
-            var it = PODWYKOLISTA[bi];
+            var it = MIEJSCA_DOSTAWY[bi];
             document.getElementById('doc-val-miejsce').value = String(bi);
             document.getElementById('doc-sel-miejsce').value = it.label;
           }
@@ -911,16 +917,22 @@ export function wordModalBrowserScript(): string {
       if (base.length > 80) base = base.slice(0, 77).trim() + '...';
       return base + '.docx';
     }
-    function resolvePodwyko(hiddenId, inputId) {
+    function resolveListEntry(list, hiddenId, inputId) {
       var hid = document.getElementById(hiddenId);
       var inp = document.getElementById(inputId);
       if (hid && hid.value !== '') {
         var ix = Number(hid.value);
-        if (PODWYKOLISTA[ix]) return PODWYKOLISTA[ix];
+        if (list[ix]) return list[ix];
       }
       var typed = inp ? String(inp.value).trim() : '';
       if (!typed) return { label: '', value: '' };
       return { label: typed, value: typed };
+    }
+    function resolvePodwyko(hiddenId, inputId) {
+      return resolveListEntry(PODWYKOLISTA, hiddenId, inputId);
+    }
+    function resolveMiejsceDostawy(hiddenId, inputId) {
+      return resolveListEntry(MIEJSCA_DOSTAWY, hiddenId, inputId);
     }
     function resolveZaladunek() {
       var hid = document.getElementById('doc-val-zaladunek');
@@ -1004,7 +1016,7 @@ export function wordModalBrowserScript(): string {
       }
       return -1;
     }
-    function selectPodwykoByLabel(hiddenId, inputId, label) {
+    function selectListByLabel(list, hiddenId, inputId, label) {
       var target = String(label || '').trim();
       var inp = document.getElementById(inputId);
       var hid = document.getElementById(hiddenId);
@@ -1013,15 +1025,21 @@ export function wordModalBrowserScript(): string {
         if (hid) hid.value = '';
         return;
       }
-      for (var i = 0; i < PODWYKOLISTA.length; i++) {
-        if (String(PODWYKOLISTA[i].label || '').trim() === target) {
-          if (inp) inp.value = PODWYKOLISTA[i].label;
+      for (var i = 0; i < list.length; i++) {
+        if (String(list[i].label || '').trim() === target) {
+          if (inp) inp.value = list[i].label;
           if (hid) hid.value = String(i);
           return;
         }
       }
       if (inp) inp.value = target;
       if (hid) hid.value = '';
+    }
+    function selectPodwykoByLabel(hiddenId, inputId, label) {
+      selectListByLabel(PODWYKOLISTA, hiddenId, inputId, label);
+    }
+    function selectMiejsceDostawyByLabel(hiddenId, inputId, label) {
+      selectListByLabel(MIEJSCA_DOSTAWY, hiddenId, inputId, label);
     }
     function openPlanowanePicker() {
       var m = document.getElementById('planowane-picker');
@@ -1102,7 +1120,7 @@ export function wordModalBrowserScript(): string {
       var z = document.getElementById('doc-sel-zbiorka');
       if (z) z.value = row.rodzajZbiorki || '';
       selectPodwykoByLabel('doc-val-przewoznik', 'doc-sel-przewoznik', row.ktoOdbiera);
-      selectPodwykoByLabel('doc-val-miejsce', 'doc-sel-miejsce', row.miejsceZrzutu);
+      selectMiejsceDostawyByLabel('doc-val-miejsce', 'doc-sel-miejsce', row.miejsceZrzutu);
       var aw = document.getElementById('doc-inp-awizacja');
       if (aw) aw.value = row.awizacja || '';
       var okno = document.getElementById('doc-inp-okno-awizacji');
@@ -1221,7 +1239,7 @@ export function wordModalBrowserScript(): string {
     function collectSharedForm() {
       return {
         pr: resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik'),
-        md: resolvePodwyko('doc-val-miejsce', 'doc-sel-miejsce'),
+        md: resolveMiejsceDostawy('doc-val-miejsce', 'doc-sel-miejsce'),
         dataVal: document.getElementById('doc-inp-data').value,
         awizacja: document.getElementById('doc-inp-awizacja').value,
         oknoAwizacji: document.getElementById('doc-inp-okno-awizacji').value,

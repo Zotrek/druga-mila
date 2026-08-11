@@ -19,6 +19,8 @@ export const COL_NAZWA_SKROCONA = 1;
 export const COL_ADRES = 2;
 /** D — Typ (CD / PLAC / puste) */
 export const COL_TYP = 3;
+/** E — Wg harmonogramu (tak / nie) */
+export const COL_WG_HARMONOGRAMU = 4;
 
 // --- Kolumny podwyko lista.xlsx ---
 /** A — etykieta UI */
@@ -28,6 +30,9 @@ export const COL_PODWYKO_WORD = 1;
 
 /** Nazwa arkusza z punktami (pierwszy arkusz jeśli brak dokładnej nazwy). */
 export const SHEET_NAME_ZALADUNEK = 'Załadunek';
+
+/** Nazwa arkusza miejsc rozładunku → combobox „Miejsce dostawy”. */
+export const SHEET_NAME_ROZLADUNEK = 'Rozładunek';
 
 /** Kolory pinezek (SPEC). */
 export const COLOR_BOLECIN = '#fd7e14';

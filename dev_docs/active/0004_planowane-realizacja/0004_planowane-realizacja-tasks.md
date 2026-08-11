@@ -1,7 +1,7 @@
 # Tasks: Planowane + realizacja
 
 > **Task:** 0004_planowane-realizacja  
-> **Last Updated:** 2026-08-03
+> **Last Updated:** 2026-08-07
 
 ## Documentation
 
@@ -19,6 +19,7 @@
 - [x] POST `mode: realize` (miesiąc + Bolęcin + delete)
 - [x] POST `mode: updatePlan` / `deletePlan`
 - [x] Istniejący POST bez mode bez regresji
+- [x] **FIX 2026-08-07:** `updatePlan` — poprawne `getRange(..., numRows=1, …)` (Zapisz zmiany bez protokołu)
 
 ## UI
 
@@ -40,9 +41,10 @@
 2. [ ] Modal single → „Zapisz planowane” → wiersz tylko w `Planowane`, bez `.docx`, bez Bolęcina; numer `DM*`
 3. [ ] Nowy transport (Pobierz .docx) → kolejny numer (planowane w skanie)
 4. [ ] Przycisk „Planowane” → wybór → prefill → „Pobierz .docx” → Word + miesiąc (+ Bolęcin) + usunięcie z `Planowane`; ten sam numer
-5. [ ] „Usuń z planowanych” → numer wraca przy preview
-6. [ ] Dotychczasowa ścieżka „Pobierz .docx” od razu nadal działa
-7. [ ] Push `index.html` na Pages (gdy gotowe)
+5. [ ] „Zapisz zmiany” na planowanym (bez Word) → nadpis wiersza w `Planowane`, bez błędu
+6. [ ] „Usuń z planowanych” → numer wraca przy preview
+7. [ ] Dotychczasowa ścieżka „Pobierz .docx” od razu nadal działa
+8. [ ] Push `index.html` na Pages (gdy gotowe)
 
 ## Documentation Updates
 

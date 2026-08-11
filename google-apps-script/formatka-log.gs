@@ -218,7 +218,8 @@ function handleUpdatePlanPost_(body) {
     throw new Error('updatePlan requires numer');
   }
   var planBody = mergeBody_(body, { czyProtokolZrobiony: 'nie' });
-  sheet.getRange(rowIndex, 1, rowIndex, HEADER_ROW.length).setValues([buildFormatkaRowValues_(numer, planBody)]);
+  // getRange(row, column, numRows, numColumns) — 3./4. to liczba wierszy/kolumn, NIE endRow/endCol
+  sheet.getRange(rowIndex, 1, 1, HEADER_ROW.length).setValues([buildFormatkaRowValues_(numer, planBody)]);
   return jsonResponse({ ok: true, numer: String(numer) });
 }
 
@@ -442,7 +443,8 @@ function listPlanowaneRows_() {
   if (lastRow < 2) {
     return [];
   }
-  var values = sheet.getRange(2, 1, lastRow, HEADER_ROW.length).getValues();
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, HEADER_ROW.length).getValues();
   var rows = [];
   for (var i = 0; i < values.length; i++) {
     var r = values[i];
@@ -535,7 +537,8 @@ function scanMaxNumberFromAllSheets_() {
     if (lastRow < 2) {
       continue;
     }
-    var values = sheet.getRange(2, COL.numerZlecenia, lastRow, COL.numerZlecenia).getValues();
+    var numDataRows = lastRow - 1;
+    var values = sheet.getRange(2, COL.numerZlecenia, numDataRows, 1).getValues();
     for (var i = 0; i < values.length; i++) {
       var raw = values[i][0];
       if (raw == null || raw === '') {

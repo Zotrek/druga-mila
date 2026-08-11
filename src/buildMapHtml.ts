@@ -21,6 +21,8 @@ export interface MapHtmlPoint {
   nazwaSkrocona: string;
   adres: string;
   typ: string;
+  /** tak / nie / '' — z kolumny E „Wg harmonogramu”. */
+  wgHarmonogramu?: string;
   colorKind: PointColorKind;
   lat: number;
   lon: number;
@@ -54,6 +56,7 @@ export function buildMapHtml(
     nazwaSkrocona: p.nazwaSkrocona,
     adres: p.adres,
     typ: p.typ,
+    wgHarmonogramu: p.wgHarmonogramu ?? '',
     colorKind: p.colorKind,
     lat: p.lat,
     lon: p.lon,
@@ -111,6 +114,10 @@ export function buildMapHtml(
     .map-type-filter-title { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
     .map-type-filter-options { display: flex; flex-direction: column; gap: 4px; }
     .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
+    .map-harmonogram-filter { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e8e8e8; }
+    .map-harmonogram-filter-title { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #333; }
+    .map-harmonogram-filter-options { display: flex; flex-direction: column; gap: 4px; }
+    .map-harmonogram-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
     .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
     .map-empty-banner { position: absolute; z-index: 1100; left: 50%; top: 48px; transform: translateX(-50%); background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); max-width: min(420px, calc(100vw - 24px)); text-align: center; }
 ${wordEnabled ? wordModalCss() : ''}  </style>
@@ -130,6 +137,11 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
     const wordDocEnabled = ${JSON.stringify(wordEnabled)};
     const WORD_TEMPLATE_B64 = ${JSON.stringify(wordEmbed?.templateBase64 ?? '')};
     const PODWYKOLISTA = ${JSON.stringify(wordEmbed?.podwykoOptions ?? [])};
+    const MIEJSCA_DOSTAWY = ${JSON.stringify(
+      (wordEmbed?.deliveryOptions && wordEmbed.deliveryOptions.length > 0
+        ? wordEmbed.deliveryOptions
+        : wordEmbed?.podwykoOptions) ?? [],
+    )};
     const LOAD_POINTS = ${JSON.stringify(wordEmbed?.loadPoints ?? [])};
 
     const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 6);

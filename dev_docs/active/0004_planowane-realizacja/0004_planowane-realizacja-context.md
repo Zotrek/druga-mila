@@ -1,8 +1,8 @@
 # Context: Planowane + realizacja
 
-> **Last Updated:** 2026-08-03  
+> **Last Updated:** 2026-08-07  
 > **Task:** 0004_planowane-realizacja  
-> **Status:** IMPLEMENTED — kod + docs + `index.html`; czekamy na Deploy `.gs` + smoke
+> **Status:** IMPLEMENTED — kod + docs + `index.html`; fix `updatePlan` getRange; czekamy na Deploy `.gs` + smoke
 
 ## Progress
 
@@ -44,3 +44,9 @@
 - GET `action=listPlanowane` → `{ ok, rows: [{ rowIndex, …pola }] }`.
 - UI realize: numer read-only; „Zapisz zmiany” = `updatePlan`; „Usuń” = `deletePlan`.
 - Prefill załadunku: match adres / nazwa vs `LOAD_POINTS`; fallback z wiersza planowanego.
+
+## Bugfix (2026-08-07)
+
+`Sheet.getRange(row, column, numRows, numColumns)` — 3./4. argument to **liczba** wierszy/kolumn, nie endRow/endCol.
+`updatePlan` wołał `getRange(rowIndex, 1, rowIndex, 15)` → zakres `rowIndex` wierszy, a `setValues` dostawał 1 wiersz → błąd przy „Zapisz zmiany”.
+Fix: `getRange(rowIndex, 1, 1, HEADER_ROW.length)` (+ analogiczna korekta odczytów w `listPlanowane` / skanie numeracji).
