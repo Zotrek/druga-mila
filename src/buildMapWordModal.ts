@@ -40,7 +40,24 @@ export function wordModalCss(): string {
     .doc-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
     .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; }
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+    .doc-modal-actions button:disabled { opacity: 0.7; cursor: wait; }
+    .doc-modal-actions button.primary.is-busy { position: relative; padding-left: 34px; }
+    .doc-modal-actions button.primary.is-busy::before {
+      content: '';
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      margin-top: -7px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: doc-spin 0.7s linear infinite;
+    }
+    @keyframes doc-spin { to { transform: rotate(360deg); } }
     .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
+    .doc-modal-hint.is-busy { color: #0d6efd; font-weight: 600; }
     .doc-date-row { display: flex; gap: 8px; align-items: center; }
     .doc-date-row #doc-inp-data { flex: 1; min-width: 0; }
     .doc-date-cal-btn { width: 38px; height: 38px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #ccc; border-radius: 6px; background: #f8f8f8; color: #333; cursor: pointer; }
@@ -264,7 +281,7 @@ export function wordModalHtml(): string {
       <input type="text" id="doc-inp-transport" maxlength="80" autocomplete="off" />
       <label for="doc-inp-uwagi">Uwagi (tylko Google)</label>
       <input type="text" id="doc-inp-uwagi" maxlength="200" autocomplete="off" />
-      <p class="doc-modal-hint" id="doc-modal-hint">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
+      <p class="doc-modal-hint" id="doc-modal-hint" aria-live="polite">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
       <div class="doc-modal-actions">
         <button type="button" id="doc-btn-cancel">Anuluj</button>
         <button type="button" id="doc-btn-delete-plan" class="danger" hidden>Usuń z planowanych</button>
@@ -1640,21 +1657,17 @@ export function wordModalBrowserScript(): string {
         alert('Dodaj co najmniej jedną datę odbioru.');
         return;
       }
-      var btn = document.getElementById('doc-btn-generate');
-      var hint = document.getElementById('doc-modal-hint');
       var zal = resolveZaladunek();
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
-      if (btn) btn.disabled = true;
+      setDocGenerateBusy(true, 'Generowanie stałego odbioru (' + dates.length + ' terminów)…');
       ensureDocxLibrariesLoaded().then(function() {
         var generated = 0;
         var failed = 0;
         var chain = Promise.resolve();
         dates.forEach(function(dateVal, jobIdx) {
           chain = chain.then(function() {
-            if (hint) {
-              hint.textContent = 'Generowanie ' + (jobIdx + 1) + ' / ' + dates.length + ': ' + dateVal;
-            }
+            updateDocGenerateStatus('Generowanie ' + (jobIdx + 1) + ' / ' + dates.length + ': ' + dateVal);
             var sharedForDate = {
               pr: shared.pr,
               md: shared.md,
@@ -1703,7 +1716,7 @@ export function wordModalBrowserScript(): string {
         console.error(err);
         alert('Nie udało się uruchomić generacji stałego odbioru.');
       }).finally(function() {
-        if (btn) btn.disabled = false;
+        setDocGenerateBusy(false);
       });
     }
     function savePlanowaneFromModal() {
@@ -1838,6 +1851,37 @@ export function wordModalBrowserScript(): string {
     function delayMs(ms) {
       return new Promise(function(resolve) { window.setTimeout(resolve, ms); });
     }
+    var __docGenBusyLabel = '';
+    function setDocGenerateBusy(busy, statusText) {
+      var btn = document.getElementById('doc-btn-generate');
+      var hint = document.getElementById('doc-modal-hint');
+      if (!btn) return;
+      if (busy) {
+        if (!btn.getAttribute('data-busy')) {
+          btn.setAttribute('data-busy', '1');
+          __docGenBusyLabel = btn.textContent || 'Pobierz .docx';
+        }
+        btn.disabled = true;
+        btn.classList.add('is-busy');
+        btn.setAttribute('aria-busy', 'true');
+        btn.textContent = 'Generowanie…';
+        if (hint) {
+          hint.classList.add('is-busy');
+          if (statusText) hint.textContent = statusText;
+        }
+      } else {
+        btn.classList.remove('is-busy');
+        btn.removeAttribute('aria-busy');
+        btn.removeAttribute('data-busy');
+        if (__docGenBusyLabel) btn.textContent = __docGenBusyLabel;
+        btn.disabled = false;
+        if (hint) hint.classList.remove('is-busy');
+      }
+    }
+    function updateDocGenerateStatus(statusText) {
+      var hint = document.getElementById('doc-modal-hint');
+      if (hint && statusText) hint.textContent = statusText;
+    }
     function generateDocxLocal() {
       if (!wordDocEnabled) return;
       if (window.__docModalMode === 'bulk') {
@@ -1852,16 +1896,22 @@ export function wordModalBrowserScript(): string {
         runHarmonogramDocGenerate();
         return;
       }
-      var btn = document.getElementById('doc-btn-generate');
-      if (btn) btn.disabled = true;
       var zal = resolveZaladunek();
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
       var isRealize = window.__docModalMode === 'realize';
       var plan = window.__realizePlan;
+      setDocGenerateBusy(true, WEBAPP_URL
+        ? (isRealize
+          ? 'Realizacja: zapisuję w Google i generuję protokół…'
+          : 'Zapisuję w Google Sheets i generuję protokół…')
+        : 'Generowanie protokołu Word…');
 
       ensureDocxLibrariesLoaded().then(function() {
+        updateDocGenerateStatus(WEBAPP_URL
+          ? 'Łączenie z Web App / zapis w arkuszu…'
+          : 'Składanie dokumentu Word…');
         if (!WEBAPP_URL) {
           renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numerWpisany);
           return;
@@ -1882,6 +1932,7 @@ export function wordModalBrowserScript(): string {
             }
             var numer = String(resp.numer || numerWpisany || plan.numer || '');
             if (numerEl) numerEl.value = numer;
+            updateDocGenerateStatus('Pobieranie pliku .docx…');
             renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
           });
         }
@@ -1894,13 +1945,14 @@ export function wordModalBrowserScript(): string {
           }
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
+          updateDocGenerateStatus('Pobieranie pliku .docx…');
           renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
         });
       }).catch(function(err) {
         console.error(err);
         alert('Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
       }).finally(function() {
-        if (btn) btn.disabled = false;
+        setDocGenerateBusy(false);
       });
     }
     function runCombinedDocGenerate() {
@@ -1917,21 +1969,19 @@ export function wordModalBrowserScript(): string {
       }
       var zalSheet = combineLoadPoints(a, b);
       var wordPoints = [a, b];
-      var btn = document.getElementById('doc-btn-generate');
-      var hint = document.getElementById('doc-modal-hint');
-      if (btn) btn.disabled = true;
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
+      setDocGenerateBusy(true, WEBAPP_URL
+        ? 'Zapisuję w Google Sheets i generuję 2 protokoły…'
+        : 'Generowanie 2 protokołów Word…');
 
       function downloadBothWord(numer) {
         var chain = Promise.resolve();
         wordPoints.forEach(function(p, jobIdx) {
           chain = chain.then(function() {
-            if (hint) {
-              hint.textContent = 'Pobieranie protokołu ' + (jobIdx + 1) + ' / 2: ' +
-                (p.nazwaSkrocona || p.nazwaPelna);
-            }
+            updateDocGenerateStatus('Pobieranie protokołu ' + (jobIdx + 1) + ' / 2: ' +
+              (p.nazwaSkrocona || p.nazwaPelna));
             renderAndDownloadDocx(
               p, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer,
               { closeModal: false }
@@ -1949,6 +1999,7 @@ export function wordModalBrowserScript(): string {
         if (!WEBAPP_URL) {
           return downloadBothWord(numerWpisany);
         }
+        updateDocGenerateStatus('Łączenie z Web App / zapis w arkuszu…');
         var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
         var payload = buildFormatkaPayload(zalSheet, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
@@ -1964,7 +2015,7 @@ export function wordModalBrowserScript(): string {
         console.error(err);
         alert('Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).');
       }).finally(function() {
-        if (btn) btn.disabled = false;
+        setDocGenerateBusy(false);
       });
     }
     function runBulkDocGenerate() {
@@ -1973,10 +2024,8 @@ export function wordModalBrowserScript(): string {
         alert('Brak zaznaczonych punktów.');
         return;
       }
-      var btn = document.getElementById('doc-btn-generate');
-      var hint = document.getElementById('doc-modal-hint');
       var shared = collectSharedForm();
-      if (btn) btn.disabled = true;
+      setDocGenerateBusy(true, 'Przygotowanie generacji hurtowej (' + indices.length + ')…');
       ensureDocxLibrariesLoaded().then(function() {
         var generated = 0;
         var failed = 0;
@@ -1985,10 +2034,8 @@ export function wordModalBrowserScript(): string {
           chain = chain.then(function() {
             var zal = LOAD_POINTS[loadIdx];
             if (!zal) return Promise.resolve();
-            if (hint) {
-              hint.textContent = 'Generowanie ' + (jobIdx + 1) + ' / ' + indices.length + ': ' +
-                (zal.nazwaSkrocona || zal.nazwaPelna);
-            }
+            updateDocGenerateStatus('Generowanie ' + (jobIdx + 1) + ' / ' + indices.length + ': ' +
+              (zal.nazwaSkrocona || zal.nazwaPelna));
             if (!WEBAPP_URL) {
               renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, '', { closeModal: false });
               generated += 1;
@@ -2022,7 +2069,7 @@ export function wordModalBrowserScript(): string {
         console.error(err);
         alert('Nie udało się uruchomić generacji hurtowej.');
       }).finally(function() {
-        if (btn) btn.disabled = false;
+        setDocGenerateBusy(false);
       });
     }
     document.getElementById('doc-btn-cancel').addEventListener('click', closeDocModal);

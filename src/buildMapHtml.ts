@@ -331,7 +331,7 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
             '<button type="button" id="map-manual-bulk-generate" class="map-manual-bulk-generate" title="Zaznacz kilka miejsc z listy i generuj hurtowo">Hurtowo (wybór ręczny)</button>' +
             '<button type="button" id="map-manual-combined-generate" class="map-manual-combined-generate" title="Wybierz dokładnie dwa miejsca — jeden wiersz ewidencji i dwa protokoły Word z tym samym numerem">Protokół łączony (wybór ręczny)</button>' +
             '<button type="button" id="map-planowane-generate" class="map-planowane-generate" title="Lista planowanych transportów — realizacja z protokołem">Planowane</button>' +
-            '<button type="button" id="map-harmonogram-generate" class="map-harmonogram-generate" title="Stałe odbiory z Harmonogramu — wiele terminów w miesiącu">Generuj stały odbiór</button>' +
+            '<button type="button" id="map-harmonogram-generate" class="map-harmonogram-generate" title="Wpisy z Harmonogramu — wiele terminów w miesiącu">Generuj z Harmonogramu</button>' +
             '</div>' +
             '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
             '<span id="map-bulk-count" class="map-bulk-count"></span>' +

@@ -90,6 +90,9 @@ describe('buildMapHtml', () => {
     expect(html).toContain('runCombinedDocGenerate');
     expect(html).toContain('Pobierz 2× .docx');
     expect(html).toContain('downloadBothWord');
+    expect(html).toContain('setDocGenerateBusy');
+    expect(html).toContain('Generowanie…');
+    expect(html).toContain('doc-spin');
     expect(html).toContain('manual-bulk-picker');
     expect(html).toContain('openManualBulkPicker');
     expect(html).toContain('Zaznacz do hurtu');
@@ -109,7 +112,7 @@ describe('buildMapHtml', () => {
     expect(html).toContain("realizePayload.mode = 'realize'");
     expect(html).toContain('doc-btn-save-plan');
     expect(html).toContain('map-harmonogram-generate');
-    expect(html).toContain('Generuj stały odbiór');
+    expect(html).toContain('Generuj z Harmonogramu');
     expect(html).toContain('listHarmonogram');
     expect(html).toContain('commitHarm');
     expect(html).toContain('previewNumberHarm');
