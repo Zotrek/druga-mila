@@ -136,7 +136,7 @@
   </div>
   <div id="harmonogram-picker" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="harmonogram-title">
-      <h3 id="harmonogram-title">Stałe odbiory</h3>
+      <h3 id="harmonogram-title">Harmonogram</h3>
       <p id="harmonogram-status" class="doc-modal-hint" aria-live="polite">Ładowanie…</p>
       <div id="harmonogram-list" class="planowane-list" role="list"></div>
       <div class="doc-modal-actions">
@@ -148,7 +148,7 @@
   </div>
   <div id="harmonogram-add" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="harmonogram-add-title">
-      <h3 id="harmonogram-add-title">Nowy stały odbiór</h3>
+      <h3 id="harmonogram-add-title">Dodaj do Harmonogramu</h3>
       <label for="harm-add-stawka">Stawka</label>
       <input type="text" id="harm-add-stawka" maxlength="80" autocomplete="off" />
       <label for="harm-add-uwagi">Uwagi</label>
@@ -160,11 +160,24 @@
       <label for="harm-add-dzien">Dzień odbioru</label>
       <input type="text" id="harm-add-dzien" maxlength="120" placeholder="poniedziałek lub poniedziałek/środa/piątek" autocomplete="off" spellcheck="false" />
       <label for="harm-add-kto">Kto odbiera</label>
-      <input type="text" id="harm-add-kto" maxlength="120" autocomplete="off" />
+      <div class="doc-combobox-wrap">
+        <input type="text" id="harm-add-kto" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
+        <input type="hidden" id="harm-add-val-kto" value="" />
+        <ul id="harm-add-kto-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
       <label for="harm-add-zrzut">Miejsce zrzutu</label>
-      <input type="text" id="harm-add-zrzut" maxlength="120" autocomplete="off" />
+      <div class="doc-combobox-wrap">
+        <input type="text" id="harm-add-zrzut" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
+        <input type="hidden" id="harm-add-val-zrzut" value="" />
+        <ul id="harm-add-zrzut-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
       <label for="harm-add-zbiorka">Rodzaj zbiórki</label>
-      <input type="text" id="harm-add-zbiorka" maxlength="80" autocomplete="off" />
+      <select id="harm-add-zbiorka">
+        <option value="">—</option>
+        <option value="manualna">manualna</option>
+        <option value="automatyczna">automatyczna</option>
+        <option value="manualna i automatyczna">manualna i automatyczna</option>
+      </select>
       <label for="harm-add-worki">Ile worków</label>
       <input type="text" id="harm-add-worki" maxlength="40" autocomplete="off" />
       <label for="harm-add-transport">Rodzaj transportu</label>
@@ -1204,6 +1217,22 @@
         document.getElementById('doc-sel-miejsce').value = it.label;
       }
     );
+    wireCombobox('harm-add-kto', 'harm-add-val-kto', 'harm-add-kto-list',
+      function() { return PODWYKOLISTA; },
+      function(it) { return it.label; },
+      function(ix, it) {
+        document.getElementById('harm-add-val-kto').value = String(ix);
+        document.getElementById('harm-add-kto').value = it.label;
+      }
+    );
+    wireCombobox('harm-add-zrzut', 'harm-add-val-zrzut', 'harm-add-zrzut-list',
+      function() { return MIEJSCA_DOSTAWY; },
+      function(it) { return it.label; },
+      function(ix, it) {
+        document.getElementById('harm-add-val-zrzut').value = String(ix);
+        document.getElementById('harm-add-zrzut').value = it.label;
+      }
+    );
 
     function findBiosystemIdx() {
       for (var i = 0; i < MIEJSCA_DOSTAWY.length; i++) {
@@ -1221,6 +1250,22 @@
             var it = MIEJSCA_DOSTAWY[bi];
             document.getElementById('doc-val-miejsce').value = String(bi);
             document.getElementById('doc-sel-miejsce').value = it.label;
+          }
+        }
+      });
+    }
+    var harmZbiorkaEl = document.getElementById('harm-add-zbiorka');
+    if (harmZbiorkaEl) {
+      harmZbiorkaEl.addEventListener('change', function() {
+        var v = harmZbiorkaEl.value;
+        if (v === 'manualna' || v === 'manualna i automatyczna') {
+          var bi = findBiosystemIdx();
+          if (bi >= 0) {
+            var it = MIEJSCA_DOSTAWY[bi];
+            var hz = document.getElementById('harm-add-val-zrzut');
+            var hi = document.getElementById('harm-add-zrzut');
+            if (hz) hz.value = String(bi);
+            if (hi) hi.value = it.label;
           }
         }
       });
@@ -1749,8 +1794,8 @@
     }
     function resetHarmonogramAddForm() {
       ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-dzien',
-        'harm-add-kto','harm-add-zrzut','harm-add-zbiorka','harm-add-worki','harm-add-transport',
-        'harm-add-awizacja','harm-add-znacznik'].forEach(function(id) {
+        'harm-add-kto','harm-add-val-kto','harm-add-zrzut','harm-add-val-zrzut','harm-add-zbiorka',
+        'harm-add-worki','harm-add-transport','harm-add-awizacja','harm-add-znacznik'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
     }
@@ -1772,6 +1817,8 @@
         alert('Dodanie do Harmonogramu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
         return;
       }
+      var pr = resolvePodwyko('harm-add-val-kto', 'harm-add-kto');
+      var md = resolveMiejsceDostawy('harm-add-val-zrzut', 'harm-add-zrzut');
       var payload = {
         mode: 'addHarmonogram',
         stawka: (document.getElementById('harm-add-stawka') || {}).value || '',
@@ -1779,8 +1826,8 @@
         adresOdbioru: (document.getElementById('harm-add-adres') || {}).value || '',
         nazwaKontrahenta: (document.getElementById('harm-add-nazwa') || {}).value || '',
         dzienOdbioru: (document.getElementById('harm-add-dzien') || {}).value || '',
-        ktoOdbiera: (document.getElementById('harm-add-kto') || {}).value || '',
-        miejsceZrzutu: (document.getElementById('harm-add-zrzut') || {}).value || '',
+        ktoOdbiera: pr.label || ((document.getElementById('harm-add-kto') || {}).value || ''),
+        miejsceZrzutu: md.label || ((document.getElementById('harm-add-zrzut') || {}).value || ''),
         rodzajZbiorki: (document.getElementById('harm-add-zbiorka') || {}).value || '',
         ileWorkow: (document.getElementById('harm-add-worki') || {}).value || '',
         rodzajTransportu: (document.getElementById('harm-add-transport') || {}).value || '',

@@ -117,6 +117,12 @@ describe('buildMapHtml', () => {
     expect(html).toContain('doc-inp-uwagi');
     expect(html).toContain('openHarmonogramPicker');
     expect(html).toContain('proposeDatesFromDzienOdbioru');
+    expect(html).toContain('Dodaj do Harmonogramu');
+    expect(html).toContain('harm-add-kto-list');
+    expect(html).toContain('harm-add-zrzut-list');
+    expect(html).toContain('id="harm-add-zbiorka"');
+    expect(html).toContain("wireCombobox('harm-add-kto'");
+    expect(html).toContain("resolvePodwyko('harm-add-val-kto'");
   });
 
   it('test_buildMapHtml_empty_points_shows_banner', () => {
