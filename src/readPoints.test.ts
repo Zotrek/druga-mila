@@ -20,7 +20,14 @@ describe('parseLoadRow', () => {
     expect(p!.nazwaSkrocona).toBe('TEST');
     expect(p!.adres).toBe('00-001 Warszawa ul. A 1');
     expect(p!.typ).toBe('CD');
+    expect(p!.wgHarmonogramu).toBe('');
     expect(p!.colorKind).toBe('cd');
+  });
+
+  it('test_parseLoadRow_reads_wg_harmonogramu_tak_nie', () => {
+    expect(parseLoadRow(['A', 'B', 'adres 1', 'CD', 'tak'])!.wgHarmonogramu).toBe('tak');
+    expect(parseLoadRow(['A', 'B', 'adres 1', 'CD', 'NIE'])!.wgHarmonogramu).toBe('nie');
+    expect(parseLoadRow(['A', 'B', 'adres 1', 'CD', 'może'])!.wgHarmonogramu).toBe('');
   });
 
   it('test_parseLoadRow_bolecin_empty_typ', () => {

@@ -7,6 +7,8 @@ import {
   normalizeForAddressSearch,
   mapPointMatchesSearch,
   mapPointMatchesColorFilter,
+  normalizeWgHarmonogramu,
+  mapPointMatchesWgHarmonogramuFilter,
 } from './searchNormalize.js';
 
 describe('normalizeForAddressSearch', () => {
@@ -34,5 +36,26 @@ describe('mapPointMatchesColorFilter', () => {
     expect(mapPointMatchesColorFilter('cd', 'wszystkie')).toBe(true);
     expect(mapPointMatchesColorFilter('cd', 'cd')).toBe(true);
     expect(mapPointMatchesColorFilter('plac', 'cd')).toBe(false);
+  });
+});
+
+describe('normalizeWgHarmonogramu', () => {
+  it('test_normalizeWgHarmonogramu_tak_nie_and_empty', () => {
+    expect(normalizeWgHarmonogramu('tak')).toBe('tak');
+    expect(normalizeWgHarmonogramu(' Tak ')).toBe('tak');
+    expect(normalizeWgHarmonogramu('NIE')).toBe('nie');
+    expect(normalizeWgHarmonogramu('')).toBe('');
+    expect(normalizeWgHarmonogramu('może')).toBe('');
+  });
+});
+
+describe('mapPointMatchesWgHarmonogramuFilter', () => {
+  it('test_mapPointMatchesWgHarmonogramuFilter_modes', () => {
+    expect(mapPointMatchesWgHarmonogramuFilter('tak', 'wszystkie')).toBe(true);
+    expect(mapPointMatchesWgHarmonogramuFilter('', 'wszystkie')).toBe(true);
+    expect(mapPointMatchesWgHarmonogramuFilter('tak', 'tak')).toBe(true);
+    expect(mapPointMatchesWgHarmonogramuFilter('nie', 'tak')).toBe(false);
+    expect(mapPointMatchesWgHarmonogramuFilter('nie', 'nie')).toBe(true);
+    expect(mapPointMatchesWgHarmonogramuFilter('', 'nie')).toBe(false);
   });
 });

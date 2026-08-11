@@ -3,6 +3,9 @@ import {
   incrementAlphanumeric,
   nextNumberFromSheet,
   maxAlphanumeric,
+  nextNumberWithPrefix,
+  nextNumberExcludingPrefix,
+  maxAlphanumericWithPrefix,
 } from './nextNumber.js';
 
 describe('nextNumber', () => {
@@ -38,5 +41,16 @@ describe('nextNumber', () => {
   it('test_max_by_trailing_number_mixed_prefix', () => {
     expect(maxAlphanumeric(['ABC100', 'DM50', 'XYZ99'])).toBe('ABC100');
     expect(nextNumberFromSheet(['ABC100', 'DM50'], 'DM1')).toBe('ABC101');
+  });
+
+  it('test_nextNumberWithPrefix_GMH_start_and_increment', () => {
+    expect(nextNumberWithPrefix([], 'GMH', 'GMH1')).toBe('GMH1');
+    expect(nextNumberWithPrefix(['GMH1', 'GMH2'], 'GMH', 'GMH1')).toBe('GMH3');
+    expect(maxAlphanumericWithPrefix(['DM350', 'GMH2', 'GMH10'], 'GMH')).toBe('GMH10');
+  });
+
+  it('test_nextNumberExcludingPrefix_ignores_GMH_for_DM_series', () => {
+    expect(nextNumberExcludingPrefix(['DM350', 'GMH400'], 'GMH', 'DM1')).toBe('DM351');
+    expect(nextNumberExcludingPrefix(['GMH1', 'GMH99'], 'GMH', 'DM1')).toBe('DM1');
   });
 });

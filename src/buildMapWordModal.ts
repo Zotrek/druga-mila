@@ -64,12 +64,20 @@ export function wordModalCss(): string {
     .map-manual-combined-generate:hover { filter: brightness(1.05); }
     .map-planowane-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #6f42c1; background: #6f42c1; color: #fff; cursor: pointer; }
     .map-planowane-generate:hover { filter: brightness(1.05); }
+    .map-harmonogram-generate { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #0d9488; background: #0d9488; color: #fff; cursor: pointer; }
+    .map-harmonogram-generate:hover { filter: brightness(1.05); }
     .planowane-list { margin-top: 8px; max-height: min(360px, 55vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
     .planowane-list-item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 8px 10px; margin: 0 0 6px; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; font-size: 12px; color: #333; }
     .planowane-list-item:hover { background: #f3eef9; border-color: #6f42c1; }
     .planowane-list-item strong { font-size: 13px; }
     .planowane-list-meta { color: #666; font-size: 11px; }
     .planowane-list-empty { font-size: 12px; color: #666; margin: 8px 0; }
+    #harmonogram-picker .planowane-list-item:hover { background: #e6f7f5; border-color: #0d9488; }
+    .harm-dates-list { margin-top: 6px; max-height: min(220px, 40vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
+    .harm-dates-list-row { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }
+    .harm-dates-list-row input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
+    .harm-dates-list-row button { flex-shrink: 0; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; }
+    .doc-modal-actions button.harm-secondary { background: #0d9488; color: #fff; border-color: #0d9488; }
     .doc-modal-actions button.secondary { background: #6f42c1; color: #fff; border-color: #6f42c1; }
     .doc-modal-actions button.danger { background: #f8f8f8; color: #b02a37; border-color: #dc3545; }
     .manual-bulk-list { margin-top: 8px; max-height: min(320px, 50vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
@@ -110,6 +118,51 @@ export function wordModalHtml(): string {
       <div class="doc-modal-actions">
         <button type="button" id="planowane-cancel">Zamknij</button>
         <button type="button" id="planowane-refresh" class="secondary">Odśwież</button>
+      </div>
+    </div>
+  </div>
+  <div id="harmonogram-picker" class="doc-modal-overlay" style="display:none" aria-hidden="true">
+    <div class="doc-modal-panel" role="dialog" aria-labelledby="harmonogram-title">
+      <h3 id="harmonogram-title">Stałe odbiory</h3>
+      <p id="harmonogram-status" class="doc-modal-hint" aria-live="polite">Ładowanie…</p>
+      <div id="harmonogram-list" class="planowane-list" role="list"></div>
+      <div class="doc-modal-actions">
+        <button type="button" id="harmonogram-cancel">Zamknij</button>
+        <button type="button" id="harmonogram-refresh" class="harm-secondary">Odśwież</button>
+        <button type="button" id="harmonogram-add-btn" class="primary">Dodaj nowy</button>
+      </div>
+    </div>
+  </div>
+  <div id="harmonogram-add" class="doc-modal-overlay" style="display:none" aria-hidden="true">
+    <div class="doc-modal-panel" role="dialog" aria-labelledby="harmonogram-add-title">
+      <h3 id="harmonogram-add-title">Nowy stały odbiór</h3>
+      <label for="harm-add-stawka">Stawka</label>
+      <input type="text" id="harm-add-stawka" maxlength="80" autocomplete="off" />
+      <label for="harm-add-uwagi">Uwagi</label>
+      <input type="text" id="harm-add-uwagi" maxlength="200" autocomplete="off" />
+      <label for="harm-add-adres">Adres odbioru</label>
+      <input type="text" id="harm-add-adres" maxlength="200" autocomplete="off" />
+      <label for="harm-add-nazwa">Nazwa kontrahenta</label>
+      <input type="text" id="harm-add-nazwa" maxlength="200" autocomplete="off" />
+      <label for="harm-add-dzien">Dzień odbioru</label>
+      <input type="text" id="harm-add-dzien" maxlength="120" placeholder="poniedziałek lub poniedziałek/środa/piątek" autocomplete="off" spellcheck="false" />
+      <label for="harm-add-kto">Kto odbiera</label>
+      <input type="text" id="harm-add-kto" maxlength="120" autocomplete="off" />
+      <label for="harm-add-zrzut">Miejsce zrzutu</label>
+      <input type="text" id="harm-add-zrzut" maxlength="120" autocomplete="off" />
+      <label for="harm-add-zbiorka">Rodzaj zbiórki</label>
+      <input type="text" id="harm-add-zbiorka" maxlength="80" autocomplete="off" />
+      <label for="harm-add-worki">Ile worków</label>
+      <input type="text" id="harm-add-worki" maxlength="40" autocomplete="off" />
+      <label for="harm-add-transport">Rodzaj transportu</label>
+      <input type="text" id="harm-add-transport" maxlength="80" autocomplete="off" />
+      <label for="harm-add-awizacja">Awizacja</label>
+      <input type="text" id="harm-add-awizacja" maxlength="120" autocomplete="off" />
+      <label for="harm-add-znacznik">Znacznik miejsca</label>
+      <input type="text" id="harm-add-znacznik" maxlength="40" autocomplete="off" />
+      <div class="doc-modal-actions">
+        <button type="button" id="harmonogram-add-cancel">Anuluj</button>
+        <button type="button" id="harmonogram-add-save" class="primary">Zapisz</button>
       </div>
     </div>
   </div>
@@ -156,15 +209,24 @@ export function wordModalHtml(): string {
       <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
       <label for="doc-inp-okno-awizacji">Okno awizacji (tylko Google)</label>
       <input type="text" id="doc-inp-okno-awizacji" maxlength="120" autocomplete="off" spellcheck="false" />
-      <label for="doc-inp-data">Data załadunku</label>
-      <div class="doc-date-row">
-        <input type="text" id="doc-inp-data" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
-        <button type="button" id="doc-btn-data-cal" class="doc-date-cal-btn" title="Kalendarz" aria-label="Wybierz datę z kalendarza">
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
-          </svg>
-        </button>
-        <input type="date" id="doc-inp-data-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+      <div id="doc-single-date-wrap">
+        <label for="doc-inp-data">Data załadunku</label>
+        <div class="doc-date-row">
+          <input type="text" id="doc-inp-data" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+          <button type="button" id="doc-btn-data-cal" class="doc-date-cal-btn" title="Kalendarz" aria-label="Wybierz datę z kalendarza">
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+            </svg>
+          </button>
+          <input type="date" id="doc-inp-data-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+        </div>
+      </div>
+      <div id="doc-harm-dates-wrap" hidden>
+        <p class="doc-bulk-points-title">Terminy w tym miesiącu</p>
+        <div id="doc-harm-dates-list" class="harm-dates-list" role="list"></div>
+        <div class="doc-modal-actions" style="justify-content:flex-start;margin-top:8px">
+          <button type="button" id="doc-btn-harm-add-date">Dodaj datę</button>
+        </div>
       </div>
       <label for="doc-inp-stawka">Stawka (tylko Google)</label>
       <input type="text" id="doc-inp-stawka" maxlength="80" autocomplete="off" />
@@ -172,6 +234,8 @@ export function wordModalHtml(): string {
       <input type="text" id="doc-inp-worki" maxlength="40" autocomplete="off" />
       <label for="doc-inp-transport">Rodzaj transportu (tylko Google)</label>
       <input type="text" id="doc-inp-transport" maxlength="80" autocomplete="off" />
+      <label for="doc-inp-uwagi">Uwagi (tylko Google)</label>
+      <input type="text" id="doc-inp-uwagi" maxlength="200" autocomplete="off" />
       <p class="doc-modal-hint" id="doc-modal-hint">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
       <div class="doc-modal-actions">
         <button type="button" id="doc-btn-cancel">Anuluj</button>
@@ -195,6 +259,8 @@ export function wordModalBrowserScript(): string {
     window.__combinedSelectedLoadIdxs = window.__combinedSelectedLoadIdxs || {};
     window.__bulkDocLoadIdxs = [];
     window.__realizePlan = null;
+    window.__harmDates = [];
+    window.__harmRow = null;
 
     function joinWithDash(parts) {
       return parts.map(function(p) { return String(p || '').trim(); })
@@ -398,6 +464,7 @@ export function wordModalBrowserScript(): string {
       var isBulk = mode === 'bulk';
       var isCombined = mode === 'combined';
       var isRealize = mode === 'realize';
+      var isHarm = mode === 'harmonogram';
       var isSingleLike = mode === 'single' || isRealize;
       var titleEl = document.getElementById('doc-modal-title');
       var zalWrap = document.getElementById('doc-single-zaladunek-wrap');
@@ -405,13 +472,17 @@ export function wordModalBrowserScript(): string {
       var bulkTitle = document.querySelector('#doc-bulk-points-wrap .doc-bulk-points-title');
       var numerWrap = document.getElementById('doc-single-numer-wrap');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
+      var dateWrap = document.getElementById('doc-single-date-wrap');
+      var harmDatesWrap = document.getElementById('doc-harm-dates-wrap');
       var okBtn = document.getElementById('doc-btn-generate');
       var savePlanBtn = document.getElementById('doc-btn-save-plan');
       var deletePlanBtn = document.getElementById('doc-btn-delete-plan');
       var numerEl = document.getElementById('doc-inp-numer');
       var n = (window.__bulkDocLoadIdxs || []).length;
+      var harmN = (window.__harmDates || []).length;
       if (titleEl) {
-        if (isRealize) titleEl.textContent = 'Realizuj planowane';
+        if (isHarm) titleEl.textContent = 'Stały odbiór';
+        else if (isRealize) titleEl.textContent = 'Realizuj planowane';
         else if (isCombined) titleEl.textContent = 'Protokół łączony (2 miejsca)';
         else if (isBulk) titleEl.textContent = 'Generuj protokoły Word (' + n + ' punktów)';
         else titleEl.textContent = 'Generuj protokół Word';
@@ -423,8 +494,14 @@ export function wordModalBrowserScript(): string {
       }
       if (numerWrap) numerWrap.hidden = isBulk;
       if (bulkNumerInfo) bulkNumerInfo.hidden = !isBulk && !isCombined;
+      if (dateWrap) dateWrap.hidden = isHarm;
+      if (harmDatesWrap) harmDatesWrap.hidden = !isHarm;
       if (okBtn) {
-        if (isBulk) okBtn.textContent = 'Pobierz wszystkie .docx';
+        if (isHarm) {
+          okBtn.textContent = harmN === 1
+            ? 'Pobierz .docx (1 termin)'
+            : ('Pobierz .docx (' + harmN + ' terminów)');
+        } else if (isBulk) okBtn.textContent = 'Pobierz wszystkie .docx';
         else if (isCombined) okBtn.textContent = 'Pobierz 2× .docx';
         else okBtn.textContent = 'Pobierz .docx';
       }
@@ -452,6 +529,8 @@ export function wordModalBrowserScript(): string {
       if (!m || !wordDocEnabled) return;
       window.__bulkDocLoadIdxs = [];
       window.__realizePlan = null;
+      window.__harmRow = null;
+      window.__harmDates = [];
       setDocModalMode('single');
       resetDocModal();
       var hasPrefill = typeof prefillIdx === 'number' && LOAD_POINTS[prefillIdx];
@@ -481,6 +560,8 @@ export function wordModalBrowserScript(): string {
       }
       window.__bulkDocLoadIdxs = indices.slice();
       window.__realizePlan = null;
+      window.__harmRow = null;
+      window.__harmDates = [];
       setDocModalMode('bulk');
       resetDocModal();
       renderBulkPointsList(indices);
@@ -527,6 +608,8 @@ export function wordModalBrowserScript(): string {
       }
       window.__bulkDocLoadIdxs = indices.slice();
       window.__realizePlan = null;
+      window.__harmRow = null;
+      window.__harmDates = [];
       setDocModalMode('combined');
       resetDocModal();
       renderBulkPointsList(indices);
@@ -673,11 +756,13 @@ export function wordModalBrowserScript(): string {
       m.setAttribute('aria-hidden', 'true');
       window.__docModalMode = 'single';
       window.__realizePlan = null;
+      window.__harmRow = null;
+      window.__harmDates = [];
       var numerEl = document.getElementById('doc-inp-numer');
       if (numerEl) numerEl.readOnly = false;
     }
     function resetDocModal() {
-      ['doc-sel-zaladunek','doc-sel-przewoznik','doc-sel-miejsce','doc-inp-awizacja','doc-inp-okno-awizacji','doc-inp-stawka','doc-inp-worki','doc-inp-transport','doc-inp-numer'].forEach(function(id) {
+      ['doc-sel-zaladunek','doc-sel-przewoznik','doc-sel-miejsce','doc-inp-awizacja','doc-inp-okno-awizacji','doc-inp-stawka','doc-inp-worki','doc-inp-transport','doc-inp-uwagi','doc-inp-numer'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
       ['doc-val-zaladunek','doc-val-przewoznik','doc-val-miejsce'].forEach(function(id) {
@@ -686,6 +771,13 @@ export function wordModalBrowserScript(): string {
       var z = document.getElementById('doc-sel-zbiorka'); if (z) z.value = '';
       var d = document.getElementById('doc-inp-data'); if (d) d.value = '';
       var dp = document.getElementById('doc-inp-data-picker'); if (dp) dp.value = '';
+      if (window.__docModalMode !== 'harmonogram') {
+        window.__harmDates = [];
+        var harmDatesWrap = document.getElementById('doc-harm-dates-wrap');
+        if (harmDatesWrap) harmDatesWrap.hidden = true;
+        var harmList = document.getElementById('doc-harm-dates-list');
+        if (harmList) harmList.innerHTML = '';
+      }
       hideAllComboboxLists();
     }
     function hideAllComboboxLists() {
@@ -712,6 +804,66 @@ export function wordModalBrowserScript(): string {
       var mo = String(d.getMonth() + 1).padStart(2, '0');
       var day = String(d.getDate()).padStart(2, '0');
       return y + '-' + mo + '-' + day;
+    }
+    /** Mirror src/harmonogramDates.ts — weekday parse + propose dates for browser. */
+    var WEEKDAY_BY_NORM = {
+      niedziela: 0, niedziele: 0,
+      poniedzialek: 1, poniedzialki: 1,
+      wtorek: 2, wtorki: 2,
+      sroda: 3, srody: 3,
+      czwartek: 4, czwartki: 4,
+      piatek: 5, piatki: 5,
+      sobota: 6, soboty: 6
+    };
+    function normalizePlDayToken(raw) {
+      return String(raw || '')
+        .toLowerCase()
+        .replace(/ą/g, 'a').replace(/ć/g, 'c').replace(/ę/g, 'e')
+        .replace(/ł/g, 'l').replace(/ń/g, 'n').replace(/ó/g, 'o')
+        .replace(/ś/g, 's').replace(/ź/g, 'z').replace(/ż/g, 'z')
+        .replace(/[^a-z]/g, '');
+    }
+    function parseWeekdaysFromDzienOdbioru(raw) {
+      var text = String(raw || '').trim();
+      if (!text) return [];
+      var found = {};
+      var parts = text.split(/[/;,]+|\\s+/);
+      for (var pi = 0; pi < parts.length; pi++) {
+        var norm = normalizePlDayToken(parts[pi].replace(/zaproponowano/gi, ''));
+        if (!norm) continue;
+        for (var name in WEEKDAY_BY_NORM) {
+          if (!Object.prototype.hasOwnProperty.call(WEEKDAY_BY_NORM, name)) continue;
+          if (norm === name || norm.indexOf(name) !== -1) {
+            found[WEEKDAY_BY_NORM[name]] = true;
+          }
+        }
+      }
+      return Object.keys(found).map(function(k) { return Number(k); }).sort(function(a, b) { return a - b; });
+    }
+    function formatDotDateLocal(d) {
+      var dd = String(d.getDate()).padStart(2, '0');
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var yyyy = d.getFullYear();
+      return dd + '.' + mm + '.' + yyyy;
+    }
+    function datesForWeekdaysInMonth(weekdays, today) {
+      if (!weekdays || !weekdays.length) return [];
+      var wanted = {};
+      for (var wi = 0; wi < weekdays.length; wi++) wanted[weekdays[wi]] = true;
+      var base = today || new Date();
+      var year = base.getFullYear();
+      var month = base.getMonth();
+      var startDay = base.getDate();
+      var lastDay = new Date(year, month + 1, 0).getDate();
+      var out = [];
+      for (var day = startDay; day <= lastDay; day++) {
+        var d = new Date(year, month, day);
+        if (wanted[d.getDay()]) out.push(formatDotDateLocal(d));
+      }
+      return out;
+    }
+    function proposeDatesFromDzienOdbioru(raw, today) {
+      return datesForWeekdaysInMonth(parseWeekdaysFromDzienOdbioru(raw), today || new Date());
     }
     function normQ(t) {
       return normalizeForAddressSearchMap(t);
@@ -942,7 +1094,7 @@ export function wordModalBrowserScript(): string {
       }
       var typed = document.getElementById('doc-sel-zaladunek');
       var t = typed ? String(typed.value).trim() : '';
-      var plan = window.__realizePlan;
+      var plan = window.__realizePlan || window.__harmRow;
       if (plan) {
         return {
           nazwaPelna: plan.nazwaKontrahenta || t,
@@ -960,9 +1112,13 @@ export function wordModalBrowserScript(): string {
       window.__docPreviewNumer = '';
       if (!WEBAPP_URL) {
         if (hint) {
-          hint.textContent = window.__docModalMode === 'combined'
-            ? 'Brak Web App — dwa Word lokalnie (po jednym miejscu, ten sam numer), bez zapisu do Google.'
-            : 'Brak Web App — Word lokalnie, bez zapisu do arkusza Google.';
+          if (window.__docModalMode === 'harmonogram') {
+            hint.textContent = 'Brak Web App — Word lokalnie dla każdego terminu, bez zapisu do Google.';
+          } else if (window.__docModalMode === 'combined') {
+            hint.textContent = 'Brak Web App — dwa Word lokalnie (po jednym miejscu, ten sam numer), bez zapisu do Google.';
+          } else {
+            hint.textContent = 'Brak Web App — Word lokalnie, bez zapisu do arkusza Google.';
+          }
         }
         return;
       }
@@ -973,7 +1129,8 @@ export function wordModalBrowserScript(): string {
         return;
       }
       if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
-      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=modalData')
+      var action = window.__docModalMode === 'harmonogram' ? 'previewNumberHarm' : 'modalData';
+      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=' + action)
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (data && data.ok && data.numer) {
@@ -983,9 +1140,13 @@ export function wordModalBrowserScript(): string {
             }
           }
           if (hint) {
-            hint.textContent = window.__docModalMode === 'combined'
-              ? 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word z tym numerem.'
-              : 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Zapisz planowane” tylko rezerwuje numer.';
+            if (window.__docModalMode === 'harmonogram') {
+              hint.textContent = 'Stały odbiór: każdy termin = wiersz GMH* + .docx. Harmonogram bez zmian.';
+            } else if (window.__docModalMode === 'combined') {
+              hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word z tym numerem.';
+            } else {
+              hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Zapisz planowane” tylko rezerwuje numer.';
+            }
           }
         })
         .catch(function() {
@@ -1105,6 +1266,8 @@ export function wordModalBrowserScript(): string {
       if (!m || !wordDocEnabled || !row) return;
       window.__bulkDocLoadIdxs = [];
       window.__realizePlan = row;
+      window.__harmRow = null;
+      window.__harmDates = [];
       setDocModalMode('realize');
       resetDocModal();
       var loadIdx = findLoadIdxForPlanRow(row);
@@ -1138,9 +1301,314 @@ export function wordModalBrowserScript(): string {
       if (worki) worki.value = row.ileWorkow || '';
       var transport = document.getElementById('doc-inp-transport');
       if (transport) transport.value = row.rodzajTransportu || '';
+      var uwagiRealize = document.getElementById('doc-inp-uwagi');
+      if (uwagiRealize) uwagiRealize.value = row.uwagi || '';
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       previewNumerFromApi();
+    }
+    function openHarmonogramPicker() {
+      var m = document.getElementById('harmonogram-picker');
+      if (!m || !wordDocEnabled) return;
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      loadHarmonogramList();
+    }
+    function closeHarmonogramPicker() {
+      var m = document.getElementById('harmonogram-picker');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+    }
+    function loadHarmonogramList() {
+      var statusEl = document.getElementById('harmonogram-status');
+      var listEl = document.getElementById('harmonogram-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      if (!WEBAPP_URL) {
+        if (statusEl) statusEl.textContent = 'Brak Web App — nie można wczytać Harmonogramu.';
+        return;
+      }
+      if (statusEl) statusEl.textContent = 'Ładowanie…';
+      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listHarmonogram')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data || !data.ok) {
+            if (statusEl) statusEl.textContent = 'Błąd API: ' + (data && data.error ? data.error : 'nieznany');
+            return;
+          }
+          var rows = data.rows || [];
+          if (statusEl) {
+            statusEl.textContent = rows.length === 0
+              ? 'Brak stałych odbiorów w Harmonogramie.'
+              : (rows.length + ' stałych — kliknij, aby wygenerować.');
+          }
+          rows.forEach(function(row) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'planowane-list-item';
+            btn.setAttribute('role', 'listitem');
+            var title = (row.nazwaKontrahenta || row.adresOdbioru || 'bez nazwy') +
+              (row.dzienOdbioru ? ' · ' + row.dzienOdbioru : '');
+            btn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
+              '<span class="planowane-list-meta">' + escapeHtmlMap(row.adresOdbioru || '') + '</span>' +
+              '<span class="planowane-list-meta">' +
+              escapeHtmlMap([row.ktoOdbiera, row.miejsceZrzutu, row.rodzajZbiorki].filter(Boolean).join(' · ')) +
+              '</span>';
+            btn.addEventListener('click', function() {
+              closeHarmonogramPicker();
+              openHarmonogramDocModal(row);
+            });
+            listEl.appendChild(btn);
+          });
+        })
+        .catch(function(err) {
+          console.error(err);
+          if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy Harmonogramu.';
+        });
+    }
+    function syncHarmDatesFromInputs() {
+      var listEl = document.getElementById('doc-harm-dates-list');
+      if (!listEl) return;
+      var inputs = listEl.querySelectorAll('input[type="text"]');
+      var next = [];
+      for (var i = 0; i < inputs.length; i++) {
+        next.push(String(inputs[i].value || '').trim());
+      }
+      window.__harmDates = next;
+    }
+    function updateHarmGenerateButtonLabel() {
+      if (window.__docModalMode !== 'harmonogram') return;
+      var okBtn = document.getElementById('doc-btn-generate');
+      if (!okBtn) return;
+      var n = (window.__harmDates || []).filter(function(d) { return String(d || '').trim(); }).length;
+      okBtn.textContent = n === 1
+        ? 'Pobierz .docx (1 termin)'
+        : ('Pobierz .docx (' + n + ' terminów)');
+    }
+    function renderHarmDatesList() {
+      var listEl = document.getElementById('doc-harm-dates-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      var dates = window.__harmDates || [];
+      if (dates.length === 0) {
+        var empty = document.createElement('p');
+        empty.className = 'planowane-list-empty';
+        empty.textContent = 'Brak terminów — dodaj datę lub popraw „Dzień odbioru” w Harmonogramie.';
+        listEl.appendChild(empty);
+      }
+      dates.forEach(function(dateStr, idx) {
+        var row = document.createElement('div');
+        row.className = 'harm-dates-list-row';
+        row.setAttribute('role', 'listitem');
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.maxLength = 10;
+        inp.placeholder = 'dd.mm.rrrr';
+        inp.value = dateStr || '';
+        inp.addEventListener('change', function() {
+          var f = formatLoadDates(inp.value).doc;
+          if (f) inp.value = f;
+          syncHarmDatesFromInputs();
+          updateHarmGenerateButtonLabel();
+        });
+        inp.addEventListener('blur', function() {
+          var f = formatLoadDates(inp.value).doc;
+          if (f) inp.value = f;
+          syncHarmDatesFromInputs();
+          updateHarmGenerateButtonLabel();
+        });
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.textContent = 'Usuń';
+        rm.addEventListener('click', function() {
+          syncHarmDatesFromInputs();
+          window.__harmDates.splice(idx, 1);
+          renderHarmDatesList();
+          updateHarmGenerateButtonLabel();
+        });
+        row.appendChild(inp);
+        row.appendChild(rm);
+        listEl.appendChild(row);
+      });
+      updateHarmGenerateButtonLabel();
+    }
+    function addHarmDateRow() {
+      syncHarmDatesFromInputs();
+      if (!window.__harmDates) window.__harmDates = [];
+      window.__harmDates.push(formatDateForDoc(defaultDateZaladunkuYmd()));
+      renderHarmDatesList();
+    }
+    function openHarmonogramDocModal(row) {
+      var m = document.getElementById('doc-modal');
+      if (!m || !wordDocEnabled || !row) return;
+      window.__bulkDocLoadIdxs = [];
+      window.__realizePlan = null;
+      window.__harmRow = row;
+      setDocModalMode('harmonogram');
+      resetDocModal();
+      var loadIdx = findLoadIdxForPlanRow(row);
+      if (loadIdx >= 0) {
+        selectZaladunek(loadIdx);
+      } else {
+        var zalInp = document.getElementById('doc-sel-zaladunek');
+        if (zalInp) zalInp.value = row.nazwaKontrahenta || row.adresOdbioru || '';
+      }
+      var z = document.getElementById('doc-sel-zbiorka');
+      if (z) z.value = row.rodzajZbiorki || '';
+      selectPodwykoByLabel('doc-val-przewoznik', 'doc-sel-przewoznik', row.ktoOdbiera);
+      selectMiejsceDostawyByLabel('doc-val-miejsce', 'doc-sel-miejsce', row.miejsceZrzutu);
+      var aw = document.getElementById('doc-inp-awizacja');
+      if (aw) aw.value = row.awizacja || '';
+      var stawka = document.getElementById('doc-inp-stawka');
+      if (stawka) stawka.value = row.stawka || '';
+      var worki = document.getElementById('doc-inp-worki');
+      if (worki) worki.value = row.ileWorkow || '';
+      var transport = document.getElementById('doc-inp-transport');
+      if (transport) transport.value = row.rodzajTransportu || '';
+      var uwagi = document.getElementById('doc-inp-uwagi');
+      if (uwagi) uwagi.value = row.uwagi || '';
+      window.__harmDates = proposeDatesFromDzienOdbioru(row.dzienOdbioru);
+      renderHarmDatesList();
+      setDocModalMode('harmonogram');
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+      previewNumerFromApi();
+    }
+    function resetHarmonogramAddForm() {
+      ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-dzien',
+        'harm-add-kto','harm-add-zrzut','harm-add-zbiorka','harm-add-worki','harm-add-transport',
+        'harm-add-awizacja','harm-add-znacznik'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+    }
+    function openHarmonogramAddForm() {
+      var m = document.getElementById('harmonogram-add');
+      if (!m || !wordDocEnabled) return;
+      resetHarmonogramAddForm();
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+    }
+    function closeHarmonogramAddForm() {
+      var m = document.getElementById('harmonogram-add');
+      if (!m) return;
+      m.style.display = 'none';
+      m.setAttribute('aria-hidden', 'true');
+    }
+    function submitHarmonogramAddForm() {
+      if (!WEBAPP_URL) {
+        alert('Dodanie do Harmonogramu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
+      var payload = {
+        mode: 'addHarmonogram',
+        stawka: (document.getElementById('harm-add-stawka') || {}).value || '',
+        uwagi: (document.getElementById('harm-add-uwagi') || {}).value || '',
+        adresOdbioru: (document.getElementById('harm-add-adres') || {}).value || '',
+        nazwaKontrahenta: (document.getElementById('harm-add-nazwa') || {}).value || '',
+        dzienOdbioru: (document.getElementById('harm-add-dzien') || {}).value || '',
+        ktoOdbiera: (document.getElementById('harm-add-kto') || {}).value || '',
+        miejsceZrzutu: (document.getElementById('harm-add-zrzut') || {}).value || '',
+        rodzajZbiorki: (document.getElementById('harm-add-zbiorka') || {}).value || '',
+        ileWorkow: (document.getElementById('harm-add-worki') || {}).value || '',
+        rodzajTransportu: (document.getElementById('harm-add-transport') || {}).value || '',
+        awizacja: (document.getElementById('harm-add-awizacja') || {}).value || '',
+        znacznikMiejsca: (document.getElementById('harm-add-znacznik') || {}).value || ''
+      };
+      if (!String(payload.nazwaKontrahenta).trim() && !String(payload.adresOdbioru).trim()) {
+        alert('Podaj nazwę kontrahenta lub adres odbioru.');
+        return;
+      }
+      var btn = document.getElementById('harmonogram-add-save');
+      if (btn) btn.disabled = true;
+      appendFormatkaRow(payload).then(function(resp) {
+        if (!resp || !resp.ok) {
+          alert('Nie udało się dodać do Harmonogramu: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          return;
+        }
+        closeHarmonogramAddForm();
+        loadHarmonogramList();
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się dodać do Harmonogramu (sieć / Web App).');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
+    }
+    function runHarmonogramDocGenerate() {
+      syncHarmDatesFromInputs();
+      var dates = (window.__harmDates || []).map(function(d) {
+        return formatDateForDoc(d);
+      }).filter(function(d) { return d; });
+      if (dates.length === 0) {
+        alert('Dodaj co najmniej jedną datę odbioru.');
+        return;
+      }
+      var btn = document.getElementById('doc-btn-generate');
+      var hint = document.getElementById('doc-modal-hint');
+      var zal = resolveZaladunek();
+      var shared = collectSharedForm();
+      var numerEl = document.getElementById('doc-inp-numer');
+      if (btn) btn.disabled = true;
+      ensureDocxLibrariesLoaded().then(function() {
+        var generated = 0;
+        var failed = 0;
+        var chain = Promise.resolve();
+        dates.forEach(function(dateVal, jobIdx) {
+          chain = chain.then(function() {
+            if (hint) {
+              hint.textContent = 'Generowanie ' + (jobIdx + 1) + ' / ' + dates.length + ': ' + dateVal;
+            }
+            var sharedForDate = {
+              pr: shared.pr,
+              md: shared.md,
+              dataVal: dateVal,
+              awizacja: shared.awizacja,
+              oknoAwizacji: shared.oknoAwizacji,
+              stawka: shared.stawka,
+              zbiorka: shared.zbiorka,
+              worki: shared.worki,
+              transport: shared.transport,
+              uwagi: shared.uwagi
+            };
+            if (!WEBAPP_URL) {
+              renderAndDownloadDocx(zal, shared.pr, shared.md, dateVal, shared.awizacja, '', { closeModal: false });
+              generated += 1;
+              return delayMs(400);
+            }
+            var payload = buildFormatkaPayload(zal, sharedForDate, '');
+            payload.mode = 'commitHarm';
+            payload.czyProtokolZrobiony = 'tak';
+            return appendFormatkaRow(payload).then(function(resp) {
+              if (!resp || !resp.ok) {
+                throw new Error(resp && resp.error ? resp.error : 'błąd API');
+              }
+              var numer = String(resp.numer || '');
+              if (numerEl) numerEl.value = numer;
+              renderAndDownloadDocx(
+                zal, shared.pr, shared.md, dateVal, shared.awizacja, numer,
+                { closeModal: false }
+              );
+              generated += 1;
+              return delayMs(450);
+            });
+          }).catch(function(err) {
+            console.error(err);
+            failed += 1;
+          });
+        });
+        return chain.then(function() {
+          closeDocModal();
+          if (failed > 0) {
+            alert('Stały odbiór: zapisano/pobrano ' + generated + ', błędy: ' + failed + '.');
+          }
+        });
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się uruchomić generacji stałego odbioru.');
+      }).finally(function() {
+        if (btn) btn.disabled = false;
+      });
     }
     function savePlanowaneFromModal() {
       if (!WEBAPP_URL) {
@@ -1246,7 +1714,8 @@ export function wordModalBrowserScript(): string {
         stawka: document.getElementById('doc-inp-stawka').value,
         zbiorka: document.getElementById('doc-sel-zbiorka').value,
         worki: document.getElementById('doc-inp-worki').value,
-        transport: document.getElementById('doc-inp-transport').value
+        transport: document.getElementById('doc-inp-transport').value,
+        uwagi: document.getElementById('doc-inp-uwagi').value
       };
     }
     function buildFormatkaPayload(zal, shared, numerOverride) {
@@ -1266,7 +1735,8 @@ export function wordModalBrowserScript(): string {
         ileWorkow: String(shared.worki || '').trim(),
         rodzajTransportu: String(shared.transport || '').trim(),
         awizacja: String(shared.awizacja || '').trim(),
-        znacznikMiejsca: String(zal.typ || '').trim()
+        znacznikMiejsca: String(zal.typ || '').trim(),
+        uwagi: String(shared.uwagi || '').trim()
       };
     }
     function delayMs(ms) {
@@ -1280,6 +1750,10 @@ export function wordModalBrowserScript(): string {
       }
       if (window.__docModalMode === 'combined') {
         runCombinedDocGenerate();
+        return;
+      }
+      if (window.__docModalMode === 'harmonogram') {
+        runHarmonogramDocGenerate();
         return;
       }
       var btn = document.getElementById('doc-btn-generate');
@@ -1486,6 +1960,30 @@ export function wordModalBrowserScript(): string {
         if (ev.target === this) closePlanowanePicker();
       });
     }
+    var harmonogramCancel = document.getElementById('harmonogram-cancel');
+    var harmonogramRefresh = document.getElementById('harmonogram-refresh');
+    var harmonogramAddBtn = document.getElementById('harmonogram-add-btn');
+    var harmonogramPicker = document.getElementById('harmonogram-picker');
+    if (harmonogramCancel) harmonogramCancel.addEventListener('click', closeHarmonogramPicker);
+    if (harmonogramRefresh) harmonogramRefresh.addEventListener('click', loadHarmonogramList);
+    if (harmonogramAddBtn) harmonogramAddBtn.addEventListener('click', openHarmonogramAddForm);
+    if (harmonogramPicker) {
+      harmonogramPicker.addEventListener('click', function(ev) {
+        if (ev.target === this) closeHarmonogramPicker();
+      });
+    }
+    var harmonogramAddCancel = document.getElementById('harmonogram-add-cancel');
+    var harmonogramAddSave = document.getElementById('harmonogram-add-save');
+    var harmonogramAdd = document.getElementById('harmonogram-add');
+    if (harmonogramAddCancel) harmonogramAddCancel.addEventListener('click', closeHarmonogramAddForm);
+    if (harmonogramAddSave) harmonogramAddSave.addEventListener('click', submitHarmonogramAddForm);
+    if (harmonogramAdd) {
+      harmonogramAdd.addEventListener('click', function(ev) {
+        if (ev.target === this) closeHarmonogramAddForm();
+      });
+    }
+    var harmAddDateBtn = document.getElementById('doc-btn-harm-add-date');
+    if (harmAddDateBtn) harmAddDateBtn.addEventListener('click', addHarmDateRow);
     var dateTextEl = document.getElementById('doc-inp-data');
     var datePickEl = document.getElementById('doc-inp-data-picker');
     var dateCalBtn = document.getElementById('doc-btn-data-cal');

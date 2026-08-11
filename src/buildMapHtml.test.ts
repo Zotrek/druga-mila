@@ -37,6 +37,9 @@ describe('buildMapHtml', () => {
     expect(html).toContain('map-address-search');
     expect(html).toContain('name="map-type-filter"');
     expect(html).toContain('value="bolecin"');
+    expect(html).toContain('name="map-harmonogram-filter"');
+    expect(html).toContain('Wg harmonogramu');
+    expect(html).toContain('mapPointMatchesWgHarmonogramuFilterMap');
     expect(html).toContain(COLOR_CD);
     expect(html).toContain(COLOR_BOLECIN);
     expect(html).toContain('normalizeForAddressSearchMap');
@@ -108,6 +111,15 @@ describe('buildMapHtml', () => {
     expect(html).toContain("'updatePlan' : 'plan'");
     expect(html).toContain("realizePayload.mode = 'realize'");
     expect(html).toContain('doc-btn-save-plan');
+    expect(html).toContain('map-harmonogram-generate');
+    expect(html).toContain('Generuj stały odbiór');
+    expect(html).toContain('listHarmonogram');
+    expect(html).toContain('commitHarm');
+    expect(html).toContain('previewNumberHarm');
+    expect(html).toContain('addHarmonogram');
+    expect(html).toContain('doc-inp-uwagi');
+    expect(html).toContain('openHarmonogramPicker');
+    expect(html).toContain('proposeDatesFromDzienOdbioru');
   });
 
   it('test_buildMapHtml_empty_points_shows_banner', () => {

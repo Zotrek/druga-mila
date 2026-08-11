@@ -193,6 +193,18 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
       return mode === 'wszystkie' || colorKind === mode;
     }
 
+    function normalizeWgHarmonogramuMap(raw) {
+      var s = String(raw || '').trim().toLowerCase();
+      if (s === 'tak') return 'tak';
+      if (s === 'nie') return 'nie';
+      return '';
+    }
+
+    function mapPointMatchesWgHarmonogramuFilterMap(wgHarmonogramu, mode) {
+      if (mode === 'wszystkie') return true;
+      return normalizeWgHarmonogramuMap(wgHarmonogramu) === mode;
+    }
+
     function escapeHtmlMap(s) {
       return String(s)
         .replace(/&/g, '&amp;')
@@ -236,6 +248,11 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
       return el ? el.value : 'wszystkie';
     }
 
+    function getWgHarmonogramuFilterMode() {
+      var el = document.querySelector('input[name="map-harmonogram-filter"]:checked');
+      return el ? el.value : 'wszystkie';
+    }
+
     function setMarkerClickable(marker, on) {
       if (on) {
         if (marker._icon) marker._icon.style.pointerEvents = '';
@@ -266,13 +283,15 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
       var raw = inputEl ? inputEl.value : '';
       var hasSearch = String(raw).trim().length > 0;
       var mode = getColorFilterMode();
+      var harmMode = getWgHarmonogramuFilterMode();
       var matchMarkers = [];
       var matchCount = 0;
       var visibleCount = 0;
 
       markerEntries.forEach(function(entry) {
         var cMatch = mapPointMatchesColorFilterMap(entry.p.colorKind, mode);
-        if (!cMatch) {
+        var hMatch = mapPointMatchesWgHarmonogramuFilterMap(entry.p.wgHarmonogramu, harmMode);
+        if (!cMatch || !hMatch) {
           entry.marker.setOpacity(0);
           setMarkerClickable(entry.marker, false);
           entry.marker.setIcon(pinIcon(entry.p.kolor, false));
@@ -332,12 +351,20 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
         '<label><input type="radio" name="map-type-filter" value="puste" /> Puste</label>' +
         '<label><input type="radio" name="map-type-filter" value="bolecin" /> Bolęcin</label>' +
         '</div></div>' +
+        '<div class="map-harmonogram-filter" role="group" aria-labelledby="map-harmonogram-filter-title">' +
+        '<span id="map-harmonogram-filter-title" class="map-harmonogram-filter-title">Wg harmonogramu</span>' +
+        '<div class="map-harmonogram-filter-options">' +
+        '<label><input type="radio" name="map-harmonogram-filter" value="wszystkie" checked /> Wszystkie</label>' +
+        '<label><input type="radio" name="map-harmonogram-filter" value="tak" /> Tak</label>' +
+        '<label><input type="radio" name="map-harmonogram-filter" value="nie" /> Nie</label>' +
+        '</div></div>' +
         (wordDocEnabled
           ? '<div class="map-manual-gen-wrap">' +
             '<button type="button" id="map-manual-generate" class="map-manual-generate" title="Otwórz formularz i wybierz miejsce załadunku z listy">Generuj (wybór ręczny)</button>' +
             '<button type="button" id="map-manual-bulk-generate" class="map-manual-bulk-generate" title="Zaznacz kilka miejsc z listy i generuj hurtowo">Hurtowo (wybór ręczny)</button>' +
             '<button type="button" id="map-manual-combined-generate" class="map-manual-combined-generate" title="Wybierz dokładnie dwa miejsca — jeden wiersz ewidencji i dwa protokoły Word z tym samym numerem">Protokół łączony (wybór ręczny)</button>' +
             '<button type="button" id="map-planowane-generate" class="map-planowane-generate" title="Lista planowanych transportów — realizacja z protokołem">Planowane</button>' +
+            '<button type="button" id="map-harmonogram-generate" class="map-harmonogram-generate" title="Stałe odbiory z Harmonogramu — wiele terminów w miesiącu">Generuj stały odbiór</button>' +
             '</div>' +
             '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
             '<span id="map-bulk-count" class="map-bulk-count"></span>' +
@@ -360,6 +387,9 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
     document.querySelectorAll('input[name="map-type-filter"]').forEach(function(el) {
       el.addEventListener('change', applyAddressSearch);
     });
+    document.querySelectorAll('input[name="map-harmonogram-filter"]').forEach(function(el) {
+      el.addEventListener('change', applyAddressSearch);
+    });
     document.getElementById('map-zoom-in').addEventListener('click', function() { map.zoomIn(); });
     document.getElementById('map-zoom-out').addEventListener('click', function() { map.zoomOut(); });
 ${
@@ -373,6 +403,8 @@ ${
     if (manualCombinedGenBtn) manualCombinedGenBtn.addEventListener('click', function() { openManualCombinedPicker(); });
     var planowaneGenBtn = document.getElementById('map-planowane-generate');
     if (planowaneGenBtn) planowaneGenBtn.addEventListener('click', function() { openPlanowanePicker(); });
+    var harmonogramGenBtn = document.getElementById('map-harmonogram-generate');
+    if (harmonogramGenBtn) harmonogramGenBtn.addEventListener('click', function() { openHarmonogramPicker(); });
     var bulkGenBtn = document.getElementById('map-bulk-generate');
     var bulkClearBtn = document.getElementById('map-bulk-clear');
     if (bulkGenBtn) bulkGenBtn.addEventListener('click', function() { openBulkDocModal(); });

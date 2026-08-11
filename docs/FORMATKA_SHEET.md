@@ -9,9 +9,9 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 - **Nazwa:** lista-druga-mila
 - **ID:** `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`
 - **URL:** https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit
-- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu). Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji.
-- **Wiersz 1 — nagłówki (15 kolumn):** Numer faktury, Stawka, Czy protokół zrobiony, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca
-- **Migracja istniejących zakładek:** ręcznie wstaw kolumnę **OKNO AWIZACJI** przed „Adres odbioru” (nowe zakładki miesięczne dostaną nagłówki automatycznie).
+- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/GMH). Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
+- **Wiersz 1 — nagłówki (16 kolumn):** Numer faktury, Stawka, Czy protokół zrobiony, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca, **Uwagi**
+- **Migracja istniejących zakładek:** ręcznie wstaw kolumnę **OKNO AWIZACJI** przed „Adres odbioru” oraz kolumnę **Uwagi** na końcu (nowe zakładki miesięczne dostaną nagłówki automatycznie).
 
 ### Zakładki miesięczne
 
@@ -21,19 +21,30 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 | Nazwa | `{MiesiącPL} {YYYY}` — np. `Sierpień 2026` |
 | Źródło miesiąca | Pole `dataOdbioru` z POST (= Data załadunku / Data odbioru z modala, format `dd.mm.rrrr`) |
 | Brak / zła data | Fallback: data bieżąca (timezone skryptu Google) |
-| Nagłówki | Przy tworzeniu zakładki kopiowane wiersz 1 (15 kolumn jak wyżej) |
-| Numeracja | **Ciągła** — skan kolumny „Nr zlecenia” na **wszystkich** zakładkach (w tym `Planowane`) |
+| Nagłówki | Przy tworzeniu zakładki kopiowane wiersz 1 (16 kolumn jak wyżej) |
+| Numeracja | **Ciągła seria DM*** — skan kolumny „Nr zlecenia” (w tym `Planowane`), **z pominięciem** `GMH*` |
 
 ### Zakładka Planowane
 
 | Reguła | Zachowanie |
 |--------|------------|
 | Nazwa | Stała: `Planowane` (tworzona przy pierwszym zapisie planowanym) |
-| Kolumny | Te same 15 co zakładki miesięczne |
+| Kolumny | Te same 16 co zakładki miesięczne |
 | Planowanie | POST `mode: "plan"` — rezerwacja `DM*`, `Czy protokół = nie`, **bez** Worda, **bez** arkusza Bolęcin |
 | Realizacja | POST `mode: "realize"` — append do miesiąca (`Czy protokół = tak`) + Bolęcin jeśli trzeba + usunięcie wiersza z `Planowane`; ten sam numer |
 | Lista | GET `action=listPlanowane` |
 | Update / delete | POST `mode: "updatePlan"` / `"deletePlan"` (bez Word / Bolęcin) |
+
+### Zakładka Harmonogram (stałe odbiory)
+
+| Reguła | Zachowanie |
+|--------|------------|
+| Nazwa | Stała: `Harmonogram` |
+| Kolumny (12) | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **Dzień odbioru**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
+| Lista | GET `action=listHarmonogram` |
+| Dodaj | POST `mode: "addHarmonogram"` — tylko szablon; bez DM/GMH, bez miesiąca, bez Bolęcin |
+| Generacja z mapy | UI proponuje daty z „Dzień odbioru” (edytowalne) → N× POST `commitHarm` (seria **GMH1…**) + Word; wiersz Harmonogramu **zostaje** |
+| Numeracja GMH | Osobna pula; GET `previewNumberHarm`; skan tylko `GMH*` |
 
 > Osobny arkusz i osobny Web App względem mapy plomb (`arkusz-mapa`) — **nie** współdzielić numeracji.
 
@@ -45,7 +56,7 @@ Gdy **miejsce zrzutu** to Bolęcin (etykieta/adres zawiera „Bolęcin” / „B
 - **ID:** `14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc`
 - **Zakładki:** miesięczne jak w formatce głównej (`Sierpień 2026`, …) z `dataOdbioru`
 - **Kolumny (10):** Okno awizacji, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja
-- **Bez** numeracji zlecenia / stawki / znacznika miejsca / „Czy protokół”
+- **Bez** numeracji zlecenia / stawki / znacznika miejsca / „Czy protokół” / **Uwagi**
 - Wymaga, by konto wdrażające Web App miało **edycję** tego arkusza (`SpreadsheetApp.openById`)
 
 ## Wdrożenie Apps Script (jednorazowo)
@@ -67,20 +78,24 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 
 | Metoda | Parametry | Opis |
 |--------|-----------|------|
-| GET | `action=previewNumber` | Podgląd następnego numeru (**skan wszystkich zakładek**, bez rezerwacji) |
-| GET | `action=modalData` | Jak preview — `{ ok, numer }` (**bez** ostatniej daty transportu) |
+| GET | `action=previewNumber` | Podgląd następnego **DM*** (skan bez `GMH*`, bez rezerwacji) |
+| GET | `action=modalData` | Jak previewNumber |
+| GET | `action=previewNumberHarm` | Podgląd następnego **GMH*** (bez rezerwacji) |
 | GET | `action=listPlanowane` | `{ ok, rows: [{ rowIndex, numer, …pola kolumn }] }` |
+| GET | `action=listHarmonogram` | `{ ok, rows: [{ rowIndex, dzienOdbioru, …12 pól }] }` |
 | POST | JSON w body (`Content-Type: text/plain`) | LockService → wg `mode` (poniżej); zwrot `{ ok, numer? }` |
 
 ### POST `mode`
 
 | `mode` | Zachowanie |
 |--------|------------|
-| *(brak)* / `commit` | Append do zakładki miesiąca + Bolęcin jeśli cel Biosystem/Bolęcin; `Czy protokół` z body (mapa: `tak`) |
+| *(brak)* / `commit` | Append do zakładki miesiąca + Bolęcin jeśli cel Biosystem/Bolęcin; seria **DM***; pole `uwagi` → kolumna Uwagi |
 | `plan` | Append do `Planowane`; wymusza `Czy protokół = nie`; **bez** Bolęcina; numer auto jak commit |
 | `realize` | Wymaga `numer` + `planowaneRow`; append miesiąca + Bolęcin; `deleteRow` w `Planowane` |
 | `updatePlan` | Wymaga `planowaneRow`; nadpisuje pola wiersza (numer bez zmian); bez Bolęcina |
 | `deletePlan` | Wymaga `planowaneRow`; usuwa wiersz z `Planowane` (numer wraca do puli przy następnym skanie) |
+| `addHarmonogram` | Append wiersza do `Harmonogram` (12 kolumn); bez numeru / miesiąca / Bolęcin |
+| `commitHarm` | Jak commit, ale seria **GMH***; Harmonogram bez zmian |
 
 > Przeglądarka często wysyła POST jako `text/plain` (unikanie preflight CORS) — Web App musi czytać `e.postData.contents` i `JSON.parse`, nie polegać na `application/json`.
 
@@ -88,14 +103,14 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 
 | Reguła | Zachowanie |
 |--------|------------|
-| Start | Brak numerów na żadnej zakładce → następny = **`DM1`** |
-| Źródło prawdy | Kolumna „Nr zlecenia transportowego” na **wszystkich** zakładkach (skan przy każdym preview/POST) |
-| Auto | Inkrement końcowej liczby względem **max globalnego**: `DM1`→`DM2`, `ABC100`→`ABC101` |
-| Podgląd | **Nie pali** numeru — tylko czyta skan; zamknięcie modala bez generacji nic nie rezerwuje |
-| Z mapy | **Zawsze auto** przy generacji (POST bez pustego numeru / serwer wylicza z arkusza) |
-| Usunięcie wierszy | Następny numer **cofa się** (brakuje `DM5` w arkuszu → znowu można dostać `DM5`) |
-| Mieszane prefiksy | Max po liczbie końcowej; remis → późniejszy wiersz (zaakceptowane) |
-| Ręczny `numer` w POST | Tylko awaryjnie (API); mapa v1 nie polega na nadpisie |
+| Start DM | Brak numerów DM (poza GMH) → **`DM1`** |
+| Start GMH | Brak `GMH*` → **`GMH1`** |
+| Źródło prawdy DM | Kolumna „Nr zlecenia” — skan z **pominięciem** `GMH*` |
+| Źródło prawdy GMH | Ten sam skan, **tylko** `^GMH\d+$` |
+| Auto | Inkrement końcowej liczby w danej serii |
+| Podgląd | **Nie pali** numeru |
+| Usunięcie wierszy | Następny numer **cofa się** w danej serii |
+| Mieszane prefiksy (poza GMH) | Max po liczbie końcowej; remis → późniejszy wiersz (zaakceptowane) |
 | Property `formatkaLastNumber` | Cache po udanym zapisie — nie jest źródłem prawdy przy preview |
 
 Funkcja **`rebuildFormatkaCounterFromSheet`** (Run) — opcjonalna synchronizacja cache po dużej ręcznej edycji; do poprawnego preview/POST **nie jest wymagana** (i tak jest skan).
@@ -119,10 +134,10 @@ Funkcja **`rebuildFormatkaCounterFromSheet`** (Run) — opcjonalna synchronizacj
   "ileWorkow": "10",
   "rodzajTransportu": "busy",
   "awizacja": "WX12345",
-  "znacznikMiejsca": "CD"
+  "znacznikMiejsca": "CD",
+  "uwagi": "uwaga tylko do Google"
 }
 ```
-
 ## Lokalnie
 
 W `.env`:

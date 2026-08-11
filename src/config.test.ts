@@ -10,6 +10,7 @@ import {
   COL_NAZWA_SKROCONA,
   COL_ADRES,
   COL_TYP,
+  COL_WG_HARMONOGRAMU,
   COLOR_BOLECIN,
   COLOR_CD,
   COLOR_PLAC,
@@ -51,6 +52,10 @@ describe('config', () => {
 
     it('test_col_typ_is_3', () => {
       expect(COL_TYP).toBe(3);
+    });
+
+    it('test_col_wg_harmonogramu_is_4', () => {
+      expect(COL_WG_HARMONOGRAMU).toBe(4);
     });
   });
 
