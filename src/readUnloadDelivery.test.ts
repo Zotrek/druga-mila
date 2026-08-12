@@ -20,7 +20,7 @@ describe('parseUnloadDeliveryRow', () => {
     expect(parseUnloadDeliveryRow(['Firma', 'SKR', '', 'PLAC'])).toBeNull();
   });
 
-  it('test_parseUnloadDeliveryRow_uses_short_name_and_address', () => {
+  it('test_parseUnloadDeliveryRow_uses_short_name_and_full_name_plus_address', () => {
     const e = parseUnloadDeliveryRow([
       'BIOSYSTEM Bolęcin',
       'BIOSYSTEM',
@@ -29,13 +29,24 @@ describe('parseUnloadDeliveryRow', () => {
     ]);
     expect(e).toEqual({
       label: 'BIOSYSTEM',
-      value: '32-540 Bolęcin Fabryczna 5',
+      value: 'BIOSYSTEM Bolęcin 32-540 Bolęcin Fabryczna 5',
     });
   });
 
   it('test_parseUnloadDeliveryRow_falls_back_to_full_name', () => {
     const e = parseUnloadDeliveryRow(['Sortownia X', '', '00-001 Miasto', 'SORTOWNIA']);
-    expect(e).toEqual({ label: 'Sortownia X', value: '00-001 Miasto' });
+    expect(e).toEqual({
+      label: 'Sortownia X',
+      value: 'Sortownia X 00-001 Miasto',
+    });
+  });
+
+  it('test_parseUnloadDeliveryRow_word_value_falls_back_to_short_name', () => {
+    const e = parseUnloadDeliveryRow(['', 'SKR', '00-001 Warszawa', 'PLAC']);
+    expect(e).toEqual({
+      label: 'SKR',
+      value: 'SKR 00-001 Warszawa',
+    });
   });
 });
 

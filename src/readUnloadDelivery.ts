@@ -1,6 +1,7 @@
 /**
  * Odczyt arkusza Rozładunek z data/druga-mila.xlsx → opcje „Miejsce dostawy”.
- * Etykieta = nazwa skrócona (fallback: pełna); value = adres.
+ * Etykieta = nazwa skrócona (fallback: pełna);
+ * value = nazwa pełna + adres (do Word; fallback nazwy: skrócona).
  * Wiersze bez etykiety lub bez adresu — pomijane.
  */
 
@@ -34,7 +35,11 @@ export function parseUnloadDeliveryRow(row: unknown[]): PodwykoEntry | null {
   if (!label || !adres) {
     return null;
   }
-  return { label, value: adres };
+  const nazwaWord = nazwaPelna || nazwaSkrocona;
+  return {
+    label,
+    value: [nazwaWord, adres].filter(Boolean).join(' '),
+  };
 }
 
 /**

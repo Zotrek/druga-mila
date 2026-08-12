@@ -9,6 +9,7 @@ export interface WordMapEmbed {
   podwykoOptions: Array<{ label: string; value: string }>;
   /**
    * Miejsce dostawy — z arkusza Rozładunek (data/druga-mila.xlsx).
+   * label = nazwa skrócona (UI); value = nazwa pełna + adres (Word).
    * Gdy brak / puste, modal używa podwykoOptions jako fallback.
    */
   deliveryOptions?: Array<{ label: string; value: string }>;

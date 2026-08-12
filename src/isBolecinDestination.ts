@@ -13,7 +13,7 @@ function normalizeForBolecinMatch(value: string): string {
 
 /**
  * @param miejsceZrzutu — etykieta UI / kolumna Sheets (np. „Biosystem”)
- * @param miejsceDostawyAdres — opcjonalnie adres z listy podwyko (value)
+ * @param miejsceDostawyAdres — opcjonalnie treść Word / adres z listy (value)
  */
 export function isBolecinDestination(
   miejsceZrzutu: string,

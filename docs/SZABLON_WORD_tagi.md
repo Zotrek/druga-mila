@@ -9,7 +9,7 @@ Mapa wypełnia dokument tylko tam, gdzie w `.docx` są DOKŁADNIE takie fragment
 | `{{numer_zlecenia_transportowego}}` | Numer z pola / API (ten sam co w formatce Google) |
 | `{{miejsce_zaladunku}}` | Nazwa pełna + Adres (kolumny A+C z Załadunek), jedna linia; protokół łączony: **osobna wartość w każdym z dwóch plików** (to samo zlecenie / numer) |
 | `{{przewoznik}}` | Treść z kolumny B listy podwyko dla wybranej nazwy |
-| `{{miejsce_dostawy}}` | Jak przewoźnik: kolumna B dla wybranej nazwy z listy |
+| `{{miejsce_dostawy}}` | Nazwa pełna + adres z arkusza Rozładunek (jak `miejsce_zaladunku`) |
 | `{{dane_do_awizacji}}` | Nr rejestracyjny z pola awizacji (bez walidacji) |
 | `{{data_zaladunku}}` | Data z modala, format `dd.mm.rrrr` |
 

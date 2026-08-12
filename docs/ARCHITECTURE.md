@@ -188,7 +188,7 @@ Body POST (kierunek pól):
 }
 ```
 
-`numerFaktury` — zawsze puste (brak UI). `stawka` / `oknoAwizacji` — z pól modala (opcjonalne; nie w Word). `miejsceDostawyAdres` — adres z listy podwyko (do wykrycia Bolęcina; nie osobna kolumna). `znacznikMiejsca` — typ z kolumny D Załadunek (`CD` / `PLAC` / puste).
+`numerFaktury` — zawsze puste (brak UI). `stawka` / `oknoAwizacji` — z pól modala (opcjonalne; nie w Word). `miejsceDostawyAdres` — nazwa pełna + adres z Rozładunek (do Word i wykrycia Bolęcina; nie osobna kolumna). `znacznikMiejsca` — typ z kolumny D Załadunek (`CD` / `PLAC` / puste).
 
 ---
 
