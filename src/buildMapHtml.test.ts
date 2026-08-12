@@ -120,15 +120,23 @@ describe('buildMapHtml', () => {
     expect(html).toContain('doc-inp-uwagi');
     expect(html).toContain('openHarmonogramPicker');
     expect(html).toContain('proposeDatesFromDzienOdbioru');
+    expect(html).toContain('harmRowHasSecondLoad');
+    expect(html).toContain('adresOdbioruIi');
+    expect(html).toContain('Stały odbiór (łączony)');
     expect(html).toContain('Dodaj do Harmonogramu');
     expect(html).toContain('harm-add-kto-list');
     expect(html).toContain('harm-add-zrzut-list');
     expect(html).toContain('harm-add-nazwa-list');
+    expect(html).toContain('harm-add-nazwa-ii');
+    expect(html).toContain('harm-add-adres-ii');
+    expect(html).toContain('adresOdbioruIi');
+    expect(html).toContain('nazwaKontrahentaIi');
     expect(html).toContain('harm-add-dzien-cb');
     expect(html).toContain('collectHarmAddDzienOdbioru');
     expect(html).toContain('id="harm-add-zbiorka"');
     expect(html).toContain("wireCombobox('harm-add-kto'");
     expect(html).toContain("wireCombobox('harm-add-nazwa'");
+    expect(html).toContain("wireCombobox('harm-add-nazwa-ii'");
     expect(html).toContain("resolvePodwyko('harm-add-val-kto'");
   });
 

@@ -181,6 +181,14 @@
       </div>
       <label for="harm-add-adres">Adres odbioru</label>
       <input type="text" id="harm-add-adres" maxlength="200" autocomplete="off" />
+      <label for="harm-add-nazwa-ii">II Nazwa kontrahenta (opcjonalnie — łączony)</label>
+      <div class="doc-combobox-wrap">
+        <input type="text" id="harm-add-nazwa-ii" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Drugie miejsce — nazwa skrócona / pełna / adres…" />
+        <input type="hidden" id="harm-add-val-nazwa-ii" value="" />
+        <ul id="harm-add-nazwa-ii-list" class="doc-combobox-list" role="listbox" hidden></ul>
+      </div>
+      <label for="harm-add-adres-ii">II Adres odbioru (opcjonalnie — łączony)</label>
+      <input type="text" id="harm-add-adres-ii" maxlength="200" autocomplete="off" />
       <label id="harm-add-dzien-label">Dzień odbioru</label>
       <div class="harm-weekday-group" role="group" aria-labelledby="harm-add-dzien-label">
         <label><input type="checkbox" class="harm-add-dzien-cb" value="poniedziałek" /> poniedziałek</label>
@@ -798,16 +806,28 @@
       var n = (window.__bulkDocLoadIdxs || []).length;
       var harmN = (window.__harmDates || []).length;
       if (titleEl) {
-        if (isHarm) titleEl.textContent = 'Stały odbiór';
+        if (isHarm) {
+          titleEl.textContent = harmRowHasSecondLoad(window.__harmRow)
+            ? 'Stały odbiór (łączony)'
+            : 'Stały odbiór';
+        }
         else if (isRealize) titleEl.textContent = 'Realizuj planowane';
         else if (isCombined) titleEl.textContent = 'Protokół łączony (2 miejsca)';
         else if (isBulk) titleEl.textContent = 'Generuj protokoły Word (' + n + ' punktów)';
         else titleEl.textContent = 'Generuj protokół Word';
       }
-      if (zalWrap) zalWrap.hidden = isBulk || isCombined;
-      if (bulkWrap) bulkWrap.hidden = !(isBulk || isCombined);
+      if (zalWrap) {
+        zalWrap.hidden = isBulk || isCombined || (isHarm && harmRowHasSecondLoad(window.__harmRow));
+      }
+      if (bulkWrap) {
+        bulkWrap.hidden = !(isBulk || isCombined || (isHarm && harmRowHasSecondLoad(window.__harmRow)));
+      }
       if (bulkTitle) {
-        bulkTitle.textContent = isCombined ? 'Miejsca załadunku (łączone)' : 'Wybrane punkty';
+        if (isCombined || (isHarm && harmRowHasSecondLoad(window.__harmRow))) {
+          bulkTitle.textContent = 'Miejsca załadunku (łączone)';
+        } else {
+          bulkTitle.textContent = 'Wybrane punkty';
+        }
       }
       if (numerWrap) numerWrap.hidden = isBulk;
       if (bulkNumerInfo) bulkNumerInfo.hidden = !isBulk && !isCombined;
@@ -838,6 +858,19 @@
         if (!p) return;
         var li = document.createElement('li');
         li.textContent = (p.nazwaSkrocona || p.nazwaPelna) + ' — ' + p.adres;
+        listEl.appendChild(li);
+      });
+    }
+    /** Lista miejsc z obiektów (Harmonogram łączony — nie tylko indeksy mapy). */
+    function renderNamedPointsList(points) {
+      var listEl = document.getElementById('doc-bulk-points-list');
+      if (!listEl) return;
+      listEl.innerHTML = '';
+      (points || []).forEach(function(p) {
+        if (!p) return;
+        var li = document.createElement('li');
+        li.textContent = (p.nazwaSkrocona || p.nazwaPelna || '—') +
+          (p.adres ? ' — ' + p.adres : '');
         listEl.appendChild(li);
       });
     }
@@ -1277,6 +1310,16 @@
         if (znacznikEl) znacznikEl.value = it.typ || '';
       }
     );
+    wireCombobox('harm-add-nazwa-ii', 'harm-add-val-nazwa-ii', 'harm-add-nazwa-ii-list',
+      function() { return LOAD_POINTS; },
+      function(it) { return it.nazwaSkrocona || it.nazwaPelna; },
+      function(ix, it) {
+        document.getElementById('harm-add-val-nazwa-ii').value = String(ix);
+        document.getElementById('harm-add-nazwa-ii').value = it.nazwaPelna || it.nazwaSkrocona || '';
+        var adresIiEl = document.getElementById('harm-add-adres-ii');
+        if (adresIiEl) adresIiEl.value = it.adres || '';
+      }
+    );
 
     function findBiosystemIdx() {
       for (var i = 0; i < MIEJSCA_DOSTAWY.length; i++) {
@@ -1474,7 +1517,9 @@
       if (!WEBAPP_URL) {
         if (hint) {
           if (window.__docModalMode === 'harmonogram') {
-            hint.textContent = 'Brak Web App — Word lokalnie dla każdego terminu, bez zapisu do Google.';
+            hint.textContent = harmRowHasSecondLoad(window.__harmRow)
+              ? 'Brak Web App — na termin: 2× Word (I i II), bez zapisu do Google.'
+              : 'Brak Web App — Word lokalnie dla każdego terminu, bez zapisu do Google.';
           } else if (window.__docModalMode === 'combined') {
             hint.textContent = 'Brak Web App — dwa Word lokalnie (po jednym miejscu, ten sam numer), bez zapisu do Google.';
           } else {
@@ -1502,7 +1547,9 @@
           }
           if (hint) {
             if (window.__docModalMode === 'harmonogram') {
-              hint.textContent = 'Stały odbiór: każdy termin = wiersz DMH* + .docx. Harmonogram bez zmian.';
+              hint.textContent = harmRowHasSecondLoad(window.__harmRow)
+                ? 'Łączony: każdy termin = 1× DMH* (Adres1; Adres2) + 2 protokoły Word. Harmonogram bez zmian.'
+                : 'Stały odbiór: każdy termin = wiersz DMH* + .docx. Harmonogram bez zmian.';
             } else if (window.__docModalMode === 'combined') {
               hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word z tym numerem.';
             } else {
@@ -1537,6 +1584,35 @@
         }
       }
       return -1;
+    }
+    /** Harmonogram z niepustym II Adres / II Nazwa → generacja jak protokół łączony. */
+    function harmRowHasSecondLoad(row) {
+      if (!row) return false;
+      return String(row.adresOdbioruIi || '').trim() !== '' ||
+        String(row.nazwaKontrahentaIi || '').trim() !== '';
+    }
+    /** Buduje punkt załadunku z pól Harmonogramu (dopasowanie do mapy albo tekst z arkusza). */
+    function loadPointFromHarmPart(nazwa, adres, typFallback) {
+      var n = String(nazwa || '').trim();
+      var a = String(adres || '').trim();
+      var t = String(typFallback || '').trim();
+      var i;
+      if (a) {
+        for (i = 0; i < LOAD_POINTS.length; i++) {
+          if (String(LOAD_POINTS[i].adres || '').trim() === a) return LOAD_POINTS[i];
+        }
+      }
+      if (n) {
+        for (i = 0; i < LOAD_POINTS.length; i++) {
+          if (String(LOAD_POINTS[i].nazwaPelna || '').trim() === n) return LOAD_POINTS[i];
+        }
+      }
+      return {
+        nazwaPelna: n,
+        nazwaSkrocona: n,
+        adres: a,
+        typ: t
+      };
     }
     function selectListByLabel(list, hiddenId, inputId, label) {
       var target = String(label || '').trim();
@@ -1710,9 +1786,18 @@
             btn.className = 'planowane-list-item';
             btn.setAttribute('role', 'listitem');
             var title = (row.nazwaKontrahenta || row.adresOdbioru || 'bez nazwy') +
-              (row.dzienOdbioru ? ' · ' + row.dzienOdbioru : '');
+              (row.dzienOdbioru ? ' · ' + row.dzienOdbioru : '') +
+              (harmRowHasSecondLoad(row) ? ' · łączony' : '');
+            var adresMeta = row.adresOdbioru || '';
+            if (harmRowHasSecondLoad(row)) {
+              var a2 = String(row.adresOdbioruIi || '').trim();
+              var n2 = String(row.nazwaKontrahentaIi || '').trim();
+              if (a2 || n2) {
+                adresMeta = (adresMeta ? adresMeta + '; ' : '') + (a2 || n2);
+              }
+            }
             btn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
-              '<span class="planowane-list-meta">' + escapeHtmlMap(row.adresOdbioru || '') + '</span>' +
+              '<span class="planowane-list-meta">' + escapeHtmlMap(adresMeta) + '</span>' +
               '<span class="planowane-list-meta">' +
               escapeHtmlMap([row.ktoOdbiera, row.miejsceZrzutu, row.rodzajZbiorki].filter(Boolean).join(' · ')) +
               '</span>';
@@ -1808,8 +1893,13 @@
       window.__harmRow = row;
       setDocModalMode('harmonogram');
       resetDocModal();
+      var isCombinedHarm = harmRowHasSecondLoad(row);
       var loadIdx = findLoadIdxForPlanRow(row);
-      if (loadIdx >= 0) {
+      if (isCombinedHarm) {
+        var zalA = loadPointFromHarmPart(row.nazwaKontrahenta, row.adresOdbioru, row.znacznikMiejsca);
+        var zalB = loadPointFromHarmPart(row.nazwaKontrahentaIi, row.adresOdbioruIi, '');
+        renderNamedPointsList([zalA, zalB]);
+      } else if (loadIdx >= 0) {
         selectZaladunek(loadIdx);
       } else {
         var zalInp = document.getElementById('doc-sel-zaladunek');
@@ -1838,6 +1928,7 @@
     }
     function resetHarmonogramAddForm() {
       ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-val-nazwa',
+        'harm-add-adres-ii','harm-add-nazwa-ii','harm-add-val-nazwa-ii',
         'harm-add-kto','harm-add-val-kto','harm-add-zrzut','harm-add-val-zrzut','harm-add-zbiorka',
         'harm-add-worki','harm-add-transport','harm-add-awizacja','harm-add-znacznik'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
@@ -1885,12 +1976,23 @@
         if (!String(adresOdbioru).trim()) adresOdbioru = lp.adres || '';
         if (!String(znacznikMiejsca).trim()) znacznikMiejsca = lp.typ || '';
       }
+      var nazwaIiHid = document.getElementById('harm-add-val-nazwa-ii');
+      var nazwaIiInp = document.getElementById('harm-add-nazwa-ii');
+      var nazwaKontrahentaIi = nazwaIiInp ? String(nazwaIiInp.value).trim() : '';
+      var adresOdbioruIi = (document.getElementById('harm-add-adres-ii') || {}).value || '';
+      if (nazwaIiHid && nazwaIiHid.value !== '' && LOAD_POINTS[Number(nazwaIiHid.value)]) {
+        var lpIi = LOAD_POINTS[Number(nazwaIiHid.value)];
+        nazwaKontrahentaIi = lpIi.nazwaPelna || lpIi.nazwaSkrocona || nazwaKontrahentaIi;
+        if (!String(adresOdbioruIi).trim()) adresOdbioruIi = lpIi.adres || '';
+      }
       var payload = {
         mode: 'addHarmonogram',
         stawka: (document.getElementById('harm-add-stawka') || {}).value || '',
         uwagi: (document.getElementById('harm-add-uwagi') || {}).value || '',
         adresOdbioru: adresOdbioru,
         nazwaKontrahenta: nazwaKontrahenta,
+        adresOdbioruIi: adresOdbioruIi,
+        nazwaKontrahentaIi: nazwaKontrahentaIi,
         dzienOdbioru: collectHarmAddDzienOdbioru(),
         ktoOdbiera: pr.label || ((document.getElementById('harm-add-kto') || {}).value || ''),
         miejsceZrzutu: md.label || ((document.getElementById('harm-add-zrzut') || {}).value || ''),
@@ -1929,10 +2031,28 @@
         alert('Dodaj co najmniej jedną datę odbioru.');
         return;
       }
-      var zal = resolveZaladunek();
+      var harmRow = window.__harmRow;
+      var isCombinedHarm = harmRowHasSecondLoad(harmRow);
+      var zalA = null;
+      var zalB = null;
+      var zalSheet;
+      if (isCombinedHarm) {
+        zalA = loadPointFromHarmPart(
+          harmRow.nazwaKontrahenta, harmRow.adresOdbioru, harmRow.znacznikMiejsca
+        );
+        zalB = loadPointFromHarmPart(
+          harmRow.nazwaKontrahentaIi, harmRow.adresOdbioruIi, ''
+        );
+        zalSheet = combineLoadPoints(zalA, zalB);
+      } else {
+        zalSheet = resolveZaladunek();
+      }
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
-      setDocGenerateBusy(true, 'Generowanie stałego odbioru (' + dates.length + ' terminów)…');
+      var statusLabel = isCombinedHarm
+        ? ('Generowanie stałego odbioru łączonego (' + dates.length + ' terminów × 2 Word)…')
+        : ('Generowanie stałego odbioru (' + dates.length + ' terminów)…');
+      setDocGenerateBusy(true, statusLabel);
       ensureDocxLibrariesLoaded().then(function() {
         var generated = 0;
         var failed = 0;
@@ -1952,12 +2072,39 @@
               transport: shared.transport,
               uwagi: shared.uwagi
             };
-            if (!WEBAPP_URL) {
-              renderAndDownloadDocx(zal, shared.pr, shared.md, dateVal, shared.awizacja, '', { closeModal: false });
+            function downloadWordsForDate(numer) {
+              if (isCombinedHarm) {
+                var wordChain = Promise.resolve();
+                [zalA, zalB].forEach(function(p, wIdx) {
+                  wordChain = wordChain.then(function() {
+                    updateDocGenerateStatus(
+                      'Termin ' + (jobIdx + 1) + '/' + dates.length +
+                      ' — protokół ' + (wIdx + 1) + '/2: ' +
+                      (p.nazwaSkrocona || p.nazwaPelna)
+                    );
+                    renderAndDownloadDocx(
+                      p, shared.pr, shared.md, dateVal, shared.awizacja, numer,
+                      { closeModal: false }
+                    );
+                    return delayMs(450);
+                  });
+                });
+                return wordChain.then(function() {
+                  generated += 1;
+                  return delayMs(200);
+                });
+              }
+              renderAndDownloadDocx(
+                zalSheet, shared.pr, shared.md, dateVal, shared.awizacja, numer,
+                { closeModal: false }
+              );
               generated += 1;
-              return delayMs(400);
+              return delayMs(450);
             }
-            var payload = buildFormatkaPayload(zal, sharedForDate, '');
+            if (!WEBAPP_URL) {
+              return downloadWordsForDate('');
+            }
+            var payload = buildFormatkaPayload(zalSheet, sharedForDate, '');
             payload.mode = 'commitHarm';
             payload.czyProtokolZrobiony = 'tak';
             return appendFormatkaRow(payload).then(function(resp) {
@@ -1966,12 +2113,7 @@
               }
               var numer = String(resp.numer || '');
               if (numerEl) numerEl.value = numer;
-              renderAndDownloadDocx(
-                zal, shared.pr, shared.md, dateVal, shared.awizacja, numer,
-                { closeModal: false }
-              );
-              generated += 1;
-              return delayMs(450);
+              return downloadWordsForDate(numer);
             });
           }).catch(function(err) {
             console.error(err);

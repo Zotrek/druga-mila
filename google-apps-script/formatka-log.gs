@@ -7,7 +7,7 @@
  * GET ?action=previewNumber      → { ok, numer }  (jak wyżej)
  * GET ?action=previewNumberHarm  → { ok, numer }  (podgląd DMH* — NIE rezerwuje)
  * GET ?action=listPlanowane      → { ok, rows: [...] }
- * GET ?action=listHarmonogram    → { ok, rows: [...] }
+ * GET ?action=listHarmonogram    → { ok, rows: [...] }  (II Adres/Nazwa jeśli w arkuszu)
  * POST (body JSON, Content-Type: text/plain) — wg body.mode:
  *   (brak)/commit → append miesiąca + Bolęcin (seria DM*)
  *   plan          → append Planowane (bez Bolęcina, czyProtokol=nie)
@@ -73,20 +73,26 @@ var HEADER_ROW = [
 var PLANOWANE_SHEET_NAME = 'Planowane';
 var HARMONOGRAM_SHEET_NAME = 'Harmonogram';
 
-/** Kolumny zakładki Harmonogram (A–L) — szablon stałych odbiorów. */
+/**
+ * Kolumny zakładki Harmonogram — szablon stałych odbiorów.
+ * Odczyt/zapis mapuje po nagłówkach (kolejność może się różnić na istniejących arkuszach).
+ * II* = opcjonalne drugie miejsce → generacja jak protokół łączony (1 wiersz / 2× Word).
+ */
 var HARM_COL = {
   stawka: 1,
   uwagi: 2,
   adresOdbioru: 3,
   nazwaKontrahenta: 4,
-  dzienOdbioru: 5,
-  ktoOdbiera: 6,
-  miejsceZrzutu: 7,
-  rodzajZbiorki: 8,
-  ileWorkow: 9,
-  rodzajTransportu: 10,
-  awizacja: 11,
-  znacznikMiejsca: 12,
+  adresOdbioruIi: 5,
+  nazwaKontrahentaIi: 6,
+  dzienOdbioru: 7,
+  ktoOdbiera: 8,
+  miejsceZrzutu: 9,
+  rodzajZbiorki: 10,
+  ileWorkow: 11,
+  rodzajTransportu: 12,
+  awizacja: 13,
+  znacznikMiejsca: 14,
 };
 
 var HARMONOGRAM_HEADER_ROW = [
@@ -94,6 +100,8 @@ var HARMONOGRAM_HEADER_ROW = [
   'uwagi',
   'Adres odbioru',
   'Nazwa kontrahenta / podmiot handlowy',
+  'II Adres odbioru',
+  'II Nazwa kontrahenta / podmiot handlowy',
   'Dzień odbioru',
   'Kto odbiera',
   'Miejsce zrzutu',
@@ -291,7 +299,7 @@ function handleDeletePlanPost_(body) {
 
 function handleAddHarmonogramPost_(body) {
   var sheet = getOrCreateHarmonogramSheet_();
-  sheet.appendRow(buildHarmonogramRowValues_(body));
+  sheet.appendRow(buildHarmonogramRowValuesForSheet_(sheet, body));
   return jsonResponse({ ok: true });
 }
 
@@ -576,41 +584,38 @@ function listHarmonogramRows_() {
   if (lastRow < 2) {
     return [];
   }
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var numDataRows = lastRow - 1;
-  var values = sheet.getRange(2, 1, numDataRows, HARMONOGRAM_HEADER_ROW.length).getValues();
+  var values = sheet.getRange(2, 1, numDataRows, lastCol).getValues();
   var rows = [];
   for (var i = 0; i < values.length; i++) {
     var r = values[i];
-    var nazwa = cellStr_(r[HARM_COL.nazwaKontrahenta - 1]);
-    var adres = cellStr_(r[HARM_COL.adresOdbioru - 1]);
-    if (!nazwa && !adres) {
+    var obj = { rowIndex: i + 2 };
+    for (var c = 0; c < headers.length; c++) {
+      var key = fieldKeyFromHeader_(headers[c]);
+      if (!key || key === 'numer') {
+        continue;
+      }
+      obj[key] = cellStr_(r[c]);
+    }
+    if (!obj.nazwaKontrahenta && !obj.adresOdbioru) {
       continue;
     }
-    rows.push({
-      rowIndex: i + 2,
-      stawka: cellStr_(r[HARM_COL.stawka - 1]),
-      uwagi: cellStr_(r[HARM_COL.uwagi - 1]),
-      adresOdbioru: adres,
-      nazwaKontrahenta: nazwa,
-      dzienOdbioru: cellStr_(r[HARM_COL.dzienOdbioru - 1]),
-      ktoOdbiera: cellStr_(r[HARM_COL.ktoOdbiera - 1]),
-      miejsceZrzutu: cellStr_(r[HARM_COL.miejsceZrzutu - 1]),
-      rodzajZbiorki: cellStr_(r[HARM_COL.rodzajZbiorki - 1]),
-      ileWorkow: cellStr_(r[HARM_COL.ileWorkow - 1]),
-      rodzajTransportu: cellStr_(r[HARM_COL.rodzajTransportu - 1]),
-      awizacja: cellStr_(r[HARM_COL.awizacja - 1]),
-      znacznikMiejsca: cellStr_(r[HARM_COL.znacznikMiejsca - 1]),
-    });
+    rows.push(obj);
   }
   return rows;
 }
 
+/** Kanoniczna kolejność nagłówków Harmonogram (z kolumnami II). */
 function buildHarmonogramRowValues_(body) {
   return [
     body.stawka != null ? String(body.stawka) : '',
     body.uwagi != null ? String(body.uwagi) : '',
     body.adresOdbioru != null ? String(body.adresOdbioru) : '',
     body.nazwaKontrahenta != null ? String(body.nazwaKontrahenta) : '',
+    body.adresOdbioruIi != null ? String(body.adresOdbioruIi) : '',
+    body.nazwaKontrahentaIi != null ? String(body.nazwaKontrahentaIi) : '',
     body.dzienOdbioru != null ? String(body.dzienOdbioru) : '',
     body.ktoOdbiera != null ? String(body.ktoOdbiera) : '',
     body.miejsceZrzutu != null ? String(body.miejsceZrzutu) : '',
@@ -620,6 +625,32 @@ function buildHarmonogramRowValues_(body) {
     body.awizacja != null ? String(body.awizacja) : '',
     body.znacznikMiejsca != null ? String(body.znacznikMiejsca) : '',
   ];
+}
+
+/** Buduje wiersz Harmonogramu wg rzeczywistych nagłówków zakładki. */
+function buildHarmonogramRowValuesForSheet_(sheet, body) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return buildHarmonogramRowValues_(body);
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var hasRecognized = false;
+  var row = [];
+  for (var i = 0; i < headers.length; i++) {
+    var key = fieldKeyFromHeader_(headers[i]);
+    if (key) {
+      hasRecognized = true;
+    }
+    if (key && body[key] != null) {
+      row.push(String(body[key]));
+    } else {
+      row.push('');
+    }
+  }
+  if (!hasRecognized) {
+    return buildHarmonogramRowValues_(body);
+  }
+  return row;
 }
 
 /**
@@ -678,11 +709,23 @@ function fieldKeyFromHeader_(h) {
   if (n.indexOf('okno') >= 0) {
     return 'oknoAwizacji';
   }
+  // II* przed zwykłym Adres/Nazwa — inaczej „II Adres odbioru” mapuje się na I.
+  if (n.indexOf('ii ') === 0) {
+    if (n.indexOf('adres') >= 0) {
+      return 'adresOdbioruIi';
+    }
+    if (n.indexOf('nazwa') >= 0 || n.indexOf('podmiot') >= 0) {
+      return 'nazwaKontrahentaIi';
+    }
+  }
   if (n.indexOf('adres odbioru') >= 0) {
     return 'adresOdbioru';
   }
   if (n.indexOf('nazwa kontrahenta') >= 0 || n.indexOf('podmiot handlowy') >= 0) {
     return 'nazwaKontrahenta';
+  }
+  if (n.indexOf('dzie') >= 0 && n.indexOf('odbior') >= 0) {
+    return 'dzienOdbioru';
   }
   if (n.indexOf('data odbioru') >= 0) {
     return 'dataOdbioru';

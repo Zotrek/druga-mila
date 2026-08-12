@@ -40,10 +40,11 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 | Reguła | Zachowanie |
 |--------|------------|
 | Nazwa | Stała: `Harmonogram` |
-| Kolumny (12) | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **Dzień odbioru**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
-| Lista | GET `action=listHarmonogram` |
+| Kolumny | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **II Adres odbioru**, **II Nazwa kontrahenta**, **Dzień odbioru**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
+| Lista | GET `action=listHarmonogram` (mapowanie po nagłówkach; kolejność kolumn może się różnić) |
 | Dodaj | POST `mode: "addHarmonogram"` — tylko szablon; bez DM/DMH, bez miesiąca, bez Bolęcin |
 | Generacja z mapy | UI proponuje daty z „Dzień odbioru” (edytowalne) → N× POST `commitHarm` (seria **DMH1…**) + Word; wiersz Harmonogramu **zostaje** |
+| **Łączony (II)** | Gdy **II Adres** lub **II Nazwa** niepuste: jak protokół łączony — na termin **1× DMH*** (adresy `Adres1; Adres2`, nazwy `Nazwa1-Nazwa2`) + **2× Word** (osobno I i II) |
 | Numeracja DMH | Osobna pula; GET `previewNumberHarm`; skan tylko `DMH*` |
 
 > Osobny arkusz i osobny Web App względem mapy plomb (`arkusz-mapa`) — **nie** współdzielić numeracji.
@@ -82,7 +83,7 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 | GET | `action=modalData` | Jak previewNumber |
 | GET | `action=previewNumberHarm` | Podgląd następnego **DMH*** (bez rezerwacji) |
 | GET | `action=listPlanowane` | `{ ok, rows: [{ rowIndex, numer, …pola kolumn }] }` |
-| GET | `action=listHarmonogram` | `{ ok, rows: [{ rowIndex, dzienOdbioru, …12 pól }] }` |
+| GET | `action=listHarmonogram` | `{ ok, rows: [{ rowIndex, dzienOdbioru, adresOdbioruIi?, nazwaKontrahentaIi?, …pól }] }` |
 | POST | JSON w body (`Content-Type: text/plain`) | LockService → wg `mode` (poniżej); zwrot `{ ok, numer? }` |
 
 ### POST `mode`

@@ -209,6 +209,7 @@ Body POST (kierunek pól):
 | Bolęcin default | Przy zbiórce zawierającej manualną (`manualna` lub `manualna i automatyczna`) ustaw dostawę na wpis **„Biosystem”** z `podwyko lista.xlsx` (adres tej pozycji = Bolęcin); na liście nie ma wiersza nazwanego literalnie „Bolęcin”. Przy czystej `automatyczna` — brak auto-podstawienia |
 | Bulk | Multi-select → pętla POST + docx |
 | Protokół łączony | Osobny tryb: dokładnie 2 miejsca (mapa lub lista) → 1 POST (sklejone pola) + 2 docx (ten sam DM*); nazwy `-`, adresy `; ` (`src/combineLoadPoints.ts`) |
+| Harmonogram + II | Gdy wiersz Harmonogramu ma niepuste `II Adres` / `II Nazwa` → jak łączony: 1× `commitHarm` (sklejone) + 2× Word na termin |
 | Planowane | Przycisk listy + „Zapisz planowane”; realizacja = Word + `mode: realize` (bez planu w hurt/łączonym) |
 | Word | PizZip + docxtemplater; szablon base64 w HTML |
 
