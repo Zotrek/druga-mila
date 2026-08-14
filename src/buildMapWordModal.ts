@@ -1381,10 +1381,12 @@ export function wordModalBrowserScript(): string {
       m.style.display = 'none';
       m.setAttribute('aria-hidden', 'true');
     }
+    var planowaneListSeq = 0;
     function loadPlanowaneList() {
       var statusEl = document.getElementById('planowane-status');
       var listEl = document.getElementById('planowane-list');
       if (!listEl) return;
+      var seq = ++planowaneListSeq;
       listEl.innerHTML = '';
       if (!WEBAPP_URL) {
         if (statusEl) statusEl.textContent = 'Brak Web App — nie można wczytać planowanych.';
@@ -1394,6 +1396,8 @@ export function wordModalBrowserScript(): string {
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listPlanowane')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+          if (seq !== planowaneListSeq) return;
+          listEl.innerHTML = '';
           if (!data || !data.ok) {
             if (statusEl) statusEl.textContent = 'Błąd API: ' + (data && data.error ? data.error : 'nieznany');
             return;
@@ -1423,6 +1427,7 @@ export function wordModalBrowserScript(): string {
           });
         })
         .catch(function(err) {
+          if (seq !== planowaneListSeq) return;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy planowanych.';
         });
@@ -1486,10 +1491,12 @@ export function wordModalBrowserScript(): string {
       m.style.display = 'none';
       m.setAttribute('aria-hidden', 'true');
     }
+    var harmonogramListSeq = 0;
     function loadHarmonogramList() {
       var statusEl = document.getElementById('harmonogram-status');
       var listEl = document.getElementById('harmonogram-list');
       if (!listEl) return;
+      var seq = ++harmonogramListSeq;
       listEl.innerHTML = '';
       if (!WEBAPP_URL) {
         if (statusEl) statusEl.textContent = 'Brak Web App — nie można wczytać Harmonogramu.';
@@ -1499,6 +1506,8 @@ export function wordModalBrowserScript(): string {
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listHarmonogram')
         .then(function(r) { return r.json(); })
         .then(function(data) {
+          if (seq !== harmonogramListSeq) return;
+          listEl.innerHTML = '';
           if (!data || !data.ok) {
             if (statusEl) statusEl.textContent = 'Błąd API: ' + (data && data.error ? data.error : 'nieznany');
             return;
@@ -1538,6 +1547,7 @@ export function wordModalBrowserScript(): string {
           });
         })
         .catch(function(err) {
+          if (seq !== harmonogramListSeq) return;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy Harmonogramu.';
         });
