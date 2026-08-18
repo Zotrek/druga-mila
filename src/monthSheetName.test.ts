@@ -23,6 +23,10 @@ describe('parseDataOdbioru', () => {
     expect(parseDataOdbioru('03/08/2026')).toBeNull();
   });
 
+  it('test_parseDataOdbioru_range_uses_od_month_year', () => {
+    expect(parseDataOdbioru('13.08/14.08.2026')).toEqual({ day: 13, month: 8, year: 2026 });
+  });
+
   it('test_parseDataOdbioru_month_out_of_range_returns_null', () => {
     expect(parseDataOdbioru('01.13.2026')).toBeNull();
     expect(parseDataOdbioru('01.00.2026')).toBeNull();
@@ -44,6 +48,10 @@ describe('monthSheetNameFromDataOdbioru', () => {
 
   it('test_monthSheetNameFromDataOdbioru_uses_data_odbioru', () => {
     expect(monthSheetNameFromDataOdbioru('03.08.2026', fallback)).toBe('Sierpień 2026');
+  });
+
+  it('test_monthSheetNameFromDataOdbioru_range_uses_od', () => {
+    expect(monthSheetNameFromDataOdbioru('13.08/14.08.2026', fallback)).toBe('Sierpień 2026');
   });
 
   it('test_monthSheetNameFromDataOdbioru_empty_uses_fallback', () => {

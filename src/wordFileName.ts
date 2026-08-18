@@ -27,6 +27,19 @@ export function formatLoadDates(dataZaladunku: string): FormattedLoadDates {
     return { doc: '', file: '' };
   }
 
+  const range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (range) {
+    const dd1 = range[1]!.padStart(2, '0');
+    const mm1 = range[2]!.padStart(2, '0');
+    const dd2 = range[3]!.padStart(2, '0');
+    const mm2 = range[4]!.padStart(2, '0');
+    const yyyy = range[5]!;
+    return {
+      doc: `${dd1}.${mm1}/${dd2}.${mm2}.${yyyy}`,
+      file: `${dd1}.${mm1}-${dd2}.${mm2}.${yyyy.slice(-2)}`,
+    };
+  }
+
   const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
     const yyyy = iso[1]!;
@@ -70,12 +83,12 @@ export function formatLoadDates(dataZaladunku: string): FormattedLoadDates {
   return { doc: s, file: sanitizeFileNamePart(s) };
 }
 
-/** Data do Word / Sheets: `dd.mm.rrrr`. */
+/** Data do Word / Sheets: `dd.mm.rrrr` albo zakres `dd.mm/dd.mm.rrrr`. */
 export function formatDateForDoc(dataZaladunku: string): string {
   return formatLoadDates(dataZaladunku).doc;
 }
 
-/** Segment nazwy pliku: `dd.mm.rr`. */
+/** Segment nazwy pliku: `dd.mm.rr` albo zakres `dd.mm-dd.mm.rr`. */
 export function formatDateForFileName(dataZaladunku: string): string {
   return formatLoadDates(dataZaladunku).file;
 }

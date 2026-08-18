@@ -19,7 +19,7 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 |--------|------------|
 | Kiedy nowa zakładka | Przy **pierwszym** zapisie transportu w danym miesiącu (jeśli zakładka jeszcze nie istnieje) |
 | Nazwa | `{MiesiącPL} {YYYY}` — np. `Sierpień 2026` |
-| Źródło miesiąca | Pole `dataOdbioru` z POST (= Data załadunku / Data odbioru z modala, format `dd.mm.rrrr`) |
+| Źródło miesiąca | Pole `dataOdbioru` z POST (= Data załadunku z modala: `dd.mm.rrrr` lub `dd.mm/dd.mm.rrrr`; zakładka z daty Od) |
 | Brak / zła data | Fallback: data bieżąca (timezone skryptu Google) |
 | Nagłówki | Przy tworzeniu zakładki kopiowane wiersz 1 (16 kolumn jak wyżej) |
 | Numeracja | **Ciągła seria DM*** — skan kolumny „Nr zlecenia” (w tym `Planowane`), **z pominięciem** `DMH*` |

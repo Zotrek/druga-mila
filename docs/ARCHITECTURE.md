@@ -203,7 +203,8 @@ Body POST (kierunek pól):
 | Word payload | `miejsce_zaladunku = pełna + " " + adres`; łączony: **2× Word** (po jednym miejscu), ten sam `numer` |
 | Przewoźnik / dostawa | Combobox jak phase6 + `podwyko` |
 | Stawka | Input w modalu → kolumna Google; **nie** w docxtemplater |
-| Okno awizacji | Input w modalu → kolumna „OKNO AWIZACJI” (tekst lub zakres `dd.mm/dd.mm.rr`); **nie** w docxtemplater |
+| Okno awizacji | Input w modalu → kolumna „OKNO AWIZACJI” (wolny tekst, np. godziny); **nie** w docxtemplater |
+| Data załadunku | Od + opcjonalne Do → Word `{{data_zaladunku}}` i Google `dataOdbioru`: tylko Od = `dd.mm.rrrr`, Od+Do = `13.08/14.08.2026` |
 | Zbiórka | Combobox 3 wartości; nie w docxtemplater |
 | Awizacja | Input text, bez walidacji |
 | Bolęcin default | Przy zbiórce zawierającej manualną (`manualna` lub `manualna i automatyczna`) ustaw dostawę na wpis **„Biosystem”** z `podwyko lista.xlsx` (adres tej pozycji = Bolęcin); na liście nie ma wiersza nazwanego literalnie „Bolęcin”. Przy czystej `automatyczna` — brak auto-podstawienia |
@@ -292,6 +293,7 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 | `src/run.ts` | Pipeline CLI: points → geocode → build → zapis `index.html` |
 | `src/nextNumber.ts` | Czysta funkcja inkrementu alfanumerycznego (testowana; lustro logiki `.gs`) |
 | `src/monthSheetName.ts` | Nazwa zakładki miesięcznej z `dataOdbioru` (testowana; lustro `.gs`) |
+| `src/dataZaladunkuRange.ts` | Data załadunku Od / Od+Do → `dd.mm.rrrr` lub `13.08/14.08.2026` |
 | `src/isBolecinDestination.ts` | Wykrycie celu Bolęcin/Biosystem (testowane; lustro `.gs`) |
 | `src/searchNormalize.ts` | Port `normalizeForAddressSearch` / match z `arkusz-mapa` |
 | `src/*.test.ts` | Vitest |

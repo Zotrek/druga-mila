@@ -11,7 +11,7 @@ Mapa wypełnia dokument tylko tam, gdzie w `.docx` są DOKŁADNIE takie fragment
 | `{{przewoznik}}` | Treść z kolumny B listy podwyko dla wybranej nazwy |
 | `{{miejsce_dostawy}}` | Nazwa pełna + adres z arkusza Rozładunek (jak `miejsce_zaladunku`) |
 | `{{dane_do_awizacji}}` | Nr rejestracyjny z pola awizacji (bez walidacji) |
-| `{{data_zaladunku}}` | Data z modala, format `dd.mm.rrrr` |
+| `{{data_zaladunku}}` | Data z modala: `dd.mm.rrrr` albo zakres `13.08/14.08.2026` |
 
 ## Stałe w szablonie (bez tagów)
 
@@ -57,5 +57,5 @@ Jak `arkusz-mapa`: `podwyko lista.xlsx`
 `{nazwa_skrócona} {dd.mm.rr} {fragment_adresu}.docx`
 
 - Nazwa skrócona załadunku (kolumna B); jeśli pusta → `protokol`.
-- Data z modala w formacie `dd.mm.rr` (rok 2-cyfrowy); jeśli pusta → bez segmentu daty.
+- Data z modala: `dd.mm.rr` albo zakres `13.08-14.08.26` (`/` w dacie → `-`, bo slash jest niedozwolony w nazwie pliku); jeśli pusta → bez segmentu daty.
 - Fragment adresu (kolumna C), obcięty; znaki niedozwolone w nazwie pliku (`\/:*?"<>|`) → spacje; wielokrotne spacje → jedna; trim; limit całej nazwy bazowej ~80 znaków.

@@ -60,18 +60,15 @@ export function wordModalCss(): string {
     .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
     .doc-modal-hint.is-busy { color: #0d6efd; font-weight: 600; }
     .doc-date-row { display: flex; gap: 8px; align-items: center; }
-    .doc-date-row #doc-inp-data { flex: 1; min-width: 0; }
     .doc-date-cal-btn { width: 38px; height: 38px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #ccc; border-radius: 6px; background: #f8f8f8; color: #333; cursor: pointer; }
     .doc-date-cal-btn:hover { background: #eee; }
     .doc-date-picker-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; clip: rect(0,0,0,0); }
-    .doc-okno-range { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
-    .doc-okno-range-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .doc-okno-range-field > span { font-size: 11px; font-weight: 600; color: #555; }
-    .doc-okno-range-field .doc-date-row { width: 100%; }
-    .doc-okno-range-field input[type="text"] { width: 92px; padding: 6px 8px; font-size: 13px; }
-    .doc-okno-range-insert { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 13px; white-space: nowrap; }
-    .doc-okno-range-insert:hover { background: #eee; }
-    .doc-okno-range-hint { font-size: 11px; color: #666; margin: 4px 0 0; width: 100%; }
+    .doc-date-range { margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .doc-date-range-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .doc-date-range-field > span { font-size: 11px; font-weight: 600; color: #555; }
+    .doc-date-range-field .doc-date-row { width: 100%; }
+    .doc-date-range-field input[type="text"] { width: 110px; padding: 6px 8px; font-size: 13px; }
+    .doc-date-range-hint { font-size: 11px; color: #666; margin: 4px 0 0; width: 100%; }
     .doc-bulk-points-wrap { margin-top: 8px; max-height: 160px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
     .doc-bulk-points-title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: #333; }
     .doc-bulk-points-list { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #444; line-height: 1.45; }
@@ -270,45 +267,35 @@ export function wordModalHtml(): string {
       <label for="doc-inp-awizacja">Dane do awizacji</label>
       <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
       <label for="doc-inp-okno-awizacji">Okno awizacji (tylko Google)</label>
-      <input type="text" id="doc-inp-okno-awizacji" maxlength="120" autocomplete="off" spellcheck="false" placeholder="np. 8:00–12:00 lub zakres dat" />
-      <div class="doc-okno-range" id="doc-okno-range">
-        <div class="doc-okno-range-field">
-          <span>Od</span>
-          <div class="doc-date-row">
-            <input type="text" id="doc-inp-okno-od" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
-            <button type="button" id="doc-btn-okno-od-cal" class="doc-date-cal-btn" title="Kalendarz Od" aria-label="Wybierz datę Od">
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
-              </svg>
-            </button>
-            <input type="date" id="doc-inp-okno-od-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
-          </div>
-        </div>
-        <div class="doc-okno-range-field">
-          <span>Do (opcjonalne)</span>
-          <div class="doc-date-row">
-            <input type="text" id="doc-inp-okno-do" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
-            <button type="button" id="doc-btn-okno-do-cal" class="doc-date-cal-btn" title="Kalendarz Do" aria-label="Wybierz datę Do">
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
-              </svg>
-            </button>
-            <input type="date" id="doc-inp-okno-do-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
-          </div>
-        </div>
-        <button type="button" id="doc-btn-okno-range-insert" class="doc-okno-range-insert" title="Wstaw zakres do pola powyżej">Wstaw zakres</button>
-        <p class="doc-okno-range-hint">Zakres → np. 14.08/17.08.26 (dni nie muszą być kolejne). Do nieobowiązkowe.</p>
-      </div>
+      <input type="text" id="doc-inp-okno-awizacji" maxlength="120" autocomplete="off" spellcheck="false" placeholder="np. 8:00–12:00" />
       <div id="doc-single-date-wrap">
-        <label for="doc-inp-data">Data załadunku</label>
-        <div class="doc-date-row">
-          <input type="text" id="doc-inp-data" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
-          <button type="button" id="doc-btn-data-cal" class="doc-date-cal-btn" title="Kalendarz" aria-label="Wybierz datę z kalendarza">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
-            </svg>
-          </button>
-          <input type="date" id="doc-inp-data-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+        <label for="doc-inp-data-od">Data załadunku</label>
+        <div class="doc-date-range" id="doc-data-range">
+          <div class="doc-date-range-field">
+            <span>Od</span>
+            <div class="doc-date-row">
+              <input type="text" id="doc-inp-data-od" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+              <button type="button" id="doc-btn-data-od-cal" class="doc-date-cal-btn" title="Kalendarz Od" aria-label="Wybierz datę załadunku Od">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+                </svg>
+              </button>
+              <input type="date" id="doc-inp-data-od-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+            </div>
+          </div>
+          <div class="doc-date-range-field">
+            <span>Do (opcjonalne)</span>
+            <div class="doc-date-row">
+              <input type="text" id="doc-inp-data-do" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+              <button type="button" id="doc-btn-data-do-cal" class="doc-date-cal-btn" title="Kalendarz Do" aria-label="Wybierz datę załadunku Do">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+                </svg>
+              </button>
+              <input type="date" id="doc-inp-data-do-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+            </div>
+          </div>
+          <p class="doc-date-range-hint">Tylko Od → 13.08.2026. Od i Do → 13.08/14.08.2026 (dni nie muszą być kolejne).</p>
         </div>
       </div>
       <div id="doc-harm-dates-wrap" hidden>
@@ -652,9 +639,7 @@ export function wordModalBrowserScript(): string {
       if (hasPrefill) {
         selectZaladunek(prefillIdx);
       }
-      var dateEl = document.getElementById('doc-inp-data');
-      if (dateEl) dateEl.value = formatDateForDoc(defaultDateZaladunkuYmd());
-      syncDatePickerFromText();
+      setDataZaladunkuValue(formatDateForDoc(defaultDateZaladunkuYmd()));
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       previewNumerFromApi();
@@ -680,9 +665,7 @@ export function wordModalBrowserScript(): string {
       setDocModalMode('bulk');
       resetDocModal();
       renderBulkPointsList(indices);
-      var dateElBulk = document.getElementById('doc-inp-data');
-      if (dateElBulk) dateElBulk.value = formatDateForDoc(defaultDateZaladunkuYmd());
-      syncDatePickerFromText();
+      setDataZaladunkuValue(formatDateForDoc(defaultDateZaladunkuYmd()));
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
@@ -728,9 +711,7 @@ export function wordModalBrowserScript(): string {
       setDocModalMode('combined');
       resetDocModal();
       renderBulkPointsList(indices);
-      var dateEl = document.getElementById('doc-inp-data');
-      if (dateEl) dateEl.value = formatDateForDoc(defaultDateZaladunkuYmd());
-      syncDatePickerFromText();
+      setDataZaladunkuValue(formatDateForDoc(defaultDateZaladunkuYmd()));
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
@@ -884,9 +865,7 @@ export function wordModalBrowserScript(): string {
         var el = document.getElementById(id); if (el) el.value = '';
       });
       var z = document.getElementById('doc-sel-zbiorka'); if (z) z.value = '';
-      var d = document.getElementById('doc-inp-data'); if (d) d.value = '';
-      var dp = document.getElementById('doc-inp-data-picker'); if (dp) dp.value = '';
-      ['doc-inp-okno-od','doc-inp-okno-do','doc-inp-okno-od-picker','doc-inp-okno-do-picker'].forEach(function(id) {
+      ['doc-inp-data-od','doc-inp-data-do','doc-inp-data-od-picker','doc-inp-data-do-picker'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
       if (window.__docModalMode !== 'harmonogram') {
@@ -1168,10 +1147,22 @@ export function wordModalBrowserScript(): string {
     function sanitizeFileNamePart(text) {
       return String(text).replace(/[\\\\/:*?"<>|]+/g, ' ').replace(/\\s+/g, ' ').trim();
     }
-    /** Jak arkusz-mapa: dz = dd.mm.rrrr, dzPlik = dd.mm.rr */
+    /** Jak arkusz-mapa: dz = dd.mm.rrrr, dzPlik = dd.mm.rr; zakres → 13.08/14.08.2026 */
     function formatLoadDates(dataZaladunku) {
       var s = String(dataZaladunku || '').trim();
       if (!s) return { doc: '', file: '' };
+      var range = s.match(/^(\\d{1,2})\\.(\\d{1,2})\\/(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})$/);
+      if (range) {
+        var dd1 = String(range[1]).padStart(2, '0');
+        var mm1 = String(range[2]).padStart(2, '0');
+        var dd2r = String(range[3]).padStart(2, '0');
+        var mm2r = String(range[4]).padStart(2, '0');
+        var yyyyR = range[5];
+        return {
+          doc: dd1 + '.' + mm1 + '/' + dd2r + '.' + mm2r + '.' + yyyyR,
+          file: dd1 + '.' + mm1 + '-' + dd2r + '.' + mm2r + '.' + yyyyR.slice(-2)
+        };
+      }
       var iso = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
       if (iso) {
         var yyyy = iso[1];
@@ -1207,58 +1198,59 @@ export function wordModalBrowserScript(): string {
       if (!m) return '';
       return m[3] + '-' + m[2] + '-' + m[1];
     }
-    function syncDatePickerFromText() {
-      var textEl = document.getElementById('doc-inp-data');
-      var pickEl = document.getElementById('doc-inp-data-picker');
-      if (!textEl || !pickEl) return;
-      var iso = docDateToIso(textEl.value);
-      if (iso) pickEl.value = iso;
-    }
-    function syncDateTextFromPicker() {
-      var textEl = document.getElementById('doc-inp-data');
-      var pickEl = document.getElementById('doc-inp-data-picker');
-      if (!textEl || !pickEl || !pickEl.value) return;
-      textEl.value = formatDateForDoc(pickEl.value);
-    }
-    function openDateCalendar() {
-      var pickEl = document.getElementById('doc-inp-data-picker');
-      if (!pickEl) return;
-      syncDatePickerFromText();
-      try {
-        if (typeof pickEl.showPicker === 'function') {
-          pickEl.showPicker();
-          return;
-        }
-      } catch (err) { /* ignore */ }
-      pickEl.focus();
-      pickEl.click();
-    }
-    /** Zakres do OKNO AWIZACJI: 14.08/17.08.26 (pierwsza dd.mm, druga dd.mm.rr). */
-    function formatOknoAwizacjiRange(odVal, doVal) {
+    /** Tylko Od → 13.08.2026; Od i Do → 13.08/14.08.2026 */
+    function formatDataZaladunkuRange(odVal, doVal) {
       var left = formatLoadDates(odVal);
+      if (!left.doc) return '';
       var right = formatLoadDates(doVal);
-      if (!left.doc || !right.doc) return '';
-      var leftDm = left.file.slice(0, 5);
-      if (!/^\\d{2}\\.\\d{2}$/.test(leftDm) || !/^\\d{2}\\.\\d{2}\\.\\d{2}$/.test(right.file)) return '';
-      return leftDm + '/' + right.file;
+      if (!right.doc || right.doc === left.doc) return left.doc;
+      var leftDm = left.doc.slice(0, 5);
+      if (!/^\\d{2}\\.\\d{2}$/.test(leftDm) || !/^\\d{2}\\.\\d{2}\\.\\d{4}$/.test(right.doc)) return left.doc;
+      return leftDm + '/' + right.doc;
     }
-    function syncOknoPickerFromText(textId, pickId) {
+    function splitDataZaladunkuRange(value) {
+      var s = String(value || '').trim();
+      var range = s.match(/^(\\d{1,2})\\.(\\d{1,2})\\/(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})$/);
+      if (range) {
+        var yyyy = range[5];
+        return {
+          od: String(range[1]).padStart(2, '0') + '.' + String(range[2]).padStart(2, '0') + '.' + yyyy,
+          doDate: String(range[3]).padStart(2, '0') + '.' + String(range[4]).padStart(2, '0') + '.' + yyyy
+        };
+      }
+      return { od: formatLoadDates(s).doc, doDate: '' };
+    }
+    function getDataZaladunkuValue() {
+      var odEl = document.getElementById('doc-inp-data-od');
+      var doEl = document.getElementById('doc-inp-data-do');
+      return formatDataZaladunkuRange(odEl ? odEl.value : '', doEl ? doEl.value : '');
+    }
+    function setDataZaladunkuValue(value) {
+      var parts = splitDataZaladunkuRange(value);
+      var odEl = document.getElementById('doc-inp-data-od');
+      var doEl = document.getElementById('doc-inp-data-do');
+      if (odEl) odEl.value = parts.od || '';
+      if (doEl) doEl.value = parts.doDate || '';
+      syncDateFieldPickerFromText('doc-inp-data-od', 'doc-inp-data-od-picker');
+      syncDateFieldPickerFromText('doc-inp-data-do', 'doc-inp-data-do-picker');
+    }
+    function syncDateFieldPickerFromText(textId, pickId) {
       var textEl = document.getElementById(textId);
       var pickEl = document.getElementById(pickId);
       if (!textEl || !pickEl) return;
       var iso = docDateToIso(textEl.value);
       if (iso) pickEl.value = iso;
     }
-    function syncOknoTextFromPicker(textId, pickId) {
+    function syncDateFieldTextFromPicker(textId, pickId) {
       var textEl = document.getElementById(textId);
       var pickEl = document.getElementById(pickId);
       if (!textEl || !pickEl || !pickEl.value) return;
       textEl.value = formatDateForDoc(pickEl.value);
     }
-    function openOknoCalendar(textId, pickId) {
+    function openDateFieldCalendar(textId, pickId) {
       var pickEl = document.getElementById(pickId);
       if (!pickEl) return;
-      syncOknoPickerFromText(textId, pickId);
+      syncDateFieldPickerFromText(textId, pickId);
       try {
         if (typeof pickEl.showPicker === 'function') {
           pickEl.showPicker();
@@ -1268,21 +1260,7 @@ export function wordModalBrowserScript(): string {
       pickEl.focus();
       pickEl.click();
     }
-    function insertOknoAwizacjiRange() {
-      var odEl = document.getElementById('doc-inp-okno-od');
-      var doEl = document.getElementById('doc-inp-okno-do');
-      var outEl = document.getElementById('doc-inp-okno-awizacji');
-      var hint = document.getElementById('doc-modal-hint');
-      if (!odEl || !doEl || !outEl) return;
-      var range = formatOknoAwizacjiRange(odEl.value, doEl.value);
-      if (!range) {
-        if (hint) hint.textContent = 'Aby wstawić zakres, wybierz obie daty Od i Do (Do nie jest wymagane do zapisu — tylko do zakresu).';
-        return;
-      }
-      outEl.value = range;
-      if (hint) hint.textContent = 'Wstawiono zakres: ' + range;
-    }
-    function wireOknoDateField(textId, pickId, calBtnId) {
+    function wireDateField(textId, pickId, calBtnId) {
       var textEl = document.getElementById(textId);
       var pickEl = document.getElementById(pickId);
       var calBtn = document.getElementById(calBtnId);
@@ -1290,18 +1268,18 @@ export function wordModalBrowserScript(): string {
         textEl.addEventListener('blur', function() {
           var f = formatLoadDates(textEl.value).doc;
           if (f) textEl.value = f;
-          syncOknoPickerFromText(textId, pickId);
+          syncDateFieldPickerFromText(textId, pickId);
         });
-        textEl.addEventListener('change', function() { syncOknoPickerFromText(textId, pickId); });
+        textEl.addEventListener('change', function() { syncDateFieldPickerFromText(textId, pickId); });
       }
       if (pickEl) {
-        pickEl.addEventListener('change', function() { syncOknoTextFromPicker(textId, pickId); });
-        pickEl.addEventListener('input', function() { syncOknoTextFromPicker(textId, pickId); });
+        pickEl.addEventListener('change', function() { syncDateFieldTextFromPicker(textId, pickId); });
+        pickEl.addEventListener('input', function() { syncDateFieldTextFromPicker(textId, pickId); });
       }
       if (calBtn) {
         calBtn.addEventListener('click', function(ev) {
           ev.preventDefault();
-          openOknoCalendar(textId, pickId);
+          openDateFieldCalendar(textId, pickId);
         });
       }
     }
@@ -1570,13 +1548,11 @@ export function wordModalBrowserScript(): string {
       if (aw) aw.value = row.awizacja || '';
       var okno = document.getElementById('doc-inp-okno-awizacji');
       if (okno) okno.value = row.oknoAwizacji || '';
-      var dateEl = document.getElementById('doc-inp-data');
-      if (dateEl) {
-        dateEl.value = row.dataOdbioru
+      setDataZaladunkuValue(
+        row.dataOdbioru
           ? formatDateForDoc(row.dataOdbioru)
-          : formatDateForDoc(defaultDateZaladunkuYmd());
-      }
-      syncDatePickerFromText();
+          : formatDateForDoc(defaultDateZaladunkuYmd())
+      );
       var stawka = document.getElementById('doc-inp-stawka');
       if (stawka) stawka.value = row.stawka || '';
       var worki = document.getElementById('doc-inp-worki');
@@ -2081,7 +2057,7 @@ export function wordModalBrowserScript(): string {
       return {
         pr: resolvePodwyko('doc-val-przewoznik', 'doc-sel-przewoznik'),
         md: resolveMiejsceDostawy('doc-val-miejsce', 'doc-sel-miejsce'),
-        dataVal: document.getElementById('doc-inp-data').value,
+        dataVal: getDataZaladunkuValue(),
         awizacja: document.getElementById('doc-inp-awizacja').value,
         oknoAwizacji: document.getElementById('doc-inp-okno-awizacji').value,
         stawka: document.getElementById('doc-inp-stawka').value,
@@ -2391,30 +2367,7 @@ export function wordModalBrowserScript(): string {
     }
     var harmAddDateBtn = document.getElementById('doc-btn-harm-add-date');
     if (harmAddDateBtn) harmAddDateBtn.addEventListener('click', addHarmDateRow);
-    var dateTextEl = document.getElementById('doc-inp-data');
-    var datePickEl = document.getElementById('doc-inp-data-picker');
-    var dateCalBtn = document.getElementById('doc-btn-data-cal');
-    if (dateTextEl) {
-      dateTextEl.addEventListener('blur', function() {
-        var f = formatLoadDates(dateTextEl.value).doc;
-        if (f) dateTextEl.value = f;
-        syncDatePickerFromText();
-      });
-      dateTextEl.addEventListener('change', syncDatePickerFromText);
-    }
-    if (datePickEl) {
-      datePickEl.addEventListener('change', syncDateTextFromPicker);
-      datePickEl.addEventListener('input', syncDateTextFromPicker);
-    }
-    if (dateCalBtn) {
-      dateCalBtn.addEventListener('click', function(ev) {
-        ev.preventDefault();
-        openDateCalendar();
-      });
-    }
-    wireOknoDateField('doc-inp-okno-od', 'doc-inp-okno-od-picker', 'doc-btn-okno-od-cal');
-    wireOknoDateField('doc-inp-okno-do', 'doc-inp-okno-do-picker', 'doc-btn-okno-do-cal');
-    var oknoRangeBtn = document.getElementById('doc-btn-okno-range-insert');
-    if (oknoRangeBtn) oknoRangeBtn.addEventListener('click', insertOknoAwizacjiRange);
+    wireDateField('doc-inp-data-od', 'doc-inp-data-od-picker', 'doc-btn-data-od-cal');
+    wireDateField('doc-inp-data-do', 'doc-inp-data-do-picker', 'doc-btn-data-do-cal');
   `;
 }

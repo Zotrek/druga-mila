@@ -103,9 +103,9 @@ Klik pinezki może podpowiedzieć ten punkt w comboboxie; pole nadal edytowalne 
 | Przewoźnik | Tak | „Kto odbiera” | Lista `podwyko` jak arkusz-mapa + search |
 | Miejsce dostawy | Tak | „Miejsce zrzutu” | Lista jak arkusz-mapa + search |
 | Dane do awizacji | Tak | „awizacja” | Nr rejestracyjny, **bez walidacji** |
-| Data załadunku | Tak | „Data odbioru” | Date picker jak arkusz-mapa (`dd.mm.rrrr`) |
+| Data załadunku | Tak | „Data odbioru” | Od obowiązkowe do złożenia daty; Do opcjonalne. Tylko Od → `dd.mm.rrrr`. Od i Do → `13.08/14.08.2026` (dni nie muszą być kolejne). Ta sama wartość na protokole Word, w Google i w nazwie pliku (w nazwie `/` → `-`) |
 | Stawka | **Nie** | „Stawka” | Wpis ręczny w modalu; **nie** trafia do protokołu Word |
-| Okno awizacji | **Nie** | „OKNO AWIZACJI” | Wpis ręczny (np. godziny) **lub** zakres dat z Od/Do → `14.08/17.08.26` (dni nie muszą być kolejne; Do nieobowiązkowe do zapisu) |
+| Okno awizacji | **Nie** | „OKNO AWIZACJI” | Wpis ręczny (np. godziny); **nie** zakres dat — zakres jest w Data załadunku |
 | Rodzaj zbiórki | **Nie** | „Rodzaj zbiórki” | Combobox + podpowiedź: `manualna` / `automatyczna` / `manualna i automatyczna` |
 | Ile worków | **Nie** | „Ile worków” | Wpis ręczny |
 | Rodzaj transportu | **Nie** | „rodzaj traportu” | Wpis ręczny |

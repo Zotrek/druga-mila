@@ -417,19 +417,28 @@ function syncCounterAfterWrite_(numer) {
 }
 
 /** Parsuje dd.mm.rrrr → { day, month, year } lub null. */
-function parseDataOdbioru_(value) {
-  var s = String(value || '').trim();
-  var m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-  if (!m) {
-    return null;
-  }
-  var day = parseInt(m[1], 10);
-  var month = parseInt(m[2], 10);
-  var year = parseInt(m[3], 10);
+function partsFromDayMonthYear_(dayRaw, monthRaw, yearRaw) {
+  var day = parseInt(dayRaw, 10);
+  var month = parseInt(monthRaw, 10);
+  var year = parseInt(yearRaw, 10);
   if (month < 1 || month > 12 || day < 1 || day > 31) {
     return null;
   }
   return { day: day, month: month, year: year };
+}
+
+/** `dd.mm.rrrr` albo zakres `dd.mm/dd.mm.rrrr` (miesiąc zakładki z Od). */
+function parseDataOdbioru_(value) {
+  var s = String(value || '').trim();
+  var range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (range) {
+    return partsFromDayMonthYear_(range[1], range[2], range[5]);
+  }
+  var m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (!m) {
+    return null;
+  }
+  return partsFromDayMonthYear_(m[1], m[2], m[3]);
 }
 
 /** Dziś w timezone skryptu (fallback gdy brak dataOdbioru). */

@@ -24,6 +24,20 @@ describe('wordFileName', () => {
     expect(formatDateForDoc('2026-07-05')).toBe('05.07.2026');
   });
 
+  it('test_formatDateForDoc_range_keeps_compact_full_year', () => {
+    expect(formatDateForDoc('13.08/14.08.2026')).toBe('13.08/14.08.2026');
+  });
+
+  it('test_formatDateForFileName_range_uses_hyphen', () => {
+    expect(formatDateForFileName('13.08/14.08.2026')).toBe('13.08-14.08.26');
+  });
+
+  it('test_buildDocxDownloadName_range_date_segment', () => {
+    expect(buildDocxDownloadName('GRODKÓW', '13.08/14.08.2026', '49-200 Grodków')).toBe(
+      'GRODKÓW 13.08-14.08.26 49-200 Grodków.docx',
+    );
+  });
+
   it('test_formatDateForFileName_matches_arkusz_dzPlik', () => {
     expect(formatDateForFileName('2026-07-20')).toBe('20.07.26');
     expect(formatDateForFileName('05.07.2026')).toBe('05.07.26');

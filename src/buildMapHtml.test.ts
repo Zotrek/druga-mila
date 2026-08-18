@@ -117,7 +117,12 @@ describe('buildMapHtml', () => {
     expect(html).toContain('commitHarm');
     expect(html).toContain('previewNumberHarm');
     expect(html).toContain('addHarmonogram');
-    expect(html).toContain('doc-inp-uwagi');
+    expect(html).toContain('doc-inp-data-od');
+    expect(html).toContain('doc-inp-data-do');
+    expect(html).toContain('formatDataZaladunkuRange');
+    expect(html).toContain('getDataZaladunkuValue');
+    expect(html).not.toContain('doc-inp-okno-od');
+    expect(html).not.toContain('Wstaw zakres');
     expect(html).toContain('openHarmonogramPicker');
     expect(html).toContain('proposeDatesFromDzienOdbioru');
     expect(html).toContain('harmRowHasSecondLoad');
