@@ -78,11 +78,11 @@
     .doc-date-cal-btn:hover { background: #eee; }
     .doc-date-picker-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; clip: rect(0,0,0,0); }
     .doc-date-range { margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
-    .doc-date-range-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .doc-date-range-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 0; }
     .doc-date-range-field > span { font-size: 11px; font-weight: 600; color: #555; }
     .doc-date-range-field .doc-date-row { width: 100%; }
-    .doc-date-range-field input[type="text"] { width: 110px; padding: 6px 8px; font-size: 13px; }
-    .doc-date-range-hint { font-size: 11px; color: #666; margin: 4px 0 0; width: 100%; }
+    .doc-date-range-field input[type="text"] { flex: 1; min-width: 0; width: auto; padding: 6px 8px; font-size: 13px; }
+    .doc-date-range-hint { font-size: 11px; color: #666; margin: 4px 0 0; width: 100%; flex: 1 0 100%; }
     .doc-bulk-points-wrap { margin-top: 8px; max-height: 160px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
     .doc-bulk-points-title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: #333; }
     .doc-bulk-points-list { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #444; line-height: 1.45; }
