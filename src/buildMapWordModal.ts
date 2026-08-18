@@ -30,7 +30,7 @@ export const COLOR_COMBINED_SELECTED = '#b45309';
 export function wordModalCss(): string {
   return `
     .doc-modal-overlay { position: fixed; inset: 0; z-index: 20000; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start; justify-content: center; padding: 24px 12px; overflow: auto; }
-    .doc-modal-panel { background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 18px 20px; width: min(440px, 100%); margin-top: 24px; }
+    .doc-modal-panel { background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 18px 20px; width: min(520px, 100%); margin-top: 24px; }
     .doc-modal-panel h3 { margin: 0 0 12px; font-size: 16px; }
     .doc-modal-panel label { display: block; font-size: 12px; font-weight: 600; margin: 10px 0 4px; color: #333; }
     .doc-modal-panel input[type="text"], .doc-modal-panel input[type="date"], .doc-modal-panel input[type="number"], .doc-modal-panel select { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; }
@@ -39,7 +39,20 @@ export function wordModalCss(): string {
     .doc-combobox-list li { padding: 6px 10px; font-size: 13px; cursor: pointer; }
     .doc-combobox-list li:hover, .doc-combobox-list li[aria-selected="true"] { background: #eef5ff; }
     .doc-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
-    .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; }
+    .doc-modal-actions--gen {
+      flex-direction: column;
+      align-items: stretch;
+      flex-wrap: nowrap;
+      gap: 8px;
+    }
+    .doc-modal-actions-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: nowrap;
+    }
+    .doc-modal-actions-row--cancel { margin-top: 0; }
+    .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; white-space: nowrap; }
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
     .doc-modal-actions button.excel { background: #198754; color: #fff; border-color: #198754; }
     .doc-modal-actions button:disabled { opacity: 0.7; cursor: wait; }
@@ -317,12 +330,16 @@ export function wordModalHtml(): string {
       <label for="doc-inp-uwagi">Uwagi (tylko Google)</label>
       <input type="text" id="doc-inp-uwagi" maxlength="200" autocomplete="off" />
       <p class="doc-modal-hint" id="doc-modal-hint" aria-live="polite">Pola opcjonalne. Bez Web App: Word lokalnie, bez auto-numeru.</p>
-      <div class="doc-modal-actions">
-        <button type="button" id="doc-btn-cancel">Anuluj</button>
-        <button type="button" id="doc-btn-delete-plan" class="danger" hidden>Usuń z planowanych</button>
-        <button type="button" id="doc-btn-save-plan" class="secondary" hidden>Zapisz planowane</button>
-        <button type="button" id="doc-btn-save-excel" class="excel" hidden>Tylko zapisz w Excelu</button>
-        <button type="button" id="doc-btn-generate" class="primary">Pobierz .docx</button>
+      <div class="doc-modal-actions doc-modal-actions--gen">
+        <div class="doc-modal-actions-row">
+          <button type="button" id="doc-btn-delete-plan" class="danger" hidden>Usuń z planowanych</button>
+          <button type="button" id="doc-btn-save-plan" class="secondary" hidden>Zapisz planowane</button>
+          <button type="button" id="doc-btn-save-excel" class="excel" hidden>Tylko zapisz w Excelu</button>
+          <button type="button" id="doc-btn-generate" class="primary">Pobierz .docx</button>
+        </div>
+        <div class="doc-modal-actions-row doc-modal-actions-row--cancel">
+          <button type="button" id="doc-btn-cancel">Anuluj</button>
+        </div>
       </div>
     </div>
   </div>

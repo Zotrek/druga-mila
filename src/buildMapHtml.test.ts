@@ -109,6 +109,7 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Zapisz planowane');
     expect(html).toContain('Tylko zapisz w Excelu');
     expect(html).toContain('doc-btn-save-excel');
+    expect(html).toContain('doc-modal-actions--gen');
     expect(html).toContain('skipWord');
     expect(html).toContain("mode === 'realize'");
     expect(html).toContain("'updatePlan' : 'plan'");
