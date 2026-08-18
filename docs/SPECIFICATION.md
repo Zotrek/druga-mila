@@ -105,7 +105,7 @@ Klik pinezki może podpowiedzieć ten punkt w comboboxie; pole nadal edytowalne 
 | Dane do awizacji | Tak | „awizacja” | Nr rejestracyjny, **bez walidacji** |
 | Data załadunku | Tak | „Data odbioru” | Date picker jak arkusz-mapa (`dd.mm.rrrr`) |
 | Stawka | **Nie** | „Stawka” | Wpis ręczny w modalu; **nie** trafia do protokołu Word |
-| Okno awizacji | **Nie** | „OKNO AWIZACJI” | Wpis ręczny w modalu; **nie** trafia do protokołu Word |
+| Okno awizacji | **Nie** | „OKNO AWIZACJI” | Wpis ręczny (np. godziny) **lub** zakres dat z Od/Do → `14.08/17.08.26` (dni nie muszą być kolejne; Do nieobowiązkowe do zapisu) |
 | Rodzaj zbiórki | **Nie** | „Rodzaj zbiórki” | Combobox + podpowiedź: `manualna` / `automatyczna` / `manualna i automatyczna` |
 | Ile worków | **Nie** | „Ile worków” | Wpis ręczny |
 | Rodzaj transportu | **Nie** | „rodzaj traportu” | Wpis ręczny |

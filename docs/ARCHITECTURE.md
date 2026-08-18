@@ -203,7 +203,7 @@ Body POST (kierunek pól):
 | Word payload | `miejsce_zaladunku = pełna + " " + adres`; łączony: **2× Word** (po jednym miejscu), ten sam `numer` |
 | Przewoźnik / dostawa | Combobox jak phase6 + `podwyko` |
 | Stawka | Input w modalu → kolumna Google; **nie** w docxtemplater |
-| Okno awizacji | Input w modalu → kolumna „OKNO AWIZACJI”; **nie** w docxtemplater |
+| Okno awizacji | Input w modalu → kolumna „OKNO AWIZACJI” (tekst lub zakres `dd.mm/dd.mm.rr`); **nie** w docxtemplater |
 | Zbiórka | Combobox 3 wartości; nie w docxtemplater |
 | Awizacja | Input text, bez walidacji |
 | Bolęcin default | Przy zbiórce zawierającej manualną (`manualna` lub `manualna i automatyczna`) ustaw dostawę na wpis **„Biosystem”** z `podwyko lista.xlsx` (adres tej pozycji = Bolęcin); na liście nie ma wiersza nazwanego literalnie „Bolęcin”. Przy czystej `automatyczna` — brak auto-podstawienia |

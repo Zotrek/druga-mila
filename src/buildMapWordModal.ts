@@ -64,6 +64,14 @@ export function wordModalCss(): string {
     .doc-date-cal-btn { width: 38px; height: 38px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #ccc; border-radius: 6px; background: #f8f8f8; color: #333; cursor: pointer; }
     .doc-date-cal-btn:hover { background: #eee; }
     .doc-date-picker-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; overflow: hidden; clip: rect(0,0,0,0); }
+    .doc-okno-range { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .doc-okno-range-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .doc-okno-range-field > span { font-size: 11px; font-weight: 600; color: #555; }
+    .doc-okno-range-field .doc-date-row { width: 100%; }
+    .doc-okno-range-field input[type="text"] { width: 92px; padding: 6px 8px; font-size: 13px; }
+    .doc-okno-range-insert { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 13px; white-space: nowrap; }
+    .doc-okno-range-insert:hover { background: #eee; }
+    .doc-okno-range-hint { font-size: 11px; color: #666; margin: 4px 0 0; width: 100%; }
     .doc-bulk-points-wrap { margin-top: 8px; max-height: 160px; overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
     .doc-bulk-points-title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: #333; }
     .doc-bulk-points-list { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #444; line-height: 1.45; }
@@ -262,7 +270,35 @@ export function wordModalHtml(): string {
       <label for="doc-inp-awizacja">Dane do awizacji</label>
       <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
       <label for="doc-inp-okno-awizacji">Okno awizacji (tylko Google)</label>
-      <input type="text" id="doc-inp-okno-awizacji" maxlength="120" autocomplete="off" spellcheck="false" />
+      <input type="text" id="doc-inp-okno-awizacji" maxlength="120" autocomplete="off" spellcheck="false" placeholder="np. 8:00–12:00 lub zakres dat" />
+      <div class="doc-okno-range" id="doc-okno-range">
+        <div class="doc-okno-range-field">
+          <span>Od</span>
+          <div class="doc-date-row">
+            <input type="text" id="doc-inp-okno-od" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+            <button type="button" id="doc-btn-okno-od-cal" class="doc-date-cal-btn" title="Kalendarz Od" aria-label="Wybierz datę Od">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+              </svg>
+            </button>
+            <input type="date" id="doc-inp-okno-od-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+          </div>
+        </div>
+        <div class="doc-okno-range-field">
+          <span>Do (opcjonalne)</span>
+          <div class="doc-date-row">
+            <input type="text" id="doc-inp-okno-do" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+            <button type="button" id="doc-btn-okno-do-cal" class="doc-date-cal-btn" title="Kalendarz Do" aria-label="Wybierz datę Do">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+              </svg>
+            </button>
+            <input type="date" id="doc-inp-okno-do-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+          </div>
+        </div>
+        <button type="button" id="doc-btn-okno-range-insert" class="doc-okno-range-insert" title="Wstaw zakres do pola powyżej">Wstaw zakres</button>
+        <p class="doc-okno-range-hint">Zakres → np. 14.08/17.08.26 (dni nie muszą być kolejne). Do nieobowiązkowe.</p>
+      </div>
       <div id="doc-single-date-wrap">
         <label for="doc-inp-data">Data załadunku</label>
         <div class="doc-date-row">
@@ -850,6 +886,9 @@ export function wordModalBrowserScript(): string {
       var z = document.getElementById('doc-sel-zbiorka'); if (z) z.value = '';
       var d = document.getElementById('doc-inp-data'); if (d) d.value = '';
       var dp = document.getElementById('doc-inp-data-picker'); if (dp) dp.value = '';
+      ['doc-inp-okno-od','doc-inp-okno-do','doc-inp-okno-od-picker','doc-inp-okno-do-picker'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
       if (window.__docModalMode !== 'harmonogram') {
         window.__harmDates = [];
         var harmDatesWrap = document.getElementById('doc-harm-dates-wrap');
@@ -1193,6 +1232,78 @@ export function wordModalBrowserScript(): string {
       } catch (err) { /* ignore */ }
       pickEl.focus();
       pickEl.click();
+    }
+    /** Zakres do OKNO AWIZACJI: 14.08/17.08.26 (pierwsza dd.mm, druga dd.mm.rr). */
+    function formatOknoAwizacjiRange(odVal, doVal) {
+      var left = formatLoadDates(odVal);
+      var right = formatLoadDates(doVal);
+      if (!left.doc || !right.doc) return '';
+      var leftDm = left.file.slice(0, 5);
+      if (!/^\\d{2}\\.\\d{2}$/.test(leftDm) || !/^\\d{2}\\.\\d{2}\\.\\d{2}$/.test(right.file)) return '';
+      return leftDm + '/' + right.file;
+    }
+    function syncOknoPickerFromText(textId, pickId) {
+      var textEl = document.getElementById(textId);
+      var pickEl = document.getElementById(pickId);
+      if (!textEl || !pickEl) return;
+      var iso = docDateToIso(textEl.value);
+      if (iso) pickEl.value = iso;
+    }
+    function syncOknoTextFromPicker(textId, pickId) {
+      var textEl = document.getElementById(textId);
+      var pickEl = document.getElementById(pickId);
+      if (!textEl || !pickEl || !pickEl.value) return;
+      textEl.value = formatDateForDoc(pickEl.value);
+    }
+    function openOknoCalendar(textId, pickId) {
+      var pickEl = document.getElementById(pickId);
+      if (!pickEl) return;
+      syncOknoPickerFromText(textId, pickId);
+      try {
+        if (typeof pickEl.showPicker === 'function') {
+          pickEl.showPicker();
+          return;
+        }
+      } catch (err) { /* ignore */ }
+      pickEl.focus();
+      pickEl.click();
+    }
+    function insertOknoAwizacjiRange() {
+      var odEl = document.getElementById('doc-inp-okno-od');
+      var doEl = document.getElementById('doc-inp-okno-do');
+      var outEl = document.getElementById('doc-inp-okno-awizacji');
+      var hint = document.getElementById('doc-modal-hint');
+      if (!odEl || !doEl || !outEl) return;
+      var range = formatOknoAwizacjiRange(odEl.value, doEl.value);
+      if (!range) {
+        if (hint) hint.textContent = 'Aby wstawić zakres, wybierz obie daty Od i Do (Do nie jest wymagane do zapisu — tylko do zakresu).';
+        return;
+      }
+      outEl.value = range;
+      if (hint) hint.textContent = 'Wstawiono zakres: ' + range;
+    }
+    function wireOknoDateField(textId, pickId, calBtnId) {
+      var textEl = document.getElementById(textId);
+      var pickEl = document.getElementById(pickId);
+      var calBtn = document.getElementById(calBtnId);
+      if (textEl) {
+        textEl.addEventListener('blur', function() {
+          var f = formatLoadDates(textEl.value).doc;
+          if (f) textEl.value = f;
+          syncOknoPickerFromText(textId, pickId);
+        });
+        textEl.addEventListener('change', function() { syncOknoPickerFromText(textId, pickId); });
+      }
+      if (pickEl) {
+        pickEl.addEventListener('change', function() { syncOknoTextFromPicker(textId, pickId); });
+        pickEl.addEventListener('input', function() { syncOknoTextFromPicker(textId, pickId); });
+      }
+      if (calBtn) {
+        calBtn.addEventListener('click', function(ev) {
+          ev.preventDefault();
+          openOknoCalendar(textId, pickId);
+        });
+      }
     }
     function buildDocxDownloadName(shortName, dataVal, adres) {
       var name = sanitizeFileNamePart(shortName) || 'protokol';
@@ -2301,5 +2412,9 @@ export function wordModalBrowserScript(): string {
         openDateCalendar();
       });
     }
+    wireOknoDateField('doc-inp-okno-od', 'doc-inp-okno-od-picker', 'doc-btn-okno-od-cal');
+    wireOknoDateField('doc-inp-okno-do', 'doc-inp-okno-do-picker', 'doc-btn-okno-do-cal');
+    var oknoRangeBtn = document.getElementById('doc-btn-okno-range-insert');
+    if (oknoRangeBtn) oknoRangeBtn.addEventListener('click', insertOknoAwizacjiRange);
   `;
 }

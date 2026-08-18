@@ -17,7 +17,7 @@ Przy generacji protokołu z mapy Apps Script dopisuje **jeden wiersz** na zakła
 | 3 | Czy protokół zrobiony | `tak` przy generacji / realizacji; `nie` na zakładce `Planowane` |
 | 4 | uwagi | Z pola „Uwagi” w modalu (**tylko Google** — nie Bolęcin, nie Word); w Sierpniu 2026 = kolumna D |
 | 5 | Nr zlecenia transportowego | Ten sam numer co w Word (**auto** z API: `DM*` lub `DMH*` dla stałego odbioru) |
-| 6 | OKNO AWIZACJI | Z pola „Okno awizacji” w modalu (opcjonalne; **nie** na protokole Word) |
+| 6 | OKNO AWIZACJI | Z pola „Okno awizacji” w modalu (opcjonalne: tekst lub zakres `14.08/17.08.26`; **nie** na protokole Word) |
 | 7 | Adres odbioru | Kolumna C (Adres) wybranego miejsca załadunku z `druga-mila.xlsx`; protokół łączony: `Adres1; Adres2` |
 | 8 | Nazwa kontrahenta / podmiot handlowy | Kolumna A (Nazwa pełna) miejsca załadunku; protokół łączony: `Nazwa1-Nazwa2` |
 | 9 | Data odbioru | Data załadunku z modala |
