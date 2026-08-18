@@ -171,9 +171,10 @@ Osobna ścieżka **bez** protokołu Word (jedyna w v1):
 1. **Zapisz planowane** (modal single) — rezerwacja `DM*` + wiersz na zakładkę **`Planowane`** (`Czy protokół = nie`). Bez Worda, bez arkusza Bolęcin. Pola jak dziś (opcjonalne).
 2. **Planowane** (przycisk na mapie) — lista z API → wybór → modal z prefillem (ten sam numer).
 3. **Realizacja** — „Pobierz .docx”: Word + wiersz w zakładce miesiąca (`Czy protokół = tak`) + Bolęcin jeśli cel Biosystem/Bolęcin + usunięcie z `Planowane`. Numer bez zmian.
-4. Opcjonalnie: zapis zmian w planowanym / usunięcie (anulowanie rezerwacji).
+4. **Tylko zapisz w Excelu** — ten sam zapis co „Pobierz .docx” / realizacja / hurt / łączony / stały odbiór (`Czy protokół = tak`, Bolęcin jeśli dotyczy), **bez** generacji i pobierania Worda. Wymaga Web App.
+5. Opcjonalnie: zapis zmian w planowanym / usunięcie (anulowanie rezerwacji).
 
-Hurt i protokół łączony **nie** obsługują planowania w v1. Brak zapisu „bez protokołu” prosto do zakładki miesiąca.
+Hurt i protokół łączony **nie** obsługują planowania w v1. Brak zapisu „bez protokołu” (`Czy protokół = nie`) prosto do zakładki miesiąca — „Tylko zapisz w Excelu” zapisuje do miesiąca z `Czy protokół = tak`, tylko bez pliku Word.
 
 ### 8. Numeracja zlecenia
 

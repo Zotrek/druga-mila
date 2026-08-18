@@ -212,6 +212,7 @@ Body POST (kierunek pól):
 | Protokół łączony | Osobny tryb: dokładnie 2 miejsca (mapa lub lista) → 1 POST (sklejone pola) + 2 docx (ten sam DM*); nazwy `-`, adresy `; ` (`src/combineLoadPoints.ts`) |
 | Harmonogram + II | Gdy wiersz Harmonogramu ma niepuste `II Adres` / `II Nazwa` → jak łączony: 1× `commitHarm` (sklejone) + 2× Word na termin |
 | Planowane | Przycisk listy + „Zapisz planowane”; realizacja = Word + `mode: realize` (bez planu w hurt/łączonym) |
+| Tylko Excel | Przycisk „Tylko zapisz w Excelu” — ten sam POST co generacja (`skipWord`), bez docxtemplater / `saveAs` |
 | Word | PizZip + docxtemplater; szablon base64 w HTML |
 
 Wszystkie pola opcjonalne — brak `alert` wymagalności przy generacji.

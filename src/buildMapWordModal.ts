@@ -38,12 +38,15 @@ export function wordModalCss(): string {
     .doc-combobox-list { position: absolute; z-index: 5; left: 0; right: 0; max-height: 180px; overflow: auto; margin: 0; padding: 4px 0; list-style: none; background: #fff; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
     .doc-combobox-list li { padding: 6px 10px; font-size: 13px; cursor: pointer; }
     .doc-combobox-list li:hover, .doc-combobox-list li[aria-selected="true"] { background: #eef5ff; }
-    .doc-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .doc-modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
     .doc-modal-actions button { padding: 8px 14px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; font-size: 14px; }
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+    .doc-modal-actions button.excel { background: #198754; color: #fff; border-color: #198754; }
     .doc-modal-actions button:disabled { opacity: 0.7; cursor: wait; }
-    .doc-modal-actions button.primary.is-busy { position: relative; padding-left: 34px; }
-    .doc-modal-actions button.primary.is-busy::before {
+    .doc-modal-actions button.primary.is-busy,
+    .doc-modal-actions button.excel.is-busy { position: relative; padding-left: 34px; }
+    .doc-modal-actions button.primary.is-busy::before,
+    .doc-modal-actions button.excel.is-busy::before {
       content: '';
       position: absolute;
       left: 12px;
@@ -318,6 +321,7 @@ export function wordModalHtml(): string {
         <button type="button" id="doc-btn-cancel">Anuluj</button>
         <button type="button" id="doc-btn-delete-plan" class="danger" hidden>Usuń z planowanych</button>
         <button type="button" id="doc-btn-save-plan" class="secondary" hidden>Zapisz planowane</button>
+        <button type="button" id="doc-btn-save-excel" class="excel" hidden>Tylko zapisz w Excelu</button>
         <button type="button" id="doc-btn-generate" class="primary">Pobierz .docx</button>
       </div>
     </div>
@@ -553,6 +557,7 @@ export function wordModalBrowserScript(): string {
       var harmDatesWrap = document.getElementById('doc-harm-dates-wrap');
       var okBtn = document.getElementById('doc-btn-generate');
       var savePlanBtn = document.getElementById('doc-btn-save-plan');
+      var saveExcelBtn = document.getElementById('doc-btn-save-excel');
       var deletePlanBtn = document.getElementById('doc-btn-delete-plan');
       var numerEl = document.getElementById('doc-inp-numer');
       var n = (window.__bulkDocLoadIdxs || []).length;
@@ -597,6 +602,16 @@ export function wordModalBrowserScript(): string {
       if (savePlanBtn) {
         savePlanBtn.hidden = !isSingleLike;
         savePlanBtn.textContent = isRealize ? 'Zapisz zmiany' : 'Zapisz planowane';
+      }
+      if (saveExcelBtn) {
+        saveExcelBtn.hidden = !WEBAPP_URL;
+        if (isHarm) {
+          saveExcelBtn.textContent = harmN === 1
+            ? 'Tylko zapisz w Excelu (1 termin)'
+            : ('Tylko zapisz w Excelu (' + harmN + ' terminów)');
+        } else if (isBulk) saveExcelBtn.textContent = 'Tylko zapisz w Excelu (wszystkie)';
+        else if (isCombined) saveExcelBtn.textContent = 'Tylko zapisz w Excelu';
+        else saveExcelBtn.textContent = 'Tylko zapisz w Excelu';
       }
       if (deletePlanBtn) deletePlanBtn.hidden = !isRealize;
       if (numerEl) numerEl.readOnly = isRealize;
@@ -1348,7 +1363,7 @@ export function wordModalBrowserScript(): string {
       }
       if (window.__docModalMode === 'realize') {
         if (hint) {
-          hint.textContent = 'Realizacja: „Pobierz .docx” zapisze do miesiąca, wygeneruje Word i usunie z Planowane. „Zapisz zmiany” aktualizuje plan.';
+          hint.textContent = 'Realizacja: „Pobierz .docx” zapisze do miesiąca, wygeneruje Word i usunie z Planowane. „Tylko zapisz w Excelu” — to samo bez Worda. „Zapisz zmiany” aktualizuje plan.';
         }
         return;
       }
@@ -1366,12 +1381,12 @@ export function wordModalBrowserScript(): string {
           if (hint) {
             if (window.__docModalMode === 'harmonogram') {
               hint.textContent = harmRowHasSecondLoad(window.__harmRow)
-                ? 'Łączony: każdy termin = 1× DMH* (Adres1; Adres2) + 2 protokoły Word. Harmonogram bez zmian.'
-                : 'Stały odbiór: każdy termin = wiersz DMH* + .docx. Harmonogram bez zmian.';
+                ? 'Łączony: każdy termin = 1× DMH* (Adres1; Adres2) + 2 protokoły Word. „Tylko zapisz w Excelu” — bez Worda. Harmonogram bez zmian.'
+                : 'Stały odbiór: każdy termin = wiersz DMH* + .docx. „Tylko zapisz w Excelu” — bez Worda. Harmonogram bez zmian.';
             } else if (window.__docModalMode === 'combined') {
-              hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word z tym numerem.';
+              hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word. „Tylko zapisz w Excelu” — tylko wiersz, bez Worda.';
             } else {
-              hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Zapisz planowane” tylko rezerwuje numer.';
+              hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Tylko zapisz w Excelu” — to samo bez Worda. „Zapisz planowane” tylko rezerwuje numer.';
             }
           }
         })
@@ -1652,11 +1667,18 @@ export function wordModalBrowserScript(): string {
     function updateHarmGenerateButtonLabel() {
       if (window.__docModalMode !== 'harmonogram') return;
       var okBtn = document.getElementById('doc-btn-generate');
-      if (!okBtn) return;
+      var excelBtn = document.getElementById('doc-btn-save-excel');
       var n = (window.__harmDates || []).filter(function(d) { return String(d || '').trim(); }).length;
-      okBtn.textContent = n === 1
-        ? 'Pobierz .docx (1 termin)'
-        : ('Pobierz .docx (' + n + ' terminów)');
+      if (okBtn) {
+        okBtn.textContent = n === 1
+          ? 'Pobierz .docx (1 termin)'
+          : ('Pobierz .docx (' + n + ' terminów)');
+      }
+      if (excelBtn && WEBAPP_URL) {
+        excelBtn.textContent = n === 1
+          ? 'Tylko zapisz w Excelu (1 termin)'
+          : ('Tylko zapisz w Excelu (' + n + ' terminów)');
+      }
     }
     function renderHarmDatesList() {
       var listEl = document.getElementById('doc-harm-dates-list');
@@ -1848,7 +1870,13 @@ export function wordModalBrowserScript(): string {
         if (btn) btn.disabled = false;
       });
     }
-    function runHarmonogramDocGenerate() {
+    function runHarmonogramDocGenerate(options) {
+      var opts = options || {};
+      var skipWord = !!opts.skipWord;
+      if (skipWord && !WEBAPP_URL) {
+        alert('Zapis w Excelu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
       syncHarmDatesFromInputs();
       var dates = (window.__harmDates || []).map(function(d) {
         return formatDateForDoc(d);
@@ -1875,17 +1903,22 @@ export function wordModalBrowserScript(): string {
       }
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
-      var statusLabel = isCombinedHarm
-        ? ('Generowanie stałego odbioru łączonego (' + dates.length + ' terminów × 2 Word)…')
-        : ('Generowanie stałego odbioru (' + dates.length + ' terminów)…');
-      setDocGenerateBusy(true, statusLabel);
-      ensureDocxLibrariesLoaded().then(function() {
+      var statusLabel = skipWord
+        ? ('Zapis stałego odbioru do Excela (' + dates.length + ' terminów)…')
+        : (isCombinedHarm
+          ? ('Generowanie stałego odbioru łączonego (' + dates.length + ' terminów × 2 Word)…')
+          : ('Generowanie stałego odbioru (' + dates.length + ' terminów)…'));
+      setDocGenerateBusy(true, statusLabel, skipWord ? 'Zapisywanie…' : 'Generowanie…');
+      var startChain = skipWord ? Promise.resolve() : ensureDocxLibrariesLoaded();
+      startChain.then(function() {
         var generated = 0;
         var failed = 0;
         var chain = Promise.resolve();
         dates.forEach(function(dateVal, jobIdx) {
           chain = chain.then(function() {
-            updateDocGenerateStatus('Generowanie ' + (jobIdx + 1) + ' / ' + dates.length + ': ' + dateVal);
+            updateDocGenerateStatus(
+              (skipWord ? 'Zapis ' : 'Generowanie ') + (jobIdx + 1) + ' / ' + dates.length + ': ' + dateVal
+            );
             var sharedForDate = {
               pr: shared.pr,
               md: shared.md,
@@ -1899,6 +1932,10 @@ export function wordModalBrowserScript(): string {
               uwagi: shared.uwagi
             };
             function downloadWordsForDate(numer) {
+              if (skipWord) {
+                generated += 1;
+                return Promise.resolve();
+              }
               if (isCombinedHarm) {
                 var wordChain = Promise.resolve();
                 [zalA, zalB].forEach(function(p, wIdx) {
@@ -1949,12 +1986,19 @@ export function wordModalBrowserScript(): string {
         return chain.then(function() {
           closeDocModal();
           if (failed > 0) {
-            alert('Stały odbiór: zapisano/pobrano ' + generated + ', błędy: ' + failed + '.');
+            alert(
+              (skipWord ? 'Stały odbiór (Excel): zapisano ' : 'Stały odbiór: zapisano/pobrano ') +
+              generated + ', błędy: ' + failed + '.'
+            );
+          } else if (skipWord) {
+            alert('Zapisano w Excelu: ' + generated + ' termin(ów).');
           }
         });
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się uruchomić generacji stałego odbioru.');
+        alert(skipWord
+          ? 'Nie udało się zapisać stałego odbioru w Excelu.'
+          : 'Nie udało się uruchomić generacji stałego odbioru.');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -2092,29 +2136,59 @@ export function wordModalBrowserScript(): string {
       return new Promise(function(resolve) { window.setTimeout(resolve, ms); });
     }
     var __docGenBusyLabel = '';
-    function setDocGenerateBusy(busy, statusText) {
+    var __docExcelBusyLabel = '';
+    function setDocGenerateBusy(busy, statusText, busyLabel) {
       var btn = document.getElementById('doc-btn-generate');
+      var excelBtn = document.getElementById('doc-btn-save-excel');
+      var savePlanBtn = document.getElementById('doc-btn-save-plan');
+      var deletePlanBtn = document.getElementById('doc-btn-delete-plan');
       var hint = document.getElementById('doc-modal-hint');
-      if (!btn) return;
       if (busy) {
-        if (!btn.getAttribute('data-busy')) {
+        if (btn && !btn.getAttribute('data-busy')) {
           btn.setAttribute('data-busy', '1');
           __docGenBusyLabel = btn.textContent || 'Pobierz .docx';
         }
-        btn.disabled = true;
-        btn.classList.add('is-busy');
-        btn.setAttribute('aria-busy', 'true');
-        btn.textContent = 'Generowanie…';
+        if (excelBtn && !excelBtn.getAttribute('data-busy')) {
+          excelBtn.setAttribute('data-busy', '1');
+          __docExcelBusyLabel = excelBtn.textContent || 'Tylko zapisz w Excelu';
+        }
+        if (btn) {
+          btn.disabled = true;
+          btn.classList.add('is-busy');
+          btn.setAttribute('aria-busy', 'true');
+          btn.textContent = busyLabel || 'Generowanie…';
+        }
+        if (excelBtn) {
+          excelBtn.disabled = true;
+          if (busyLabel === 'Zapisywanie…') {
+            excelBtn.classList.add('is-busy');
+            excelBtn.setAttribute('aria-busy', 'true');
+            excelBtn.textContent = 'Zapisywanie…';
+          }
+        }
+        if (savePlanBtn) savePlanBtn.disabled = true;
+        if (deletePlanBtn) deletePlanBtn.disabled = true;
         if (hint) {
           hint.classList.add('is-busy');
           if (statusText) hint.textContent = statusText;
         }
       } else {
-        btn.classList.remove('is-busy');
-        btn.removeAttribute('aria-busy');
-        btn.removeAttribute('data-busy');
-        if (__docGenBusyLabel) btn.textContent = __docGenBusyLabel;
-        btn.disabled = false;
+        if (btn) {
+          btn.classList.remove('is-busy');
+          btn.removeAttribute('aria-busy');
+          btn.removeAttribute('data-busy');
+          if (__docGenBusyLabel) btn.textContent = __docGenBusyLabel;
+          btn.disabled = false;
+        }
+        if (excelBtn) {
+          excelBtn.classList.remove('is-busy');
+          excelBtn.removeAttribute('aria-busy');
+          excelBtn.removeAttribute('data-busy');
+          if (__docExcelBusyLabel) excelBtn.textContent = __docExcelBusyLabel;
+          excelBtn.disabled = false;
+        }
+        if (savePlanBtn) savePlanBtn.disabled = false;
+        if (deletePlanBtn) deletePlanBtn.disabled = false;
         if (hint) hint.classList.remove('is-busy');
       }
     }
@@ -2122,18 +2196,24 @@ export function wordModalBrowserScript(): string {
       var hint = document.getElementById('doc-modal-hint');
       if (hint && statusText) hint.textContent = statusText;
     }
-    function generateDocxLocal() {
-      if (!wordDocEnabled) return;
+    function generateDocxLocal(options) {
+      var opts = options || {};
+      var skipWord = !!opts.skipWord;
+      if (!wordDocEnabled && !skipWord) return;
+      if (skipWord && !WEBAPP_URL) {
+        alert('Zapis w Excelu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
       if (window.__docModalMode === 'bulk') {
-        runBulkDocGenerate();
+        runBulkDocGenerate({ skipWord: skipWord });
         return;
       }
       if (window.__docModalMode === 'combined') {
-        runCombinedDocGenerate();
+        runCombinedDocGenerate({ skipWord: skipWord });
         return;
       }
       if (window.__docModalMode === 'harmonogram') {
-        runHarmonogramDocGenerate();
+        runHarmonogramDocGenerate({ skipWord: skipWord });
         return;
       }
       var zal = resolveZaladunek();
@@ -2142,13 +2222,20 @@ export function wordModalBrowserScript(): string {
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
       var isRealize = window.__docModalMode === 'realize';
       var plan = window.__realizePlan;
-      setDocGenerateBusy(true, WEBAPP_URL
-        ? (isRealize
-          ? 'Realizacja: zapisuję w Google i generuję protokół…'
-          : 'Zapisuję w Google Sheets i generuję protokół…')
-        : 'Generowanie protokołu Word…');
+      setDocGenerateBusy(
+        true,
+        WEBAPP_URL
+          ? (skipWord
+            ? (isRealize ? 'Realizacja: zapisuję w Google…' : 'Zapisuję w Google Sheets…')
+            : (isRealize
+              ? 'Realizacja: zapisuję w Google i generuję protokół…'
+              : 'Zapisuję w Google Sheets i generuję protokół…'))
+          : 'Generowanie protokołu Word…',
+        skipWord ? 'Zapisywanie…' : 'Generowanie…'
+      );
 
-      ensureDocxLibrariesLoaded().then(function() {
+      var startChain = skipWord ? Promise.resolve() : ensureDocxLibrariesLoaded();
+      startChain.then(function() {
         updateDocGenerateStatus(WEBAPP_URL
           ? 'Łączenie z Web App / zapis w arkuszu…'
           : 'Składanie dokumentu Word…');
@@ -2172,6 +2259,11 @@ export function wordModalBrowserScript(): string {
             }
             var numer = String(resp.numer || numerWpisany || plan.numer || '');
             if (numerEl) numerEl.value = numer;
+            if (skipWord) {
+              alert('Zapisano w Excelu: ' + numer);
+              closeDocModal();
+              return;
+            }
             updateDocGenerateStatus('Pobieranie pliku .docx…');
             renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
           });
@@ -2185,17 +2277,30 @@ export function wordModalBrowserScript(): string {
           }
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
+          if (skipWord) {
+            alert('Zapisano w Excelu: ' + numer);
+            closeDocModal();
+            return;
+          }
           updateDocGenerateStatus('Pobieranie pliku .docx…');
           renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
         });
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
+        alert(skipWord
+          ? 'Nie udało się zapisać w Excelu (sieć / Web App).'
+          : 'Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
     }
-    function runCombinedDocGenerate() {
+    function runCombinedDocGenerate(options) {
+      var opts = options || {};
+      var skipWord = !!opts.skipWord;
+      if (skipWord && !WEBAPP_URL) {
+        alert('Zapis w Excelu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
       var indices = window.__bulkDocLoadIdxs || [];
       if (indices.length !== 2) {
         alert('Protokół łączony wymaga dokładnie dwóch miejsc załadunku.');
@@ -2212,11 +2317,23 @@ export function wordModalBrowserScript(): string {
       var shared = collectSharedForm();
       var numerEl = document.getElementById('doc-inp-numer');
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
-      setDocGenerateBusy(true, WEBAPP_URL
-        ? 'Zapisuję w Google Sheets i generuję 2 protokoły…'
-        : 'Generowanie 2 protokołów Word…');
+      setDocGenerateBusy(
+        true,
+        WEBAPP_URL
+          ? (skipWord
+            ? 'Zapisuję w Google Sheets…'
+            : 'Zapisuję w Google Sheets i generuję 2 protokoły…')
+          : 'Generowanie 2 protokołów Word…',
+        skipWord ? 'Zapisywanie…' : 'Generowanie…'
+      );
 
       function downloadBothWord(numer) {
+        if (skipWord) {
+          clearCombinedSelection();
+          closeDocModal();
+          alert('Zapisano w Excelu: ' + numer);
+          return Promise.resolve();
+        }
         var chain = Promise.resolve();
         wordPoints.forEach(function(p, jobIdx) {
           chain = chain.then(function() {
@@ -2235,7 +2352,8 @@ export function wordModalBrowserScript(): string {
         });
       }
 
-      ensureDocxLibrariesLoaded().then(function() {
+      var startChain = skipWord ? Promise.resolve() : ensureDocxLibrariesLoaded();
+      startChain.then(function() {
         if (!WEBAPP_URL) {
           return downloadBothWord(numerWpisany);
         }
@@ -2253,20 +2371,35 @@ export function wordModalBrowserScript(): string {
         });
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).');
+        alert(skipWord
+          ? 'Nie udało się zapisać w Excelu (sieć / Web App).'
+          : 'Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
     }
-    function runBulkDocGenerate() {
+    function runBulkDocGenerate(options) {
+      var opts = options || {};
+      var skipWord = !!opts.skipWord;
+      if (skipWord && !WEBAPP_URL) {
+        alert('Zapis w Excelu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
       var indices = window.__bulkDocLoadIdxs || [];
       if (indices.length === 0) {
         alert('Brak zaznaczonych punktów.');
         return;
       }
       var shared = collectSharedForm();
-      setDocGenerateBusy(true, 'Przygotowanie generacji hurtowej (' + indices.length + ')…');
-      ensureDocxLibrariesLoaded().then(function() {
+      setDocGenerateBusy(
+        true,
+        skipWord
+          ? ('Zapis hurtowy do Excela (' + indices.length + ')…')
+          : ('Przygotowanie generacji hurtowej (' + indices.length + ')…'),
+        skipWord ? 'Zapisywanie…' : 'Generowanie…'
+      );
+      var startChain = skipWord ? Promise.resolve() : ensureDocxLibrariesLoaded();
+      startChain.then(function() {
         var generated = 0;
         var failed = 0;
         var chain = Promise.resolve();
@@ -2274,8 +2407,10 @@ export function wordModalBrowserScript(): string {
           chain = chain.then(function() {
             var zal = LOAD_POINTS[loadIdx];
             if (!zal) return Promise.resolve();
-            updateDocGenerateStatus('Generowanie ' + (jobIdx + 1) + ' / ' + indices.length + ': ' +
-              (zal.nazwaSkrocona || zal.nazwaPelna));
+            updateDocGenerateStatus(
+              (skipWord ? 'Zapis ' : 'Generowanie ') + (jobIdx + 1) + ' / ' + indices.length + ': ' +
+              (zal.nazwaSkrocona || zal.nazwaPelna)
+            );
             if (!WEBAPP_URL) {
               renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, '', { closeModal: false });
               generated += 1;
@@ -2285,13 +2420,15 @@ export function wordModalBrowserScript(): string {
               if (!resp || !resp.ok) {
                 throw new Error(resp && resp.error ? resp.error : 'błąd API');
               }
-              renderAndDownloadDocx(
-                zal, shared.pr, shared.md, shared.dataVal, shared.awizacja,
-                String(resp.numer || ''),
-                { closeModal: false }
-              );
+              if (!skipWord) {
+                renderAndDownloadDocx(
+                  zal, shared.pr, shared.md, shared.dataVal, shared.awizacja,
+                  String(resp.numer || ''),
+                  { closeModal: false }
+                );
+              }
               generated += 1;
-              return delayMs(450);
+              return delayMs(skipWord ? 150 : 450);
             });
           }).catch(function(err) {
             console.error(err);
@@ -2302,18 +2439,33 @@ export function wordModalBrowserScript(): string {
           clearBulkSelection();
           closeDocModal();
           if (failed > 0) {
-            alert('Hurt: zapisano/pobrano ' + generated + ', błędy: ' + failed + '.');
+            alert(
+              (skipWord ? 'Hurt (Excel): zapisano ' : 'Hurt: zapisano/pobrano ') +
+              generated + ', błędy: ' + failed + '.'
+            );
+          } else if (skipWord) {
+            alert('Zapisano w Excelu: ' + generated + ' wiersz(y).');
           }
         });
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się uruchomić generacji hurtowej.');
+        alert(skipWord
+          ? 'Nie udało się zapisać hurtowo w Excelu.'
+          : 'Nie udało się uruchomić generacji hurtowej.');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
     }
     document.getElementById('doc-btn-cancel').addEventListener('click', closeDocModal);
-    document.getElementById('doc-btn-generate').addEventListener('click', generateDocxLocal);
+    document.getElementById('doc-btn-generate').addEventListener('click', function() {
+      generateDocxLocal();
+    });
+    var saveExcelBtnEl = document.getElementById('doc-btn-save-excel');
+    if (saveExcelBtnEl) {
+      saveExcelBtnEl.addEventListener('click', function() {
+        generateDocxLocal({ skipWord: true });
+      });
+    }
     var savePlanBtnEl = document.getElementById('doc-btn-save-plan');
     if (savePlanBtnEl) savePlanBtnEl.addEventListener('click', savePlanowaneFromModal);
     var deletePlanBtnEl = document.getElementById('doc-btn-delete-plan');
