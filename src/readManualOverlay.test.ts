@@ -31,6 +31,7 @@ describe('parseManualLoadEntry', () => {
       nazwaSkrocona: 'NOWY',
       adres: '00-001 Warszawa',
       typ: 'CD',
+      rodzajZbiorki: '',
     });
   });
 });
@@ -56,12 +57,13 @@ describe('mergeLoadPoints', () => {
         nazwaSkrocona: 'A',
         adres: 'Adres 1',
         typ: 'CD',
+        rodzajZbiorki: '',
         colorKind: 'cd' as const,
       },
     ];
     const merged = mergeLoadPoints(base, [
-      { nazwaPelna: 'B', nazwaSkrocona: 'B', adres: 'Adres 2', typ: 'PLAC' },
-      { nazwaPelna: 'A', nazwaSkrocona: 'A', adres: 'Adres 1', typ: 'PLAC' },
+      { nazwaPelna: 'B', nazwaSkrocona: 'B', adres: 'Adres 2', typ: 'PLAC', rodzajZbiorki: '' },
+      { nazwaPelna: 'A', nazwaSkrocona: 'A', adres: 'Adres 1', typ: 'PLAC', rodzajZbiorki: '' },
     ]);
     expect(merged).toHaveLength(2);
     const updated = merged.find((p) => p.adres === 'Adres 1');

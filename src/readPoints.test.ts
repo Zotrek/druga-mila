@@ -13,6 +13,11 @@ describe('parseLoadRow', () => {
     expect(parseLoadRow(['Firma', 'SKR', '   ', 'CD'])).toBeNull();
   });
 
+  it('test_parseLoadRow_reads_rodzaj_zbiorki', () => {
+    const p = parseLoadRow(['CD Test', 'TEST', '00-001 Warszawa', 'CD', 'manualna']);
+    expect(p!.rodzajZbiorki).toBe('manualna');
+  });
+
   it('test_parseLoadRow_returns_point_with_color', () => {
     const p = parseLoadRow(['CD Test', 'TEST', '00-001 Warszawa ul. A 1', 'CD']);
     expect(p).not.toBeNull();
@@ -20,6 +25,7 @@ describe('parseLoadRow', () => {
     expect(p!.nazwaSkrocona).toBe('TEST');
     expect(p!.adres).toBe('00-001 Warszawa ul. A 1');
     expect(p!.typ).toBe('CD');
+    expect(p!.rodzajZbiorki).toBe('');
     expect(p!.colorKind).toBe('cd');
   });
 

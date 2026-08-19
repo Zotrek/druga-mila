@@ -53,6 +53,13 @@ export function manualAdminHtml(): string {
           <option value="CD">CD</option>
           <option value="PLAC">PLAC</option>
         </select>
+        <label for="manual-admin-zal-zbiorka">Rodzaj zbiórki</label>
+        <select id="manual-admin-zal-zbiorka">
+          <option value="">—</option>
+          <option value="manualna">manualna</option>
+          <option value="automatyczna">automatyczna</option>
+          <option value="manualna i automatyczna">manualna i automatyczna</option>
+        </select>
         <p class="manual-admin-hint">Pinezka pojawi się na mapie po geokodowaniu adresu lub po podaniu współrzędnych ręcznie.</p>
         <p class="manual-admin-hint">
           <button type="button" id="manual-admin-zal-toggle-coords" class="manual-admin-link-btn">Współrzędne ręczne (opcjonalnie)</button>
@@ -176,6 +183,8 @@ export function manualAdminBrowserScript(): string {
       });
       var typEl = document.getElementById('manual-admin-zal-typ');
       if (typEl) typEl.value = '';
+      var zbiorkaEl = document.getElementById('manual-admin-zal-zbiorka');
+      if (zbiorkaEl) zbiorkaEl.value = '';
       showZalGeocodeFail(false);
       showZalCoordsSection(false);
     }
@@ -198,13 +207,14 @@ export function manualAdminBrowserScript(): string {
       return { lat: lat, lon: lon };
     }
 
-    function persistZaladunekEntry(pelna, skrocona, adres, typ, coords) {
+    function persistZaladunekEntry(pelna, skrocona, adres, typ, rodzajZbiorki, coords) {
       var payload = {
         mode: 'addReferenceZaladunek',
         nazwaPelna: pelna,
         nazwaSkrocona: skrocona,
         adres: adres,
-        typ: typ
+        typ: typ,
+        rodzajZbiorki: rodzajZbiorki
       };
       if (coords) {
         payload.lat = coords.lat;
@@ -312,7 +322,8 @@ export function manualAdminBrowserScript(): string {
         nazwaPelna: pelna,
         nazwaSkrocona: skrocona,
         adres: entry.adres,
-        typ: String(entry.typ || '').trim()
+        typ: String(entry.typ || '').trim(),
+        rodzajZbiorki: String(entry.rodzajZbiorki || '').trim()
       });
       var loadIdx = LOAD_POINTS.length - 1;
       var lat = entry.lat != null ? parseFloat(entry.lat) : NaN;
@@ -384,10 +395,12 @@ export function manualAdminBrowserScript(): string {
       var skrocona = (document.getElementById('manual-admin-zal-skrocona') || {}).value || '';
       var adres = (document.getElementById('manual-admin-zal-adres') || {}).value || '';
       var typ = (document.getElementById('manual-admin-zal-typ') || {}).value || '';
+      var rodzajZbiorki = (document.getElementById('manual-admin-zal-zbiorka') || {}).value || '';
       pelna = String(pelna).trim();
       skrocona = String(skrocona).trim();
       adres = String(adres).trim();
       typ = String(typ).trim();
+      rodzajZbiorki = String(rodzajZbiorki).trim();
       if (!adres) {
         setManualAdminStatus('Podaj adres.', 'error');
         return;
@@ -416,7 +429,7 @@ export function manualAdminBrowserScript(): string {
       if (manual) {
         setManualAdminBusy(btn, true);
         setManualAdminStatus('Zapis do arkusza (współrzędne ręczne)…');
-        persistZaladunekEntry(pelna, skrocona, adres, typ, manual)
+        persistZaladunekEntry(pelna, skrocona, adres, typ, rodzajZbiorki, manual)
           .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
           .finally(function() { setManualAdminBusy(btn, false); });
         return;
@@ -428,7 +441,7 @@ export function manualAdminBrowserScript(): string {
         if (coords) {
           showZalGeocodeFail(false);
           setManualAdminStatus('Zapis do arkusza…');
-          return persistZaladunekEntry(pelna, skrocona, adres, typ, coords);
+          return persistZaladunekEntry(pelna, skrocona, adres, typ, rodzajZbiorki, coords);
         }
         showZalGeocodeFail(true);
         showZalCoordsSection(true);
@@ -449,6 +462,7 @@ export function manualAdminBrowserScript(): string {
       var skrocona = String((document.getElementById('manual-admin-zal-skrocona') || {}).value || '').trim();
       var adres = String((document.getElementById('manual-admin-zal-adres') || {}).value || '').trim();
       var typ = String((document.getElementById('manual-admin-zal-typ') || {}).value || '').trim();
+      var rodzajZbiorki = String((document.getElementById('manual-admin-zal-zbiorka') || {}).value || '').trim();
       if (!adres) {
         setManualAdminStatus('Podaj adres.', 'error');
         return;
@@ -465,7 +479,7 @@ export function manualAdminBrowserScript(): string {
       }
       setManualAdminBusy(btn, true);
       setManualAdminStatus('Zapis do arkusza (bez pinezki)…');
-      persistZaladunekEntry(pelna, skrocona, adres, typ, null)
+      persistZaladunekEntry(pelna, skrocona, adres, typ, rodzajZbiorki, null)
         .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
         .finally(function() { setManualAdminBusy(btn, false); });
     }

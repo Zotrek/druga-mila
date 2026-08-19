@@ -698,6 +698,7 @@ export function wordModalBrowserScript(): string {
       resetDocModal();
       renderBulkPointsList(indices);
       setDataZaladunkuValue(formatDateForDoc(defaultDateZaladunkuYmd()));
+      if (indices.length > 0) applyRodzajZbiorkiFromLoadPoint(LOAD_POINTS[indices[0]]);
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
@@ -744,6 +745,7 @@ export function wordModalBrowserScript(): string {
       resetDocModal();
       renderBulkPointsList(indices);
       setDataZaladunkuValue(formatDateForDoc(defaultDateZaladunkuYmd()));
+      applyRodzajZbiorkiFromLoadPoint(LOAD_POINTS[indices[0]]);
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
@@ -1004,6 +1006,7 @@ export function wordModalBrowserScript(): string {
       var hid = document.getElementById('doc-val-zaladunek');
       if (inp) inp.value = p.nazwaSkrocona || p.nazwaPelna;
       if (hid) hid.value = String(idx);
+      applyRodzajZbiorkiFromLoadPoint(p);
     }
     function wireCombobox(inputId, hiddenId, listId, getItems, getLabel, onPick) {
       var input = document.getElementById(inputId);
@@ -1106,18 +1109,35 @@ export function wordModalBrowserScript(): string {
       }
       return -1;
     }
+    function applyBiosystemIfManualZbiorka(v) {
+      if (v === 'manualna' || v === 'manualna i automatyczna') {
+        var bi = findBiosystemIdx();
+        if (bi >= 0) {
+          var it = MIEJSCA_DOSTAWY[bi];
+          document.getElementById('doc-val-miejsce').value = String(bi);
+          document.getElementById('doc-sel-miejsce').value = it.label;
+        }
+      }
+    }
+    /** Ustawia pole „Rodzaj zbiórki” z punktu załadunku (kolumna E / Google Sheets). */
+    function applyRodzajZbiorkiFromLoadPoint(p) {
+      if (!p) return;
+      var z = document.getElementById('doc-sel-zbiorka');
+      if (!z) return;
+      var v = String(p.rodzajZbiorki || '').trim();
+      z.value = v;
+      if (v) applyBiosystemIfManualZbiorka(v);
+    }
+    /** Wartość do Google: z formularza albo — gdy puste — z miejsca załadunku. */
+    function resolveRodzajZbiorki(zal, formZbiorka) {
+      var fromForm = String(formZbiorka || '').trim();
+      if (fromForm) return fromForm;
+      return String(zal && zal.rodzajZbiorki || '').trim();
+    }
     var zbiorkaEl = document.getElementById('doc-sel-zbiorka');
     if (zbiorkaEl) {
       zbiorkaEl.addEventListener('change', function() {
-        var v = zbiorkaEl.value;
-        if (v === 'manualna' || v === 'manualna i automatyczna') {
-          var bi = findBiosystemIdx();
-          if (bi >= 0) {
-            var it = MIEJSCA_DOSTAWY[bi];
-            document.getElementById('doc-val-miejsce').value = String(bi);
-            document.getElementById('doc-sel-miejsce').value = it.label;
-          }
-        }
+        applyBiosystemIfManualZbiorka(zbiorkaEl.value);
       });
     }
     var harmZbiorkaEl = document.getElementById('harm-add-zbiorka');
@@ -1348,16 +1368,26 @@ export function wordModalBrowserScript(): string {
       }
       var typed = document.getElementById('doc-sel-zaladunek');
       var t = typed ? String(typed.value).trim() : '';
+      var i;
+      if (t) {
+        for (i = 0; i < LOAD_POINTS.length; i++) {
+          var lp = LOAD_POINTS[i];
+          if (lp.nazwaSkrocona === t || lp.nazwaPelna === t) return lp;
+        }
+      }
       var plan = window.__realizePlan || window.__harmRow;
       if (plan) {
+        var planIdx = findLoadIdxForPlanRow(plan);
+        var planPoint = planIdx >= 0 ? LOAD_POINTS[planIdx] : null;
         return {
           nazwaPelna: plan.nazwaKontrahenta || t,
           nazwaSkrocona: t || plan.nazwaKontrahenta || '',
           adres: plan.adresOdbioru || '',
-          typ: plan.znacznikMiejsca || ''
+          typ: plan.znacznikMiejsca || '',
+          rodzajZbiorki: planPoint ? String(planPoint.rodzajZbiorki || '').trim() : ''
         };
       }
-      return { nazwaPelna: t, nazwaSkrocona: t, adres: '', typ: '' };
+      return { nazwaPelna: t, nazwaSkrocona: t, adres: '', typ: '', rodzajZbiorki: '' };
     }
     window.__docPreviewNumer = '';
     function previewNumerFromApi() {
@@ -1461,8 +1491,19 @@ export function wordModalBrowserScript(): string {
         nazwaPelna: n,
         nazwaSkrocona: n,
         adres: a,
-        typ: t
+        typ: t,
+        rodzajZbiorki: ''
       };
+    }
+    function applyRodzajZbiorkiFromRowOrPoint(row, loadIdx) {
+      var v = String(row && row.rodzajZbiorki || '').trim();
+      if (!v && loadIdx >= 0 && LOAD_POINTS[loadIdx]) {
+        v = String(LOAD_POINTS[loadIdx].rodzajZbiorki || '').trim();
+      }
+      var z = document.getElementById('doc-sel-zbiorka');
+      if (!z) return;
+      z.value = v;
+      if (v) applyBiosystemIfManualZbiorka(v);
     }
     function selectListByLabel(list, hiddenId, inputId, label) {
       var target = String(label || '').trim();
@@ -1572,8 +1613,7 @@ export function wordModalBrowserScript(): string {
       var numerEl = document.getElementById('doc-inp-numer');
       if (numerEl) numerEl.value = String(row.numer || '');
       window.__docPreviewNumer = String(row.numer || '');
-      var z = document.getElementById('doc-sel-zbiorka');
-      if (z) z.value = row.rodzajZbiorki || '';
+      applyRodzajZbiorkiFromRowOrPoint(row, loadIdx);
       selectPodwykoByLabel('doc-val-przewoznik', 'doc-sel-przewoznik', row.ktoOdbiera);
       selectMiejsceDostawyByLabel('doc-val-miejsce', 'doc-sel-miejsce', row.miejsceZrzutu);
       var aw = document.getElementById('doc-inp-awizacja');
@@ -1760,8 +1800,9 @@ export function wordModalBrowserScript(): string {
       resetDocModal();
       var isCombinedHarm = harmRowHasSecondLoad(row);
       var loadIdx = findLoadIdxForPlanRow(row);
+      var zalA = null;
       if (isCombinedHarm) {
-        var zalA = loadPointFromHarmPart(row.nazwaKontrahenta, row.adresOdbioru, row.znacznikMiejsca);
+        zalA = loadPointFromHarmPart(row.nazwaKontrahenta, row.adresOdbioru, row.znacznikMiejsca);
         var zalB = loadPointFromHarmPart(row.nazwaKontrahentaIi, row.adresOdbioruIi, '');
         renderNamedPointsList([zalA, zalB]);
       } else if (loadIdx >= 0) {
@@ -1770,8 +1811,10 @@ export function wordModalBrowserScript(): string {
         var zalInp = document.getElementById('doc-sel-zaladunek');
         if (zalInp) zalInp.value = row.nazwaKontrahenta || row.adresOdbioru || '';
       }
-      var z = document.getElementById('doc-sel-zbiorka');
-      if (z) z.value = row.rodzajZbiorki || '';
+      applyRodzajZbiorkiFromRowOrPoint(row, loadIdx);
+      if (isCombinedHarm && zalA && !String(row.rodzajZbiorki || '').trim()) {
+        applyRodzajZbiorkiFromLoadPoint(zalA);
+      }
       selectPodwykoByLabel('doc-val-przewoznik', 'doc-sel-przewoznik', row.ktoOdbiera);
       selectMiejsceDostawyByLabel('doc-val-miejsce', 'doc-sel-miejsce', row.miejsceZrzutu);
       var aw = document.getElementById('doc-inp-awizacja');
@@ -2141,7 +2184,7 @@ export function wordModalBrowserScript(): string {
         ktoOdbiera: shared.pr.label || '',
         miejsceZrzutu: shared.md.label || '',
         miejsceDostawyAdres: shared.md.value || '',
-        rodzajZbiorki: String(shared.zbiorka || '').trim(),
+        rodzajZbiorki: resolveRodzajZbiorki(zal, shared.zbiorka),
         ileWorkow: String(shared.worki || '').trim(),
         rodzajTransportu: String(shared.transport || '').trim(),
         awizacja: String(shared.awizacja || '').trim(),

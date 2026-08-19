@@ -71,6 +71,7 @@ async function main(): Promise<void> {
       nazwaSkrocona: p.nazwaSkrocona,
       adres: p.adres,
       typ: p.typ,
+      rodzajZbiorki: p.rodzajZbiorki,
     })),
   };
 

@@ -9,6 +9,7 @@ import {
   COL_ADRES,
   COL_NAZWA_PELNA,
   COL_NAZWA_SKROCONA,
+  COL_RODZAJ_ZBIORKI,
   COL_TYP,
   SHEET_NAME_ZALADUNEK,
   type PointColorKind,
@@ -20,6 +21,8 @@ export interface LoadPoint {
   nazwaSkrocona: string;
   adres: string;
   typ: string;
+  /** Kolumna E — domyślny rodzaj zbiórki dla tego miejsca (opcjonalny). */
+  rodzajZbiorki: string;
   colorKind: PointColorKind;
 }
 
@@ -44,12 +47,14 @@ export function parseLoadRow(row: unknown[]): LoadPoint | null {
   const nazwaPelna = cellStr(row, COL_NAZWA_PELNA);
   const nazwaSkrocona = cellStr(row, COL_NAZWA_SKROCONA);
   const typ = cellStr(row, COL_TYP);
+  const rodzajZbiorki = cellStr(row, COL_RODZAJ_ZBIORKI);
 
   return {
     nazwaPelna,
     nazwaSkrocona,
     adres,
     typ,
+    rodzajZbiorki,
     colorKind: classifyPointColor({ nazwaPelna, nazwaSkrocona, adres, typ }),
   };
 }

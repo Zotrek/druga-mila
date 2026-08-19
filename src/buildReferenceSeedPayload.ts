@@ -20,6 +20,7 @@ export interface ReferenceSeedZaladunek {
   nazwaSkrocona: string;
   adres: string;
   typ: string;
+  rodzajZbiorki: string;
   lat: number | null;
   lon: number | null;
 }
@@ -118,6 +119,7 @@ export async function buildReferenceSeedPayload(cfg: AppConfig): Promise<Referen
       nazwaSkrocona: p.nazwaSkrocona,
       adres: p.adres,
       typ: p.typ,
+      rodzajZbiorki: p.rodzajZbiorki,
       lat: p.lat ?? null,
       lon: p.lon ?? null,
     })),

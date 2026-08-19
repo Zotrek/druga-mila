@@ -89,7 +89,7 @@ var OLD_REF_SHEET_NAMES = {
   'Dane ręczne - Dostawa': REF_DOS_SHEET_NAME,
 };
 
-var REF_ZAL_HEADER = ['Nazwa pełna', 'Nazwa skrócona', 'Adres', 'Typ', 'Lat', 'Lon'];
+var REF_ZAL_HEADER = ['Nazwa pełna', 'Nazwa skrócona', 'Adres', 'Typ', 'Rodzaj zbiórki', 'Lat', 'Lon'];
 var REF_DOS_HEADER = ['Nazwa pełna', 'Nazwa skrócona', 'Adres', 'Typ'];
 var REF_PRZ_HEADER = [
   'Nazwa wyświetlana',
@@ -470,7 +470,15 @@ function replaceRefZalSheet_(entries) {
     if (isNaN(lon)) {
       lon = '';
     }
-    rows.push([nazwaPelna, nazwaSkrocona, adres, cellStr_(e.typ), lat, lon]);
+    rows.push([
+      nazwaPelna,
+      nazwaSkrocona,
+      adres,
+      cellStr_(e.typ),
+      cellStr_(e.rodzajZbiorki),
+      lat,
+      lon,
+    ]);
   }
   if (rows.length) {
     sheet.getRange(2, 1, rows.length, REF_ZAL_HEADER.length).setValues(rows);
@@ -560,11 +568,25 @@ function handleSeedReferenceDataPost_(body) {
   });
 }
 
+function ensureRefZalRodzajColumn_(sheet) {
+  if (!sheet) {
+    return;
+  }
+  var h5 = String(sheet.getRange(1, 5).getValue() || '').trim();
+  if (h5 === 'Lat') {
+    sheet.insertColumnAfter(4);
+    sheet.getRange(1, 5).setValue('Rodzaj zbiórki');
+  } else if (sheet.getLastColumn() < 5) {
+    sheet.getRange(1, 5).setValue('Rodzaj zbiórki');
+  }
+}
+
 function getOrCreateRefZalSheet_() {
   ensureReferenceSheetsMigrated_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(REF_ZAL_SHEET_NAME);
   if (sheet) {
+    ensureRefZalRodzajColumn_(sheet);
     return sheet;
   }
   sheet = ss.insertSheet(REF_ZAL_SHEET_NAME);
@@ -646,8 +668,8 @@ function listReferenceZaladunek_() {
     if (!nazwaSkrocona) {
       nazwaSkrocona = nazwaPelna;
     }
-    var latRaw = r[4];
-    var lonRaw = r[5];
+    var latRaw = r[5];
+    var lonRaw = r[6];
     var lat = latRaw != null && latRaw !== '' ? parseFloat(latRaw) : null;
     var lon = lonRaw != null && lonRaw !== '' ? parseFloat(lonRaw) : null;
     out.push({
@@ -655,6 +677,7 @@ function listReferenceZaladunek_() {
       nazwaSkrocona: nazwaSkrocona,
       adres: adres,
       typ: cellStr_(r[3]),
+      rodzajZbiorki: cellStr_(r[4]),
       lat: isNaN(lat) ? null : lat,
       lon: isNaN(lon) ? null : lon,
     });
@@ -877,6 +900,7 @@ function handleAddReferenceZaladunekPost_(body) {
   var nazwaSkrocona = cellStr_(body && body.nazwaSkrocona);
   var adres = cellStr_(body && body.adres);
   var typ = cellStr_(body && body.typ);
+  var rodzajZbiorki = cellStr_(body && body.rodzajZbiorki);
   if (!adres) {
     throw new Error('adres required');
   }
@@ -901,7 +925,7 @@ function handleAddReferenceZaladunekPost_(body) {
   if (isNaN(lon)) {
     lon = '';
   }
-  sheet.appendRow([nazwaPelna, nazwaSkrocona, adres, typ, lat, lon]);
+  sheet.appendRow([nazwaPelna, nazwaSkrocona, adres, typ, rodzajZbiorki, lat, lon]);
   return jsonResponse({
     ok: true,
     entry: {
@@ -909,6 +933,7 @@ function handleAddReferenceZaladunekPost_(body) {
       nazwaSkrocona: nazwaSkrocona,
       adres: adres,
       typ: typ,
+      rodzajZbiorki: rodzajZbiorki,
       lat: lat === '' ? null : lat,
       lon: lon === '' ? null : lon,
     },

@@ -46,6 +46,7 @@ Plik: [`data/druga-mila.xlsx`](../data/druga-mila.xlsx) (arkusz **Załadunek**).
 | B — Nazwa skrócona | Etykieta w comboboxie załadunku; search |
 | C — Adres | Geokodowanie; search; Google „Adres odbioru”; część tekstu Word |
 | D — Typ | `CD` / `PLAC` / puste |
+| E — Rodzaj zbiórki | `manualna` / `automatyczna` / `manualna i automatyczna` (opcjonalnie) |
 
 Wiersze **bez adresu** — bez pinezki. W comboboxie załadunku tylko wiersze z niepustym adresem (C).
 

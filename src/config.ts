@@ -19,6 +19,17 @@ export const COL_NAZWA_SKROCONA = 1;
 export const COL_ADRES = 2;
 /** D — Typ (CD / PLAC / puste) */
 export const COL_TYP = 3;
+/** E — Rodzaj zbiórki (manualna / automatyczna / manualna i automatyczna) */
+export const COL_RODZAJ_ZBIORKI = 4;
+
+/** Dozwolone wartości kolumny E — jak w modalu protokołu. */
+export const RODZAJ_ZBIORKI_VALUES = [
+  'manualna',
+  'automatyczna',
+  'manualna i automatyczna',
+] as const;
+
+export type RodzajZbiorki = (typeof RODZAJ_ZBIORKI_VALUES)[number];
 
 // --- Kolumny podwyko lista.xlsx ---
 /** A — etykieta UI */

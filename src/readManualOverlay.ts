@@ -13,6 +13,7 @@ export interface ManualLoadEntry {
   nazwaSkrocona: string;
   adres: string;
   typ: string;
+  rodzajZbiorki: string;
 }
 
 export interface ManualListEntry {
@@ -54,6 +55,7 @@ export function parseManualLoadEntry(raw: unknown): ManualLoadEntry | null {
     nazwaSkrocona: str(o.nazwaSkrocona),
     adres,
     typ: str(o.typ),
+    rodzajZbiorki: str(o.rodzajZbiorki),
   };
 }
 

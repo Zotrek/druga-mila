@@ -157,6 +157,7 @@ describe('buildMapHtml', () => {
     expect(html).toContain('formatPrzewoznikForWordJs');
     expect(html).toContain('manual-admin-prz-wysw');
     expect(html).toContain('manual-admin-zal-lat');
+    expect(html).toContain('manual-admin-zal-zbiorka');
     expect(html).toContain('manual-admin-zal-geocode-fail');
     expect(html).toContain('Zapisz bez pinezki');
   });

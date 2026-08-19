@@ -10,6 +10,7 @@ import {
   COL_NAZWA_SKROCONA,
   COL_ADRES,
   COL_TYP,
+  COL_RODZAJ_ZBIORKI,
   COLOR_BOLECIN,
   COLOR_CD,
   COLOR_PLAC,
@@ -52,6 +53,10 @@ describe('config', () => {
 
     it('test_col_typ_is_3', () => {
       expect(COL_TYP).toBe(3);
+    });
+
+    it('test_col_rodzaj_zbiorki_is_4', () => {
+      expect(COL_RODZAJ_ZBIORKI).toBe(4);
     });
   });
 
