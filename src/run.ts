@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   const manualOverlay = readManualOverlay(cfg.manualOverlayPath);
   const points = mergeLoadPoints(readPoints(cfg.pointsXlsxPath), manualOverlay.zaladunek);
   const podwyko = mergeListEntries(
-    readPodwyko(cfg.podwykoXlsxPath),
+    readPodwyko(cfg.podwykoXlsxPath, { referenceJsonPath: cfg.referencePrzewoznicyPath }),
     manualOverlay.przewoznicy,
   );
   const delivery = mergeListEntries(

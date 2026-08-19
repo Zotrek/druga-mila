@@ -96,6 +96,7 @@ describe('config', () => {
       expect(cfg.formatkaSheetsId).toBe(DEFAULT_FORMATKA_SHEETS_ID);
       expect(cfg.geocodeCachePath).toContain('geocode-cache.json');
       expect(cfg.manualOverlayPath).toContain('manual-overlay.json');
+      expect(cfg.referencePrzewoznicyPath).toContain('reference-przewoznicy.json');
       expect(cfg.outputHtml).toContain('index.html');
       expect(cfg.pointsXlsxPath).toContain('druga-mila.xlsx');
       expect(cfg.podwykoXlsxPath).toContain('podwyko lista.xlsx');

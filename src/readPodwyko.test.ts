@@ -7,9 +7,10 @@ import { join } from 'node:path';
 import {
   parsePodwykoRow,
   readPodwyko,
+  readPrzewoznicy,
   findPodwykoByLabel,
 } from './readPodwyko.js';
-import { PROJECT_ROOT } from './config.js';
+import { PROJECT_ROOT, DEFAULT_REFERENCE_PRZEWOZNICY_PATH } from './config.js';
 
 describe('parsePodwykoRow', () => {
   it('test_parsePodwykoRow_skips_empty_label', () => {
@@ -41,5 +42,20 @@ describe('readPodwyko', () => {
     const bio = findPodwykoByLabel(entries, 'Biosystem');
     expect(bio).toBeDefined();
     expect(bio!.value.toLowerCase()).toMatch(/bol[eę]cin/);
+  });
+});
+
+describe('readPrzewoznicy from reference JSON', () => {
+  it('test_readPrzewoznicy_prefers_reference_json_over_excel', () => {
+    const records = readPrzewoznicy(join(PROJECT_ROOT, 'docs', 'podwyko lista.xlsx'), {
+      referenceJsonPath: DEFAULT_REFERENCE_PRZEWOZNICY_PATH,
+    });
+    expect(records.length).toBe(31);
+    const traszkan = records.find((r) => r.nazwaWyswietlana === 'Traszkan');
+    expect(traszkan).toMatchObject({
+      adres: 'Zegartowice 105, 32-415 Zegartowice',
+      nip: '6811821834',
+      bdo: '000011660',
+    });
   });
 });

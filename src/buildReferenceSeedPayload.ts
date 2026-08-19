@@ -48,8 +48,6 @@ function mergePrzewoznicy(
             adres: raw.adres ?? '',
             nip: raw.nip ?? '',
             bdo: raw.bdo ?? '',
-            lat: raw.lat ?? null,
-            lon: raw.lon ?? null,
           }
         : parseLegacyPodwykoValue(raw.label, raw.value);
     byKey.set(parsed.nazwaWyswietlana.trim().toLowerCase(), parsed);
@@ -92,30 +90,26 @@ function mergeDeliveryPlaces(
   return [...byKey.values()];
 }
 
-/** Zbiera dane z Excela (+ overlay) i geokoduje adresy załadunku oraz przewoźników. */
+/** Zbiera dane z Excela (+ overlay) i geokoduje tylko adresy załadunku. */
 export async function buildReferenceSeedPayload(cfg: AppConfig): Promise<ReferenceSeedPayload> {
   const manualOverlay = readManualOverlay(cfg.manualOverlayPath);
   const points = mergeLoadPoints(readPoints(cfg.pointsXlsxPath), manualOverlay.zaladunek);
-  const przewoznicy = mergePrzewoznicy(readPrzewoznicy(cfg.podwykoXlsxPath), manualOverlay.przewoznicy);
+  const przewoznicy = mergePrzewoznicy(
+    readPrzewoznicy(cfg.podwykoXlsxPath, { referenceJsonPath: cfg.referencePrzewoznicyPath }),
+    manualOverlay.przewoznicy,
+  );
   const delivery = mergeDeliveryPlaces(
     readDeliveryPlaces(cfg.pointsXlsxPath),
     manualOverlay.miejscaDostawy,
   );
 
   const zalAddresses = points.map((p) => p.adres);
-  const przAddresses = przewoznicy.map((p) => p.adres).filter((a) => a.trim().length > 0);
-  const allAddresses = [...new Set([...zalAddresses, ...przAddresses])];
-
-  const { results } = await geocodeAddresses(allAddresses, {
+  const { results } = await geocodeAddresses([...new Set(zalAddresses)], {
     cachePath: cfg.geocodeCachePath,
     userAgent: cfg.nominatimUserAgent,
   });
 
   const withCoords = attachCoords(points, results);
-  const przWithCoords = attachCoords(
-    przewoznicy.map((p) => ({ ...p, adres: p.adres })),
-    results,
-  );
 
   return {
     mode: 'seedReferenceData',
@@ -127,14 +121,14 @@ export async function buildReferenceSeedPayload(cfg: AppConfig): Promise<Referen
       lat: p.lat ?? null,
       lon: p.lon ?? null,
     })),
-    przewoznicy: przWithCoords.map((p) => ({
+    przewoznicy: przewoznicy.map((p) => ({
       nazwaWyswietlana: p.nazwaWyswietlana,
       nazwaDoProtokolu: p.nazwaDoProtokolu,
       adres: p.adres,
       nip: p.nip,
       bdo: p.bdo,
-      lat: p.lat ?? null,
-      lon: p.lon ?? null,
+      lat: null,
+      lon: null,
     })),
     miejscaDostawy: delivery,
   };

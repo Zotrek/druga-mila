@@ -19,6 +19,13 @@ export function manualAdminCss(): string {
     .manual-admin-panel textarea { min-height: 72px; resize: vertical; }
     .manual-admin-hint { font-size: 11px; color: #666; margin: 4px 0 0; line-height: 1.4; }
     .manual-admin-status { font-size: 12px; margin: 10px 0 0; min-height: 1.2em; color: #0d6efd; }
+    .manual-admin-status.is-error { color: #b02a37; }
+    .manual-admin-status.is-warn { color: #664d03; }
+    .manual-admin-warn { margin-top: 10px; padding: 8px 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; font-size: 12px; color: #664d03; line-height: 1.4; }
+    .manual-admin-coords-row { display: flex; gap: 8px; margin-top: 8px; }
+    .manual-admin-coords-row > div { flex: 1; min-width: 0; }
+    .manual-admin-link-btn { background: none; border: none; padding: 0; font-size: 11px; color: #0d6efd; cursor: pointer; text-decoration: underline; }
+    .manual-admin-secondary-btn { width: 100%; margin-top: 8px; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; }
     .manual-admin-panel button.primary.is-busy { opacity: 0.75; cursor: wait; }
   `;
 }
@@ -46,8 +53,28 @@ export function manualAdminHtml(): string {
           <option value="CD">CD</option>
           <option value="PLAC">PLAC</option>
         </select>
-        <p class="manual-admin-hint">Pinezka pojawi się na mapie po geokodowaniu adresu.</p>
+        <p class="manual-admin-hint">Pinezka pojawi się na mapie po geokodowaniu adresu lub po podaniu współrzędnych ręcznie.</p>
+        <p class="manual-admin-hint">
+          <button type="button" id="manual-admin-zal-toggle-coords" class="manual-admin-link-btn">Współrzędne ręczne (opcjonalnie)</button>
+        </p>
+        <div id="manual-admin-zal-coords-wrap" hidden>
+          <div class="manual-admin-coords-row">
+            <div>
+              <label for="manual-admin-zal-lat">Lat (szer.)</label>
+              <input type="text" id="manual-admin-zal-lat" inputmode="decimal" autocomplete="off" placeholder="np. 50.061947" />
+            </div>
+            <div>
+              <label for="manual-admin-zal-lon">Lon (dł.)</label>
+              <input type="text" id="manual-admin-zal-lon" inputmode="decimal" autocomplete="off" placeholder="np. 19.936856" />
+            </div>
+          </div>
+          <p class="manual-admin-hint">Format dziesiętny (jak w Google Maps). Gdy podane — pomija geokodowanie.</p>
+        </div>
+        <div id="manual-admin-zal-geocode-fail" class="manual-admin-warn" hidden role="alert">
+          Geokodowanie nie powiodło się. Sprawdź adres albo podaj współrzędne ręcznie powyżej i kliknij „Zapisz” ponownie.
+        </div>
         <button type="button" id="manual-admin-zal-submit" class="primary" style="width:100%;margin-top:10px">Zapisz miejsce załadunku</button>
+        <button type="button" id="manual-admin-zal-submit-no-pin" class="manual-admin-secondary-btn" hidden>Zapisz bez pinezki (tylko lista)</button>
       </div>
       <div id="manual-admin-panel-prz" class="manual-admin-panel">
         <label for="manual-admin-prz-wysw">Nazwa wyświetlana (combobox)</label>
@@ -121,11 +148,87 @@ export function manualAdminBrowserScript(): string {
       }).then(function(res) { return res.json(); });
     }
 
-    function setManualAdminStatus(msg, isError) {
+    function setManualAdminStatus(msg, kind) {
       var el = document.getElementById('manual-admin-status');
       if (!el) return;
       el.textContent = msg || '';
-      el.style.color = isError ? '#b02a37' : '#0d6efd';
+      el.classList.remove('is-error', 'is-warn');
+      if (kind === 'error') el.classList.add('is-error');
+      else if (kind === 'warn') el.classList.add('is-warn');
+    }
+
+    function showZalCoordsSection(show) {
+      var wrap = document.getElementById('manual-admin-zal-coords-wrap');
+      if (wrap) wrap.hidden = !show;
+    }
+
+    function showZalGeocodeFail(show) {
+      var box = document.getElementById('manual-admin-zal-geocode-fail');
+      var noPin = document.getElementById('manual-admin-zal-submit-no-pin');
+      if (box) box.hidden = !show;
+      if (noPin) noPin.hidden = !show;
+    }
+
+    function resetZalForm() {
+      ['manual-admin-zal-pelna', 'manual-admin-zal-skrocona', 'manual-admin-zal-adres', 'manual-admin-zal-lat', 'manual-admin-zal-lon'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      var typEl = document.getElementById('manual-admin-zal-typ');
+      if (typEl) typEl.value = '';
+      showZalGeocodeFail(false);
+      showZalCoordsSection(false);
+    }
+
+    function parseManualLatLon(latId, lonId) {
+      var latRaw = String((document.getElementById(latId) || {}).value || '').trim();
+      var lonRaw = String((document.getElementById(lonId) || {}).value || '').trim();
+      if (!latRaw && !lonRaw) return null;
+      if (!latRaw || !lonRaw) {
+        return { error: 'Podaj obie współrzędne: Lat i Lon.' };
+      }
+      var lat = parseFloat(latRaw.replace(',', '.'));
+      var lon = parseFloat(lonRaw.replace(',', '.'));
+      if (isNaN(lat) || isNaN(lon)) {
+        return { error: 'Nieprawidłowy format współrzędnych (użyj liczb dziesiętnych).' };
+      }
+      if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        return { error: 'Współrzędne poza zakresem (Lat −90…90, Lon −180…180).' };
+      }
+      return { lat: lat, lon: lon };
+    }
+
+    function persistZaladunekEntry(pelna, skrocona, adres, typ, coords) {
+      var payload = {
+        mode: 'addReferenceZaladunek',
+        nazwaPelna: pelna,
+        nazwaSkrocona: skrocona,
+        adres: adres,
+        typ: typ
+      };
+      if (coords) {
+        payload.lat = coords.lat;
+        payload.lon = coords.lon;
+      }
+      return postReferenceData(payload).then(function(resp) {
+        if (!resp || !resp.ok) {
+          if (resp && resp.error === 'duplicate') {
+            setManualAdminStatus('To miejsce już jest w arkuszu.', 'error');
+          } else {
+            setManualAdminStatus('Nie udało się zapisać — sprawdź Web App.', 'error');
+          }
+          return false;
+        }
+        var entry = resp.entry || payload;
+        applyReferenceZaladunekEntry(entry, false);
+        if (coords) {
+          setManualAdminStatus('Zapisano — miejsce załadunku i pinezka dodane.', 'ok');
+        } else {
+          setManualAdminStatus('Zapisano do listy — bez pinezki (brak współrzędnych).', 'warn');
+        }
+        resetZalForm();
+        return true;
+      });
     }
 
     function setManualAdminBusy(btn, busy) {
@@ -139,7 +242,7 @@ export function manualAdminBrowserScript(): string {
       if (!m) return;
       setManualAdminStatus('');
       if (!WEBAPP_URL) {
-        setManualAdminStatus('Brak URL Web App — zapis na stałe niedostępny.', true);
+        setManualAdminStatus('Brak URL Web App — zapis na stałe niedostępny.', 'error');
       }
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
@@ -177,6 +280,9 @@ export function manualAdminBrowserScript(): string {
       return false;
     }
 
+    /** Po dodaniu pinezki — widok ok. powiatu (nie ulicy). Leaflet ~10–11. */
+    var NEW_PIN_FOCUS_ZOOM = 11;
+
     function addMapMarkerAdmin(point, loadIdx) {
       if (typeof map === 'undefined' || typeof pinIcon !== 'function') return;
       var marker = L.marker([point.lat, point.lon], { icon: pinIcon(point.kolor, false) });
@@ -189,7 +295,7 @@ export function manualAdminBrowserScript(): string {
         marker.setPopupContent(buildPopupHtml(point, loadIdx));
         wirePopupControls(marker, loadIdx);
       });
-      map.setView([point.lat, point.lon], Math.max(map.getZoom(), 14));
+      map.setView([point.lat, point.lon], NEW_PIN_FOCUS_ZOOM);
       if (typeof applyAddressSearch === 'function') applyAddressSearch();
     }
 
@@ -281,64 +387,87 @@ export function manualAdminBrowserScript(): string {
       pelna = String(pelna).trim();
       skrocona = String(skrocona).trim();
       adres = String(adres).trim();
+      typ = String(typ).trim();
       if (!adres) {
-        setManualAdminStatus('Podaj adres.', true);
+        setManualAdminStatus('Podaj adres.', 'error');
         return;
       }
       if (!pelna && !skrocona) {
-        setManualAdminStatus('Podaj nazwę pełną lub skróconą.', true);
+        setManualAdminStatus('Podaj nazwę pełną lub skróconą.', 'error');
         return;
       }
       if (!pelna) pelna = skrocona;
       if (!skrocona) skrocona = pelna;
       if (findLoadPointIdxAdmin(adres, pelna) >= 0) {
-        setManualAdminStatus('To miejsce już jest na liście.', true);
+        setManualAdminStatus('To miejsce już jest na liście.', 'error');
         return;
       }
       if (!WEBAPP_URL) {
-        setManualAdminStatus('Brak URL Web App — nie można zapisać.', true);
+        setManualAdminStatus('Brak URL Web App — nie można zapisać.', 'error');
+        return;
+      }
+
+      var manual = parseManualLatLon('manual-admin-zal-lat', 'manual-admin-zal-lon');
+      if (manual && manual.error) {
+        setManualAdminStatus(manual.error, 'error');
+        showZalCoordsSection(true);
+        return;
+      }
+      if (manual) {
+        setManualAdminBusy(btn, true);
+        setManualAdminStatus('Zapis do arkusza (współrzędne ręczne)…');
+        persistZaladunekEntry(pelna, skrocona, adres, typ, manual)
+          .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
+          .finally(function() { setManualAdminBusy(btn, false); });
         return;
       }
 
       setManualAdminBusy(btn, true);
       setManualAdminStatus('Geokodowanie adresu…');
       geocodeAddressAdmin(adres).then(function(coords) {
-        var payload = {
-          mode: 'addReferenceZaladunek',
-          nazwaPelna: pelna,
-          nazwaSkrocona: skrocona,
-          adres: adres,
-          typ: String(typ).trim()
-        };
         if (coords) {
-          payload.lat = coords.lat;
-          payload.lon = coords.lon;
+          showZalGeocodeFail(false);
+          setManualAdminStatus('Zapis do arkusza…');
+          return persistZaladunekEntry(pelna, skrocona, adres, typ, coords);
         }
-        setManualAdminStatus('Zapis do arkusza…');
-        return postReferenceData(payload).then(function(resp) {
-          if (!resp || !resp.ok) {
-            if (resp && resp.error === 'duplicate') {
-              setManualAdminStatus('To miejsce już jest w arkuszu.', true);
-            } else {
-              setManualAdminStatus('Nie udało się zapisać — sprawdź Web App.', true);
-            }
-            return;
-          }
-          var entry = resp.entry || payload;
-          applyReferenceZaladunekEntry(entry, false);
-          setManualAdminStatus(coords
-            ? 'Zapisano — miejsce załadunku i pinezka dodane.'
-            : 'Zapisano — dodano do listy (bez współrzędnych).');
-          document.getElementById('manual-admin-zal-pelna').value = '';
-          document.getElementById('manual-admin-zal-skrocona').value = '';
-          document.getElementById('manual-admin-zal-adres').value = '';
-          document.getElementById('manual-admin-zal-typ').value = '';
-        });
+        showZalGeocodeFail(true);
+        showZalCoordsSection(true);
+        setManualAdminStatus(
+          'Geokodowanie nie powiodło się. Podaj Lat/Lon ręcznie i kliknij Zapisz — albo „Zapisz bez pinezki”.',
+          'warn'
+        );
       }).catch(function() {
-        setManualAdminStatus('Błąd sieci — spróbuj ponownie.', true);
+        setManualAdminStatus('Błąd sieci podczas geokodowania — spróbuj ponownie.', 'error');
       }).finally(function() {
         setManualAdminBusy(btn, false);
       });
+    }
+
+    function submitManualZaladunekWithoutPin() {
+      var btn = document.getElementById('manual-admin-zal-submit-no-pin');
+      var pelna = String((document.getElementById('manual-admin-zal-pelna') || {}).value || '').trim();
+      var skrocona = String((document.getElementById('manual-admin-zal-skrocona') || {}).value || '').trim();
+      var adres = String((document.getElementById('manual-admin-zal-adres') || {}).value || '').trim();
+      var typ = String((document.getElementById('manual-admin-zal-typ') || {}).value || '').trim();
+      if (!adres) {
+        setManualAdminStatus('Podaj adres.', 'error');
+        return;
+      }
+      if (!pelna && !skrocona) {
+        setManualAdminStatus('Podaj nazwę pełną lub skróconą.', 'error');
+        return;
+      }
+      if (!pelna) pelna = skrocona;
+      if (!skrocona) skrocona = pelna;
+      if (!WEBAPP_URL) {
+        setManualAdminStatus('Brak URL Web App — nie można zapisać.', 'error');
+        return;
+      }
+      setManualAdminBusy(btn, true);
+      setManualAdminStatus('Zapis do arkusza (bez pinezki)…');
+      persistZaladunekEntry(pelna, skrocona, adres, typ, null)
+        .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
+        .finally(function() { setManualAdminBusy(btn, false); });
     }
 
     function submitManualPrzewoznik() {
@@ -349,51 +478,43 @@ export function manualAdminBrowserScript(): string {
       var nip = String((document.getElementById('manual-admin-prz-nip') || {}).value || '').trim();
       var bdo = String((document.getElementById('manual-admin-prz-bdo') || {}).value || '').trim();
       if (!wysw) {
-        setManualAdminStatus('Podaj nazwę wyświetlaną.', true);
+        setManualAdminStatus('Podaj nazwę wyświetlaną.', 'error');
         return;
       }
       if (!protokol) protokol = wysw;
       if (hasListLabelAdmin(PODWYKOLISTA, wysw)) {
-        setManualAdminStatus('Ten przewoźnik już jest na liście.', true);
+        setManualAdminStatus('Ten przewoźnik już jest na liście.', 'error');
         return;
       }
       if (!WEBAPP_URL) {
-        setManualAdminStatus('Brak URL Web App — nie można zapisać.', true);
+        setManualAdminStatus('Brak URL Web App — nie można zapisać.', 'error');
         return;
       }
       setManualAdminBusy(btn, true);
-      setManualAdminStatus(adres ? 'Geokodowanie adresu…' : 'Zapis do arkusza…');
-      var geocodePromise = adres ? geocodeAddressAdmin(adres) : Promise.resolve(null);
-      geocodePromise.then(function(coords) {
-        var payload = {
-          mode: 'addReferencePrzewoznik',
-          nazwaWyswietlana: wysw,
-          nazwaDoProtokolu: protokol,
-          adres: adres,
-          nip: nip,
-          bdo: bdo
-        };
-        if (coords) {
-          payload.lat = coords.lat;
-          payload.lon = coords.lon;
+      setManualAdminStatus('Zapis do arkusza…');
+      var payload = {
+        mode: 'addReferencePrzewoznik',
+        nazwaWyswietlana: wysw,
+        nazwaDoProtokolu: protokol,
+        adres: adres,
+        nip: nip,
+        bdo: bdo
+      };
+      postReferenceData(payload).then(function(resp) {
+        if (!resp || !resp.ok) {
+          setManualAdminStatus(resp && resp.error === 'duplicate'
+            ? 'Ten przewoźnik już jest w arkuszu.'
+            : 'Nie udało się zapisać — sprawdź Web App.', 'error');
+          return;
         }
-        setManualAdminStatus('Zapis do arkusza…');
-        return postReferenceData(payload).then(function(resp) {
-          if (!resp || !resp.ok) {
-            setManualAdminStatus(resp && resp.error === 'duplicate'
-              ? 'Ten przewoźnik już jest w arkuszu.'
-              : 'Nie udało się zapisać — sprawdź Web App.', true);
-            return;
-          }
-          applyReferencePrzewoznikEntry(resp.entry || payload);
-          setManualAdminStatus('Zapisano przewoźnika.');
-          document.getElementById('manual-admin-prz-wysw').value = '';
-          document.getElementById('manual-admin-prz-protokol').value = '';
-          document.getElementById('manual-admin-prz-adres').value = '';
-          document.getElementById('manual-admin-prz-nip').value = '';
-          document.getElementById('manual-admin-prz-bdo').value = '';
-        });
-      }).catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', true); })
+        applyReferencePrzewoznikEntry(resp.entry || payload);
+        setManualAdminStatus('Zapisano przewoźnika.');
+        document.getElementById('manual-admin-prz-wysw').value = '';
+        document.getElementById('manual-admin-prz-protokol').value = '';
+        document.getElementById('manual-admin-prz-adres').value = '';
+        document.getElementById('manual-admin-prz-nip').value = '';
+        document.getElementById('manual-admin-prz-bdo').value = '';
+      }).catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
         .finally(function() { setManualAdminBusy(btn, false); });
     }
 
@@ -404,22 +525,22 @@ export function manualAdminBrowserScript(): string {
       var adres = String((document.getElementById('manual-admin-dos-adres') || {}).value || '').trim();
       var typ = String((document.getElementById('manual-admin-dos-typ') || {}).value || '').trim();
       if (!adres) {
-        setManualAdminStatus('Podaj adres.', true);
+        setManualAdminStatus('Podaj adres.', 'error');
         return;
       }
       if (!pelna && !skrocona) {
-        setManualAdminStatus('Podaj nazwę pełną lub skróconą.', true);
+        setManualAdminStatus('Podaj nazwę pełną lub skróconą.', 'error');
         return;
       }
       if (!pelna) pelna = skrocona;
       if (!skrocona) skrocona = pelna;
       var label = skrocona || pelna;
       if (hasListLabelAdmin(MIEJSCA_DOSTAWY, label)) {
-        setManualAdminStatus('To miejsce dostawy już jest na liście.', true);
+        setManualAdminStatus('To miejsce dostawy już jest na liście.', 'error');
         return;
       }
       if (!WEBAPP_URL) {
-        setManualAdminStatus('Brak URL Web App — nie można zapisać.', true);
+        setManualAdminStatus('Brak URL Web App — nie można zapisać.', 'error');
         return;
       }
       setManualAdminBusy(btn, true);
@@ -436,7 +557,7 @@ export function manualAdminBrowserScript(): string {
           if (!resp || !resp.ok) {
             setManualAdminStatus(resp && resp.error === 'duplicate'
               ? 'To miejsce już jest w arkuszu.'
-              : 'Nie udało się zapisać — sprawdź Web App.', true);
+              : 'Nie udało się zapisać — sprawdź Web App.', 'error');
             return;
           }
           applyReferenceDostawaEntry(resp.entry || payload);
@@ -446,7 +567,7 @@ export function manualAdminBrowserScript(): string {
           document.getElementById('manual-admin-dos-adres').value = '';
           document.getElementById('manual-admin-dos-typ').value = '';
         })
-        .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', true); })
+        .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
         .finally(function() { setManualAdminBusy(btn, false); });
     }
 
@@ -468,6 +589,15 @@ export function manualAdminBrowserScript(): string {
       });
       var zalBtn = document.getElementById('manual-admin-zal-submit');
       if (zalBtn) zalBtn.addEventListener('click', submitManualZaladunek);
+      var zalNoPinBtn = document.getElementById('manual-admin-zal-submit-no-pin');
+      if (zalNoPinBtn) zalNoPinBtn.addEventListener('click', submitManualZaladunekWithoutPin);
+      var zalToggleCoords = document.getElementById('manual-admin-zal-toggle-coords');
+      if (zalToggleCoords) {
+        zalToggleCoords.addEventListener('click', function() {
+          var wrap = document.getElementById('manual-admin-zal-coords-wrap');
+          if (wrap) showZalCoordsSection(wrap.hidden);
+        });
+      }
       var przBtn = document.getElementById('manual-admin-prz-submit');
       if (przBtn) przBtn.addEventListener('click', submitManualPrzewoznik);
       var dosBtn = document.getElementById('manual-admin-dos-submit');

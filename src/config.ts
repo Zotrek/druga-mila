@@ -54,6 +54,11 @@ export const DEFAULT_FORMATKA_SHEETS_ID = '1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXC
 
 export const DEFAULT_GEOCODE_CACHE_PATH = join(PROJECT_ROOT, 'data', 'geocode-cache.json');
 export const DEFAULT_MANUAL_OVERLAY_PATH = join(PROJECT_ROOT, 'data', 'manual-overlay.json');
+export const DEFAULT_REFERENCE_PRZEWOZNICY_PATH = join(
+  PROJECT_ROOT,
+  'data',
+  'reference-przewoznicy.json',
+);
 export const DEFAULT_OUTPUT_HTML = join(PROJECT_ROOT, 'index.html');
 export const DEFAULT_POINTS_XLSX = join(PROJECT_ROOT, 'data', 'druga-mila.xlsx');
 export const DEFAULT_PODWYKO_XLSX = join(PROJECT_ROOT, 'docs', 'podwyko lista.xlsx');
@@ -68,6 +73,8 @@ export interface AppConfig {
   formatkaSheetsId: string;
   geocodeCachePath: string;
   manualOverlayPath: string;
+  /** Strukturalna lista przewoźników (sync z Google Sheets); ma pierwszeństwo nad Excel. */
+  referencePrzewoznicyPath: string;
   outputHtml: string;
   pointsXlsxPath: string;
   podwykoXlsxPath: string;
@@ -88,6 +95,8 @@ export function getConfig(): AppConfig {
       process.env.GEOCODE_CACHE_PATH?.trim() ?? DEFAULT_GEOCODE_CACHE_PATH,
     manualOverlayPath:
       process.env.MANUAL_OVERLAY_PATH?.trim() ?? DEFAULT_MANUAL_OVERLAY_PATH,
+    referencePrzewoznicyPath:
+      process.env.REFERENCE_PRZEWOZNICY_PATH?.trim() ?? DEFAULT_REFERENCE_PRZEWOZNICY_PATH,
     outputHtml: process.env.OUTPUT_HTML?.trim() ?? DEFAULT_OUTPUT_HTML,
     pointsXlsxPath: process.env.POINTS_XLSX_PATH?.trim() ?? DEFAULT_POINTS_XLSX,
     podwykoXlsxPath: process.env.PODWYKO_XLSX_PATH?.trim() ?? DEFAULT_PODWYKO_XLSX,

@@ -376,5 +376,102 @@
     "status": "ok",
     "displayName": "Parkowa, Złoczew, gmina Złoczew, powiat sieradzki, województwo łódzkie, 98-270, Polska",
     "queriedAt": "2026-07-20T10:45:05.969Z"
+  },
+  "ul fabryczna 5": {
+    "lat": 51.7682302,
+    "lon": 19.4689335,
+    "status": "ok",
+    "displayName": "ul. Hassa, Fabryczna, Łódź-Śródmieście, Łódź, województwo łódzkie, 90-022, Polska",
+    "queriedAt": "2026-08-19T14:22:14.730Z"
+  },
+  "ul. 1-go maja 38b 38-100 strzyżów": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:35:55.396Z"
+  },
+  "ul. asfaltowa 1 26-110 skarżysko – kamienna": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:35:59.984Z"
+  },
+  "ul. bazaltowa 1 59-800 lubań nip: 6131425217 bdo: 000012296": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:06.871Z"
+  },
+  "ul. bielska 41 17-120 brańsk": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:10.302Z"
+  },
+  "ul. handlowa 6a 37-716 orły nip:7952458856 regon:522494593": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:08.015Z"
+  },
+  "ul. książęca 4 00-498 warszawa": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:35:57.694Z"
+  },
+  "ul. oświęcimska 51k 41-109 gliwice": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:35:58.841Z"
+  },
+  "ul. szczawiowa 54a 70-010 szczecin": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:35:54.246Z"
+  },
+  "ul. szubianki 8 63-200 jarocin nip: pl6172195754 bdo: 000010785": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:03.422Z"
+  },
+  "ul. traugutta 31 82-300 elbląg nip: 5782865721 bdo: 000005241": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:04.582Z"
+  },
+  "ul. wiejska 11l 05-123 olszewnica stara": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:05.728Z"
+  },
+  "ul. wyzwolenia 2 41-103 siemianowice śląskie": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:35:56.547Z"
+  },
+  "ul. zambrowska 12 18-220 czyżew": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:02.274Z"
+  },
+  "ul. zwierzyniecka 10 43-100 tychy": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:09.159Z"
+  },
+  "ul. łazienna 7 36-050 sokołów małopolski": {
+    "lat": null,
+    "lon": null,
+    "status": "fail",
+    "queriedAt": "2026-08-19T14:36:01.129Z"
   }
 }

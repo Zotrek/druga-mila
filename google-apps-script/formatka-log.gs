@@ -101,6 +101,47 @@ var REF_PRZ_HEADER = [
   'Lon',
 ];
 
+/** NIP i nr BDO — format tekstowy (@), inaczej Sheets obcina wiodące zera (000011660 → 11660). */
+var REF_PRZ_NIP_COL = 4;
+var REF_PRZ_BDO_COL = 5;
+
+function ensureRefPrzTextColumns_(sheet) {
+  var maxRows = sheet.getMaxRows();
+  sheet.getRange(2, REF_PRZ_NIP_COL, maxRows, 1).setNumberFormat('@');
+  sheet.getRange(2, REF_PRZ_BDO_COL, maxRows, 1).setNumberFormat('@');
+}
+
+/** NIP jako tekst 10 cyfr — Sheets/Excel obcina wiodące zero (np. 0123456789 → 123456789). */
+function normalizeNip_(value) {
+  var s = cellStr_(value);
+  if (!s) {
+    return '';
+  }
+  s = s.replace(/^\s*nip\s*:?\s*/i, '').replace(/^\s*pl\s*/i, '').replace(/\s/g, '');
+  s = s.replace(/\D/g, '');
+  if (!s) {
+    return '';
+  }
+  if (s.length < 10) {
+    s = ('0000000000' + s).slice(-10);
+  }
+  return s;
+}
+
+function normalizeBdo_(value) {
+  var s = cellStr_(value);
+  if (!s) {
+    return '';
+  }
+  s = s.replace(/^\s*bdo\s*:?\s*/i, '').replace(/\s/g, '');
+  return s;
+}
+
+function writeRefPrzIdentifierCells_(sheet, row, nip, bdo) {
+  sheet.getRange(row, REF_PRZ_NIP_COL).setValue(String(nip));
+  sheet.getRange(row, REF_PRZ_BDO_COL).setValue(String(bdo));
+}
+
 /**
  * Kolumny zakładki Harmonogram — szablon stałych odbiorów.
  * Odczyt/zapis mapuje po nagłówkach (kolejność może się różnić na istniejących arkuszach).
@@ -482,26 +523,24 @@ function replaceRefPrzSheet_(entries) {
     if (!label) {
       continue;
     }
-    var lat = e.lat != null && e.lat !== '' ? parseFloat(e.lat) : '';
-    var lon = e.lon != null && e.lon !== '' ? parseFloat(e.lon) : '';
-    if (isNaN(lat)) {
-      lat = '';
-    }
-    if (isNaN(lon)) {
-      lon = '';
-    }
+    var lat = '';
+    var lon = '';
     rows.push([
       label,
       cellStr_(e.nazwaDoProtokolu) || label,
       cellStr_(e.adres),
-      cellStr_(e.nip),
-      cellStr_(e.bdo),
+      normalizeNip_(e.nip),
+      normalizeBdo_(e.bdo),
       lat,
       lon,
     ]);
   }
   if (rows.length) {
+    ensureRefPrzTextColumns_(sheet);
     sheet.getRange(2, 1, rows.length, REF_PRZ_HEADER.length).setValues(rows);
+    for (var j = 0; j < rows.length; j++) {
+      writeRefPrzIdentifierCells_(sheet, 2 + j, rows[j][3], rows[j][4]);
+    }
   }
   return rows.length;
 }
@@ -550,10 +589,12 @@ function getOrCreateRefPrzSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(REF_PRZ_SHEET_NAME);
   if (sheet) {
+    ensureRefPrzTextColumns_(sheet);
     return sheet;
   }
   sheet = ss.insertSheet(REF_PRZ_SHEET_NAME);
   sheet.getRange(1, 1, 1, REF_PRZ_HEADER.length).setValues([REF_PRZ_HEADER]);
+  ensureRefPrzTextColumns_(sheet);
   return sheet;
 }
 
@@ -641,25 +682,23 @@ function listReferencePrzewoznicy_() {
   var numDataRows = lastRow - 1;
   var lastCol = Math.max(sheet.getLastColumn(), REF_PRZ_HEADER.length);
   var values = sheet.getRange(2, 1, numDataRows, lastCol).getValues();
+  var display = sheet.getRange(2, 1, numDataRows, lastCol).getDisplayValues();
   var out = [];
   for (var i = 0; i < values.length; i++) {
     var r = values[i];
+    var d = display[i];
     var label = cellStr_(r[0]);
     if (!label) {
       continue;
     }
-    var latRaw = r[5];
-    var lonRaw = r[6];
-    var lat = latRaw != null && latRaw !== '' ? parseFloat(latRaw) : null;
-    var lon = lonRaw != null && lonRaw !== '' ? parseFloat(lonRaw) : null;
     out.push({
       nazwaWyswietlana: label,
       nazwaDoProtokolu: cellStr_(r[1]) || label,
       adres: cellStr_(r[2]),
-      nip: cellStr_(r[3]),
-      bdo: cellStr_(r[4]),
-      lat: isNaN(lat) ? null : lat,
-      lon: isNaN(lon) ? null : lon,
+      nip: normalizeNip_(d[3] !== '' && d[3] != null ? d[3] : r[3]),
+      bdo: normalizeBdo_(d[4] !== '' && d[4] != null ? d[4] : r[4]),
+      lat: null,
+      lon: null,
     });
   }
   return out;
@@ -750,8 +789,8 @@ function handleAddReferencePrzewoznikPost_(body) {
   var label = cellStr_(body && body.nazwaWyswietlana) || cellStr_(body && body.label);
   var nazwaDoProtokolu = cellStr_(body && body.nazwaDoProtokolu) || label;
   var adres = cellStr_(body && body.adres);
-  var nip = cellStr_(body && body.nip);
-  var bdo = cellStr_(body && body.bdo);
+  var nip = normalizeNip_(body && body.nip);
+  var bdo = normalizeBdo_(body && body.bdo);
   if (!label) {
     throw new Error('nazwaWyswietlana required');
   }
@@ -759,15 +798,12 @@ function handleAddReferencePrzewoznikPost_(body) {
   if (refPrzExists_(sheet, label)) {
     return jsonResponse({ ok: false, error: 'duplicate' });
   }
-  var lat = body && body.lat != null && body.lat !== '' ? parseFloat(body.lat) : '';
-  var lon = body && body.lon != null && body.lon !== '' ? parseFloat(body.lon) : '';
-  if (isNaN(lat)) {
-    lat = '';
-  }
-  if (isNaN(lon)) {
-    lon = '';
-  }
-  sheet.appendRow([label, nazwaDoProtokolu, adres, nip, bdo, lat, lon]);
+  ensureRefPrzTextColumns_(sheet);
+  var newRow = sheet.getLastRow() + 1;
+  sheet.getRange(newRow, 1, 1, REF_PRZ_HEADER.length).setValues([
+    [label, nazwaDoProtokolu, adres, nip, bdo, '', ''],
+  ]);
+  writeRefPrzIdentifierCells_(sheet, newRow, nip, bdo);
   return jsonResponse({
     ok: true,
     entry: {
@@ -776,8 +812,8 @@ function handleAddReferencePrzewoznikPost_(body) {
       adres: adres,
       nip: nip,
       bdo: bdo,
-      lat: lat === '' ? null : lat,
-      lon: lon === '' ? null : lon,
+      lat: null,
+      lon: null,
     },
   });
 }

@@ -156,7 +156,9 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Zapisz miejsce załadunku');
     expect(html).toContain('formatPrzewoznikForWordJs');
     expect(html).toContain('manual-admin-prz-wysw');
-    expect(html).toContain('manual-admin-dos-typ');
+    expect(html).toContain('manual-admin-zal-lat');
+    expect(html).toContain('manual-admin-zal-geocode-fail');
+    expect(html).toContain('Zapisz bez pinezki');
   });
 
   it('test_buildMapHtml_empty_points_shows_banner', () => {
