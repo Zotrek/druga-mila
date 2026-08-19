@@ -7,6 +7,11 @@ import { getConfig } from './config.js';
 import { readPoints } from './readPoints.js';
 import { readPodwyko } from './readPodwyko.js';
 import { readUnloadDelivery } from './readUnloadDelivery.js';
+import {
+  mergeListEntries,
+  mergeLoadPoints,
+  readManualOverlay,
+} from './readManualOverlay.js';
 import { attachCoords, geocodeAddresses } from './geocode.js';
 import { buildMapHtml } from './buildMapHtml.js';
 
@@ -14,12 +19,21 @@ async function main(): Promise<void> {
   const cfg = getConfig();
   console.log('[druga-mila] generate start');
 
-  const points = readPoints(cfg.pointsXlsxPath);
-  const podwyko = readPodwyko(cfg.podwykoXlsxPath);
-  const delivery = readUnloadDelivery(cfg.pointsXlsxPath);
-  console.log(`  punkty (z adresem): ${points.length}`);
-  console.log(`  podwyko: ${podwyko.length}`);
-  console.log(`  miejsca dostawy (Rozładunek): ${delivery.length}`);
+  const manualOverlay = readManualOverlay(cfg.manualOverlayPath);
+  const points = mergeLoadPoints(readPoints(cfg.pointsXlsxPath), manualOverlay.zaladunek);
+  const podwyko = mergeListEntries(
+    readPodwyko(cfg.podwykoXlsxPath),
+    manualOverlay.przewoznicy,
+  );
+  const delivery = mergeListEntries(
+    readUnloadDelivery(cfg.pointsXlsxPath),
+    manualOverlay.miejscaDostawy,
+  );
+  console.log(`  punkty (z adresem): ${points.length} (overlay +${manualOverlay.zaladunek.length})`);
+  console.log(`  podwyko: ${podwyko.length} (overlay +${manualOverlay.przewoznicy.length})`);
+  console.log(
+    `  miejsca dostawy (Rozładunek): ${delivery.length} (overlay +${manualOverlay.miejscaDostawy.length})`,
+  );
 
   const byKind = { bolecin: 0, cd: 0, plac: 0, puste: 0 };
   for (const p of points) {
@@ -70,7 +84,12 @@ async function main(): Promise<void> {
       lat: p.lat!,
       lon: p.lon!,
     })),
-    { webAppUrl: cfg.webAppUrl, title: 'Druga Mila', wordEmbed },
+    {
+      webAppUrl: cfg.webAppUrl,
+      title: 'Druga Mila',
+      wordEmbed,
+      manualOverlay,
+    },
   );
 
   await writeFile(cfg.outputHtml, html, 'utf-8');

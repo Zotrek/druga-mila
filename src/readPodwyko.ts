@@ -1,17 +1,19 @@
 /**
- * Odczyt listy podwykonawców z docs/podwyko lista.xlsx (A=UI, B=Word).
+ * Odczyt listy przewoźników z docs/podwyko lista.xlsx.
+ * Legacy: A=Nazwa wyświetlana, B=sklejone Dane → parsowane do pól strukturalnych.
  */
 
 import { readFileSync } from 'node:fs';
 import * as XLSX from 'xlsx';
 import { COL_PODWYKO_UI, COL_PODWYKO_WORD } from './config.js';
+import {
+  parseLegacyPodwykoValue,
+  przewoznikToComboboxOption,
+  type ComboboxOption,
+  type PrzewoznikRecord,
+} from './referenceFormats.js';
 
-export interface PodwykoEntry {
-  /** Etykieta comboboxa (kolumna Nazwa). */
-  label: string;
-  /** Pełne dane do Word / Sheets (kolumna Dane). */
-  value: string;
-}
+export type PodwykoEntry = ComboboxOption;
 
 function cellStr(row: unknown[], col: number): string {
   const v = row[col];
@@ -21,23 +23,33 @@ function cellStr(row: unknown[], col: number): string {
   return String(v).trim();
 }
 
-/** Parsuje wiersz podwyko; null gdy brak etykiety. */
-export function parsePodwykoRow(row: unknown[]): PodwykoEntry | null {
+/** Parsuje wiersz legacy podwyko; null gdy brak etykiety. */
+export function parsePrzewoznikRow(row: unknown[]): PrzewoznikRecord | null {
   const label = cellStr(row, COL_PODWYKO_UI);
   if (!label) {
     return null;
   }
-  return {
-    label,
-    value: cellStr(row, COL_PODWYKO_WORD) || label,
-  };
+  const legacyValue = cellStr(row, COL_PODWYKO_WORD);
+  if (!legacyValue) {
+    return {
+      nazwaWyswietlana: label,
+      nazwaDoProtokolu: label,
+      adres: '',
+      nip: '',
+      bdo: '',
+    };
+  }
+  return parseLegacyPodwykoValue(label, legacyValue);
 }
 
-/**
- * Odczytuje listę przewoźników / miejsc dostawy.
- * Używa pierwszego arkusza (zwykle „przewoźnicy”).
- */
-export function readPodwyko(xlsxPath: string): PodwykoEntry[] {
+/** @deprecated użyj parsePrzewoznikRow */
+export function parsePodwykoRow(row: unknown[]): PodwykoEntry | null {
+  const record = parsePrzewoznikRow(row);
+  return record ? przewoznikToComboboxOption(record) : null;
+}
+
+/** Odczytuje przewoźników jako rekordy strukturalne. */
+export function readPrzewoznicy(xlsxPath: string): PrzewoznikRecord[] {
   const buf = readFileSync(xlsxPath);
   const wb = XLSX.read(buf, { type: 'buffer' });
   const sheetName = wb.SheetNames[0];
@@ -51,18 +63,25 @@ export function readPodwyko(xlsxPath: string): PodwykoEntry[] {
     raw: false,
   });
 
-  const entries: PodwykoEntry[] = [];
+  const entries: PrzewoznikRecord[] = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!Array.isArray(row)) {
       continue;
     }
-    const entry = parsePodwykoRow(row);
+    const entry = parsePrzewoznikRow(row);
     if (entry) {
       entries.push(entry);
     }
   }
   return entries;
+}
+
+/**
+ * Odczytuje listę przewoźników jako opcje combobox (label + value do Word).
+ */
+export function readPodwyko(xlsxPath: string): PodwykoEntry[] {
+  return readPrzewoznicy(xlsxPath).map(przewoznikToComboboxOption);
 }
 
 /** Znajdź wpis po etykiecie (case-insensitive). */

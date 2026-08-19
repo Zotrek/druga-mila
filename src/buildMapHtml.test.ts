@@ -147,6 +147,16 @@ describe('buildMapHtml', () => {
     expect(html).toContain("wireCombobox('harm-add-nazwa'");
     expect(html).toContain("wireCombobox('harm-add-nazwa-ii'");
     expect(html).toContain("resolvePodwyko('harm-add-val-kto'");
+    expect(html).toContain('map-manual-add-data');
+    expect(html).toContain('Dodaj dane (ręcznie)');
+    expect(html).toContain('manual-admin-modal');
+    expect(html).toContain('MANUAL_OVERLAY');
+    expect(html).toContain('listReferenceData');
+    expect(html).toContain('addReferenceZaladunek');
+    expect(html).toContain('Zapisz miejsce załadunku');
+    expect(html).toContain('formatPrzewoznikForWordJs');
+    expect(html).toContain('manual-admin-prz-wysw');
+    expect(html).toContain('manual-admin-dos-typ');
   });
 
   it('test_buildMapHtml_empty_points_shows_banner', () => {

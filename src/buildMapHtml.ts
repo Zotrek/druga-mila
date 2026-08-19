@@ -15,6 +15,14 @@ import {
   wordModalBrowserScript,
   type WordMapEmbed,
 } from './buildMapWordModal.js';
+import {
+  manualAdminCss,
+  manualAdminHtml,
+  manualAdminBrowserScript,
+} from './buildMapManualAdmin.js';
+import { referenceFormatsBrowserScript } from './referenceFormats.js';
+import type { ManualOverlay } from './readManualOverlay.js';
+import { EMPTY_MANUAL_OVERLAY } from './readManualOverlay.js';
 
 export interface MapHtmlPoint {
   nazwaPelna: string;
@@ -30,6 +38,7 @@ export interface BuildMapHtmlOptions {
   title?: string;
   webAppUrl?: string;
   wordEmbed?: WordMapEmbed | null;
+  manualOverlay?: ManualOverlay;
 }
 
 export type { WordMapEmbed };
@@ -48,6 +57,7 @@ export function buildMapHtml(
   const title = options.title ?? 'Druga Mila';
   const webAppUrl = options.webAppUrl ?? '';
   const wordEmbed = options.wordEmbed ?? null;
+  const manualOverlay = options.manualOverlay ?? EMPTY_MANUAL_OVERLAY;
   const wordEnabled = Boolean(wordEmbed?.templateBase64);
   const payload = points.map((p) => ({
     nazwaPelna: p.nazwaPelna,
@@ -113,7 +123,7 @@ export function buildMapHtml(
     .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
     .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
     .map-empty-banner { position: absolute; z-index: 1100; left: 50%; top: 48px; transform: translateX(-50%); background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); max-width: min(420px, calc(100vw - 24px)); text-align: center; }
-${wordEnabled ? wordModalCss() : ''}  </style>
+${wordEnabled ? wordModalCss() : ''}${wordEnabled ? manualAdminCss() : ''}  </style>
 </head>
 <body>
   <div class="map-brand">${escapeHtml(title)}</div>
@@ -122,7 +132,7 @@ ${
     ? `  <div class="map-empty-banner" role="status">Brak punktów z współrzędnymi. Sprawdź Excel Załadunek i uruchom <code>npm run generate</code>.</div>\n`
     : ''
 }  <div id="map"></div>
-${wordEnabled ? wordModalHtml() : ''}  <script>
+${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <script>
     const PUNKTY = ${JSON.stringify(payload)};
     const COLOR_COUNTS = ${JSON.stringify(counts)};
     const WEBAPP_URL = ${JSON.stringify(webAppUrl)};
@@ -136,6 +146,7 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
         : wordEmbed?.podwykoOptions) ?? [],
     )};
     const LOAD_POINTS = ${JSON.stringify(wordEmbed?.loadPoints ?? [])};
+    const MANUAL_OVERLAY = ${JSON.stringify(manualOverlay)};
 
     const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 6);
     var attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
@@ -332,6 +343,7 @@ ${wordEnabled ? wordModalHtml() : ''}  <script>
             '<button type="button" id="map-manual-combined-generate" class="map-manual-combined-generate" title="Wybierz dokładnie dwa miejsca — jeden wiersz ewidencji i dwa protokoły Word z tym samym numerem">Protokół łączony (wybór ręczny)</button>' +
             '<button type="button" id="map-planowane-generate" class="map-planowane-generate" title="Lista planowanych transportów — realizacja z protokołem">Planowane</button>' +
             '<button type="button" id="map-harmonogram-generate" class="map-harmonogram-generate" title="Wpisy z Harmonogramu — wiele terminów w miesiącu">Generuj z Harmonogramu</button>' +
+            '<button type="button" id="map-manual-add-data" class="map-manual-add-btn" title="Dodaj ręcznie miejsce załadunku, przewoźnika lub miejsce dostawy">+ Dodaj dane (ręcznie)</button>' +
             '</div>' +
             '<div id="map-bulk-panel" class="map-bulk-panel" hidden>' +
             '<span id="map-bulk-count" class="map-bulk-count"></span>' +
@@ -394,7 +406,7 @@ ${
     };
     legend.addTo(map);
 
-${wordEnabled ? wordModalBrowserScript() : '    void WEBAPP_URL;\n'}
+${wordEnabled ? wordModalBrowserScript() : '    void WEBAPP_URL;\n'}${wordEnabled ? referenceFormatsBrowserScript() : ''}${wordEnabled ? manualAdminBrowserScript() : ''}
     applyAddressSearch();
   </script>
 </body>

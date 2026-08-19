@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import {
+  parseDeliveryPlaceRow,
   parseUnloadDeliveryRow,
   readUnloadDelivery,
 } from './readUnloadDelivery.js';
@@ -41,12 +42,14 @@ describe('parseUnloadDeliveryRow', () => {
     });
   });
 
-  it('test_parseUnloadDeliveryRow_word_value_falls_back_to_short_name', () => {
-    const e = parseUnloadDeliveryRow(['', 'SKR', '00-001 Warszawa', 'PLAC']);
-    expect(e).toEqual({
-      label: 'SKR',
-      value: 'SKR 00-001 Warszawa',
-    });
+  it('test_parseUnloadDeliveryRow_includes_typ_in_record', () => {
+    const e = parseDeliveryPlaceRow([
+      'BIOSYSTEM Bolęcin',
+      'BIOSYSTEM',
+      '32-540 Bolęcin Fabryczna 5',
+      'BOLĘCIN',
+    ]);
+    expect(e!.typ).toBe('BOLĘCIN');
   });
 });
 

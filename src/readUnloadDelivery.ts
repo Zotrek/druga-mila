@@ -1,8 +1,5 @@
 /**
- * Odczyt arkusza Rozładunek z data/druga-mila.xlsx → opcje „Miejsce dostawy”.
- * Etykieta = nazwa skrócona (fallback: pełna);
- * value = nazwa pełna + adres (do Word; fallback nazwy: skrócona).
- * Wiersze bez etykiety lub bez adresu — pomijane.
+ * Odczyt arkusza Rozładunek z data/druga-mila.xlsx → miejsca dostawy.
  */
 
 import { readFileSync } from 'node:fs';
@@ -11,9 +8,16 @@ import {
   COL_ADRES,
   COL_NAZWA_PELNA,
   COL_NAZWA_SKROCONA,
+  COL_TYP,
   SHEET_NAME_ROZLADUNEK,
 } from './config.js';
-import type { PodwykoEntry } from './readPodwyko.js';
+import {
+  deliveryToComboboxOption,
+  type ComboboxOption,
+  type DeliveryPlaceRecord,
+} from './referenceFormats.js';
+
+export type PodwykoEntry = ComboboxOption;
 
 function cellStr(row: unknown[], col: number): string {
   const v = row[col];
@@ -24,10 +28,10 @@ function cellStr(row: unknown[], col: number): string {
 }
 
 /**
- * Parsuje wiersz Rozładunek do opcji comboboxa dostawy.
+ * Parsuje wiersz Rozładunek.
  * null gdy brak etykiety lub adresu.
  */
-export function parseUnloadDeliveryRow(row: unknown[]): PodwykoEntry | null {
+export function parseDeliveryPlaceRow(row: unknown[]): DeliveryPlaceRecord | null {
   const adres = cellStr(row, COL_ADRES);
   const nazwaSkrocona = cellStr(row, COL_NAZWA_SKROCONA);
   const nazwaPelna = cellStr(row, COL_NAZWA_PELNA);
@@ -35,18 +39,22 @@ export function parseUnloadDeliveryRow(row: unknown[]): PodwykoEntry | null {
   if (!label || !adres) {
     return null;
   }
-  const nazwaWord = nazwaPelna || nazwaSkrocona;
   return {
-    label,
-    value: [nazwaWord, adres].filter(Boolean).join(' '),
+    nazwaPelna: nazwaPelna || nazwaSkrocona,
+    nazwaSkrocona: nazwaSkrocona || nazwaPelna,
+    adres,
+    typ: cellStr(row, COL_TYP),
   };
 }
 
-/**
- * Odczytuje miejsca dostawy z arkusza Rozładunek.
- * Pomija nagłówek oraz wiersze bez nazwy lub adresu.
- */
-export function readUnloadDelivery(xlsxPath: string): PodwykoEntry[] {
+/** @deprecated użyj parseDeliveryPlaceRow */
+export function parseUnloadDeliveryRow(row: unknown[]): PodwykoEntry | null {
+  const record = parseDeliveryPlaceRow(row);
+  return record ? deliveryToComboboxOption(record) : null;
+}
+
+/** Odczytuje miejsca dostawy jako rekordy strukturalne. */
+export function readDeliveryPlaces(xlsxPath: string): DeliveryPlaceRecord[] {
   const buf = readFileSync(xlsxPath);
   const wb = XLSX.read(buf, { type: 'buffer' });
   const sheetName = wb.SheetNames.includes(SHEET_NAME_ROZLADUNEK)
@@ -62,16 +70,21 @@ export function readUnloadDelivery(xlsxPath: string): PodwykoEntry[] {
     raw: false,
   });
 
-  const entries: PodwykoEntry[] = [];
+  const entries: DeliveryPlaceRecord[] = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     if (!Array.isArray(row)) {
       continue;
     }
-    const entry = parseUnloadDeliveryRow(row);
+    const entry = parseDeliveryPlaceRow(row);
     if (entry) {
       entries.push(entry);
     }
   }
   return entries;
+}
+
+/** Odczytuje miejsca dostawy jako opcje combobox. */
+export function readUnloadDelivery(xlsxPath: string): PodwykoEntry[] {
+  return readDeliveryPlaces(xlsxPath).map(deliveryToComboboxOption);
 }

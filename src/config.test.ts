@@ -30,6 +30,7 @@ describe('config', () => {
     delete process.env.OUTPUT_HTML;
     delete process.env.GOOGLE_FORMATKA_SHEETS_ID;
     delete process.env.NOMINATIM_USER_AGENT;
+    delete process.env.MANUAL_OVERLAY_PATH;
   });
 
   afterEach(() => {
@@ -94,6 +95,7 @@ describe('config', () => {
       expect(cfg.webAppUrl).toBe('');
       expect(cfg.formatkaSheetsId).toBe(DEFAULT_FORMATKA_SHEETS_ID);
       expect(cfg.geocodeCachePath).toContain('geocode-cache.json');
+      expect(cfg.manualOverlayPath).toContain('manual-overlay.json');
       expect(cfg.outputHtml).toContain('index.html');
       expect(cfg.pointsXlsxPath).toContain('druga-mila.xlsx');
       expect(cfg.podwykoXlsxPath).toContain('podwyko lista.xlsx');

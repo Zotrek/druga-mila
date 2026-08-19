@@ -8,6 +8,7 @@
  * GET ?action=previewNumberHarm  → { ok, numer }  (podgląd DMH* — NIE rezerwuje)
  * GET ?action=listPlanowane      → { ok, rows: [...] }
  * GET ?action=listHarmonogram    → { ok, rows: [...] }  (II Adres/Nazwa jeśli w arkuszu)
+ * GET ?action=listReferenceData  → { ok, zaladunek, przewoznicy, miejscaDostawy }
  * POST (body JSON, Content-Type: text/plain) — wg body.mode:
  *   (brak)/commit → append miesiąca + Bolęcin (seria DM*)
  *   plan          → append Planowane (bez Bolęcina, czyProtokol=nie)
@@ -16,6 +17,10 @@
  *   deletePlan    → usunięcie z Planowane
  *   addHarmonogram → append do Harmonogram (szablon stały, bez numeru)
  *   commitHarm    → append miesiąca + Bolęcin (seria DMH*; Harmonogram bez zmian)
+ *   addReferenceZaladunek → append do „Miejsca załadunku”
+ *   addReferencePrzewoznik → append do „Przewoźnicy”
+ *   addReferenceDostawa → append do „Miejsca dostawy”
+ *   seedReferenceData → nadpisuje 3 zakładki danymi z Excel (npm run seed:sheets)
  *
  * Zakładki miesięczne: przy pierwszym transporcie miesiąca tworzona jest zakładka
  * „Sierpień 2026” (z dataOdbioru / Data załadunku). Numeracja DM* ciągła — skan zakładek
@@ -72,6 +77,29 @@ var HEADER_ROW = [
 
 var PLANOWANE_SHEET_NAME = 'Planowane';
 var HARMONOGRAM_SHEET_NAME = 'Harmonogram';
+
+/** Słownik referencyjny — trwałe miejsca załadunku / przewoźnicy / dostawa. */
+var REF_ZAL_SHEET_NAME = 'Miejsca załadunku';
+var REF_PRZ_SHEET_NAME = 'Przewoźnicy';
+var REF_DOS_SHEET_NAME = 'Miejsca dostawy';
+
+var OLD_REF_SHEET_NAMES = {
+  'Dane ręczne - Załadunek': REF_ZAL_SHEET_NAME,
+  'Dane ręczne - Przewoźnicy': REF_PRZ_SHEET_NAME,
+  'Dane ręczne - Dostawa': REF_DOS_SHEET_NAME,
+};
+
+var REF_ZAL_HEADER = ['Nazwa pełna', 'Nazwa skrócona', 'Adres', 'Typ', 'Lat', 'Lon'];
+var REF_DOS_HEADER = ['Nazwa pełna', 'Nazwa skrócona', 'Adres', 'Typ'];
+var REF_PRZ_HEADER = [
+  'Nazwa wyświetlana',
+  'Nazwa do protokołu',
+  'Adres',
+  'NIP',
+  'nr BDO',
+  'Lat',
+  'Lon',
+];
 
 /**
  * Kolumny zakładki Harmonogram — szablon stałych odbiorów.
@@ -164,6 +192,9 @@ function doGet(e) {
     if (action === 'listHarmonogram') {
       return jsonResponse({ ok: true, rows: listHarmonogramRows_() });
     }
+    if (action === 'listReferenceData') {
+      return jsonResponse({ ok: true, data: listReferenceData_() });
+    }
     return jsonResponse({ ok: false, error: 'unknown action' }, 400);
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err) }, 500);
@@ -197,6 +228,18 @@ function doPost(e) {
     }
     if (mode === 'commitHarm') {
       return handleCommitHarmPost_(body);
+    }
+    if (mode === 'addReferenceZaladunek') {
+      return handleAddReferenceZaladunekPost_(body);
+    }
+    if (mode === 'addReferencePrzewoznik') {
+      return handleAddReferencePrzewoznikPost_(body);
+    }
+    if (mode === 'addReferenceDostawa') {
+      return handleAddReferenceDostawaPost_(body);
+    }
+    if (mode === 'seedReferenceData') {
+      return handleSeedReferenceDataPost_(body);
     }
     return jsonResponse({ ok: false, error: 'unknown mode: ' + mode }, 400);
   } catch (err) {
@@ -312,6 +355,528 @@ function handleCommitHarmPost_(body) {
   }
   syncCounterAfterWrite_(numer);
   return jsonResponse({ ok: true, numer: String(numer) });
+}
+
+function isReferenceSheetName_(name) {
+  return (
+    name === REF_ZAL_SHEET_NAME ||
+    name === REF_PRZ_SHEET_NAME ||
+    name === REF_DOS_SHEET_NAME
+  );
+}
+
+var refSheetsMigrated_ = false;
+
+function ensureReferenceSheetsMigrated_() {
+  if (refSheetsMigrated_) {
+    return;
+  }
+  refSheetsMigrated_ = true;
+  migrateOldReferenceSheetNames_();
+}
+
+function migrateOldReferenceSheetNames_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (var oldName in OLD_REF_SHEET_NAMES) {
+    if (!Object.prototype.hasOwnProperty.call(OLD_REF_SHEET_NAMES, oldName)) {
+      continue;
+    }
+    var newName = OLD_REF_SHEET_NAMES[oldName];
+    var oldSheet = ss.getSheetByName(oldName);
+    var newSheet = ss.getSheetByName(newName);
+    if (oldSheet && !newSheet) {
+      oldSheet.setName(newName);
+    }
+  }
+}
+
+function clearSheetDataRows_(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    sheet.deleteRows(2, lastRow - 1);
+  }
+}
+
+function replaceRefZalSheet_(entries) {
+  var sheet = getOrCreateRefZalSheet_();
+  clearSheetDataRows_(sheet);
+  if (!entries || !entries.length) {
+    return 0;
+  }
+  var rows = [];
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i] || {};
+    var adres = cellStr_(e.adres);
+    if (!adres) {
+      continue;
+    }
+    var nazwaPelna = cellStr_(e.nazwaPelna);
+    var nazwaSkrocona = cellStr_(e.nazwaSkrocona);
+    if (!nazwaPelna && !nazwaSkrocona) {
+      continue;
+    }
+    if (!nazwaPelna) {
+      nazwaPelna = nazwaSkrocona;
+    }
+    if (!nazwaSkrocona) {
+      nazwaSkrocona = nazwaPelna;
+    }
+    var lat = e.lat != null && e.lat !== '' ? parseFloat(e.lat) : '';
+    var lon = e.lon != null && e.lon !== '' ? parseFloat(e.lon) : '';
+    if (isNaN(lat)) {
+      lat = '';
+    }
+    if (isNaN(lon)) {
+      lon = '';
+    }
+    rows.push([nazwaPelna, nazwaSkrocona, adres, cellStr_(e.typ), lat, lon]);
+  }
+  if (rows.length) {
+    sheet.getRange(2, 1, rows.length, REF_ZAL_HEADER.length).setValues(rows);
+  }
+  return rows.length;
+}
+
+function replaceRefDosSheet_(entries) {
+  var sheet = getOrCreateRefDosSheet_();
+  clearSheetDataRows_(sheet);
+  if (!entries || !entries.length) {
+    return 0;
+  }
+  var rows = [];
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i] || {};
+    var adres = cellStr_(e.adres);
+    if (!adres) {
+      continue;
+    }
+    var nazwaPelna = cellStr_(e.nazwaPelna);
+    var nazwaSkrocona = cellStr_(e.nazwaSkrocona);
+    if (!nazwaPelna && !nazwaSkrocona) {
+      continue;
+    }
+    if (!nazwaPelna) {
+      nazwaPelna = nazwaSkrocona;
+    }
+    if (!nazwaSkrocona) {
+      nazwaSkrocona = nazwaPelna;
+    }
+    rows.push([nazwaPelna, nazwaSkrocona, adres, cellStr_(e.typ)]);
+  }
+  if (rows.length) {
+    sheet.getRange(2, 1, rows.length, REF_DOS_HEADER.length).setValues(rows);
+  }
+  return rows.length;
+}
+
+function replaceRefPrzSheet_(entries) {
+  var sheet = getOrCreateRefPrzSheet_();
+  clearSheetDataRows_(sheet);
+  if (!entries || !entries.length) {
+    return 0;
+  }
+  var rows = [];
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i] || {};
+    var label = cellStr_(e.nazwaWyswietlana) || cellStr_(e.label);
+    if (!label) {
+      continue;
+    }
+    var lat = e.lat != null && e.lat !== '' ? parseFloat(e.lat) : '';
+    var lon = e.lon != null && e.lon !== '' ? parseFloat(e.lon) : '';
+    if (isNaN(lat)) {
+      lat = '';
+    }
+    if (isNaN(lon)) {
+      lon = '';
+    }
+    rows.push([
+      label,
+      cellStr_(e.nazwaDoProtokolu) || label,
+      cellStr_(e.adres),
+      cellStr_(e.nip),
+      cellStr_(e.bdo),
+      lat,
+      lon,
+    ]);
+  }
+  if (rows.length) {
+    sheet.getRange(2, 1, rows.length, REF_PRZ_HEADER.length).setValues(rows);
+  }
+  return rows.length;
+}
+
+function handleSeedReferenceDataPost_(body) {
+  ensureReferenceSheetsMigrated_();
+  var zalCount = replaceRefZalSheet_(body && body.zaladunek);
+  var przCount = replaceRefPrzSheet_(body && body.przewoznicy);
+  var dosCount = replaceRefDosSheet_(body && body.miejscaDostawy);
+  return jsonResponse({
+    ok: true,
+    counts: {
+      zaladunek: zalCount,
+      przewoznicy: przCount,
+      miejscaDostawy: dosCount,
+    },
+  });
+}
+
+function getOrCreateRefZalSheet_() {
+  ensureReferenceSheetsMigrated_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(REF_ZAL_SHEET_NAME);
+  if (sheet) {
+    return sheet;
+  }
+  sheet = ss.insertSheet(REF_ZAL_SHEET_NAME);
+  sheet.getRange(1, 1, 1, REF_ZAL_HEADER.length).setValues([REF_ZAL_HEADER]);
+  return sheet;
+}
+
+function getOrCreateRefDosSheet_() {
+  ensureReferenceSheetsMigrated_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(REF_DOS_SHEET_NAME);
+  if (sheet) {
+    return sheet;
+  }
+  sheet = ss.insertSheet(REF_DOS_SHEET_NAME);
+  sheet.getRange(1, 1, 1, REF_DOS_HEADER.length).setValues([REF_DOS_HEADER]);
+  return sheet;
+}
+
+function getOrCreateRefPrzSheet_() {
+  ensureReferenceSheetsMigrated_();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(REF_PRZ_SHEET_NAME);
+  if (sheet) {
+    return sheet;
+  }
+  sheet = ss.insertSheet(REF_PRZ_SHEET_NAME);
+  sheet.getRange(1, 1, 1, REF_PRZ_HEADER.length).setValues([REF_PRZ_HEADER]);
+  return sheet;
+}
+
+function getOrCreateRefListSheet_(sheetName, headerRow) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(sheetName);
+  if (sheet) {
+    return sheet;
+  }
+  sheet = ss.insertSheet(sheetName);
+  sheet.getRange(1, 1, 1, headerRow.length).setValues([headerRow]);
+  return sheet;
+}
+
+function refZalKey_(nazwaPelna, adres) {
+  return String(adres || '').trim().toLowerCase() + '|' + String(nazwaPelna || '').trim().toLowerCase();
+}
+
+function refListKey_(label) {
+  return String(label || '').trim().toLowerCase();
+}
+
+function listReferenceZaladunek_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REF_ZAL_SHEET_NAME);
+  if (!sheet) {
+    return [];
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, REF_ZAL_HEADER.length).getValues();
+  var out = [];
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    var adres = cellStr_(r[2]);
+    if (!adres) {
+      continue;
+    }
+    var nazwaPelna = cellStr_(r[0]);
+    var nazwaSkrocona = cellStr_(r[1]);
+    if (!nazwaPelna && !nazwaSkrocona) {
+      continue;
+    }
+    if (!nazwaPelna) {
+      nazwaPelna = nazwaSkrocona;
+    }
+    if (!nazwaSkrocona) {
+      nazwaSkrocona = nazwaPelna;
+    }
+    var latRaw = r[4];
+    var lonRaw = r[5];
+    var lat = latRaw != null && latRaw !== '' ? parseFloat(latRaw) : null;
+    var lon = lonRaw != null && lonRaw !== '' ? parseFloat(lonRaw) : null;
+    out.push({
+      nazwaPelna: nazwaPelna,
+      nazwaSkrocona: nazwaSkrocona,
+      adres: adres,
+      typ: cellStr_(r[3]),
+      lat: isNaN(lat) ? null : lat,
+      lon: isNaN(lon) ? null : lon,
+    });
+  }
+  return out;
+}
+
+function refPrzKey_(label) {
+  return String(label || '').trim().toLowerCase();
+}
+
+function refDosKey_(nazwaPelna, adres) {
+  return refZalKey_(nazwaPelna, adres);
+}
+
+function listReferencePrzewoznicy_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REF_PRZ_SHEET_NAME);
+  if (!sheet) {
+    return [];
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  var numDataRows = lastRow - 1;
+  var lastCol = Math.max(sheet.getLastColumn(), REF_PRZ_HEADER.length);
+  var values = sheet.getRange(2, 1, numDataRows, lastCol).getValues();
+  var out = [];
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    var label = cellStr_(r[0]);
+    if (!label) {
+      continue;
+    }
+    var latRaw = r[5];
+    var lonRaw = r[6];
+    var lat = latRaw != null && latRaw !== '' ? parseFloat(latRaw) : null;
+    var lon = lonRaw != null && lonRaw !== '' ? parseFloat(lonRaw) : null;
+    out.push({
+      nazwaWyswietlana: label,
+      nazwaDoProtokolu: cellStr_(r[1]) || label,
+      adres: cellStr_(r[2]),
+      nip: cellStr_(r[3]),
+      bdo: cellStr_(r[4]),
+      lat: isNaN(lat) ? null : lat,
+      lon: isNaN(lon) ? null : lon,
+    });
+  }
+  return out;
+}
+
+function listReferenceDostawa_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REF_DOS_SHEET_NAME);
+  if (!sheet) {
+    return [];
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, REF_DOS_HEADER.length).getValues();
+  var out = [];
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    var adres = cellStr_(r[2]);
+    if (!adres) {
+      continue;
+    }
+    var nazwaPelna = cellStr_(r[0]);
+    var nazwaSkrocona = cellStr_(r[1]);
+    if (!nazwaPelna && !nazwaSkrocona) {
+      continue;
+    }
+    if (!nazwaPelna) {
+      nazwaPelna = nazwaSkrocona;
+    }
+    if (!nazwaSkrocona) {
+      nazwaSkrocona = nazwaPelna;
+    }
+    out.push({
+      nazwaPelna: nazwaPelna,
+      nazwaSkrocona: nazwaSkrocona,
+      adres: adres,
+      typ: cellStr_(r[3]),
+    });
+  }
+  return out;
+}
+
+function listReferenceData_() {
+  ensureReferenceSheetsMigrated_();
+  return {
+    zaladunek: listReferenceZaladunek_(),
+    przewoznicy: listReferencePrzewoznicy_(),
+    miejscaDostawy: listReferenceDostawa_(),
+  };
+}
+
+function refPrzExists_(sheet, label) {
+  var key = refPrzKey_(label);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return false;
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, 1).getValues();
+  for (var i = 0; i < values.length; i++) {
+    if (refPrzKey_(cellStr_(values[i][0])) === key) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function refDosExists_(sheet, nazwaPelna, adres) {
+  var key = refDosKey_(nazwaPelna, adres);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return false;
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, 3).getValues();
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    if (refDosKey_(cellStr_(r[0]), cellStr_(r[2])) === key) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function handleAddReferencePrzewoznikPost_(body) {
+  var label = cellStr_(body && body.nazwaWyswietlana) || cellStr_(body && body.label);
+  var nazwaDoProtokolu = cellStr_(body && body.nazwaDoProtokolu) || label;
+  var adres = cellStr_(body && body.adres);
+  var nip = cellStr_(body && body.nip);
+  var bdo = cellStr_(body && body.bdo);
+  if (!label) {
+    throw new Error('nazwaWyswietlana required');
+  }
+  var sheet = getOrCreateRefPrzSheet_();
+  if (refPrzExists_(sheet, label)) {
+    return jsonResponse({ ok: false, error: 'duplicate' });
+  }
+  var lat = body && body.lat != null && body.lat !== '' ? parseFloat(body.lat) : '';
+  var lon = body && body.lon != null && body.lon !== '' ? parseFloat(body.lon) : '';
+  if (isNaN(lat)) {
+    lat = '';
+  }
+  if (isNaN(lon)) {
+    lon = '';
+  }
+  sheet.appendRow([label, nazwaDoProtokolu, adres, nip, bdo, lat, lon]);
+  return jsonResponse({
+    ok: true,
+    entry: {
+      nazwaWyswietlana: label,
+      nazwaDoProtokolu: nazwaDoProtokolu,
+      adres: adres,
+      nip: nip,
+      bdo: bdo,
+      lat: lat === '' ? null : lat,
+      lon: lon === '' ? null : lon,
+    },
+  });
+}
+
+function handleAddReferenceDostawaPost_(body) {
+  var nazwaPelna = cellStr_(body && body.nazwaPelna);
+  var nazwaSkrocona = cellStr_(body && body.nazwaSkrocona);
+  var adres = cellStr_(body && body.adres);
+  var typ = cellStr_(body && body.typ);
+  if (!adres) {
+    throw new Error('adres required');
+  }
+  if (!nazwaPelna && !nazwaSkrocona) {
+    throw new Error('nazwa required');
+  }
+  if (!nazwaPelna) {
+    nazwaPelna = nazwaSkrocona;
+  }
+  if (!nazwaSkrocona) {
+    nazwaSkrocona = nazwaPelna;
+  }
+  var sheet = getOrCreateRefDosSheet_();
+  if (refDosExists_(sheet, nazwaPelna, adres)) {
+    return jsonResponse({ ok: false, error: 'duplicate' });
+  }
+  sheet.appendRow([nazwaPelna, nazwaSkrocona, adres, typ]);
+  return jsonResponse({
+    ok: true,
+    entry: {
+      nazwaPelna: nazwaPelna,
+      nazwaSkrocona: nazwaSkrocona,
+      adres: adres,
+      typ: typ,
+    },
+  });
+}
+
+function refZalExists_(sheet, nazwaPelna, adres) {
+  var key = refZalKey_(nazwaPelna, adres);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return false;
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, 3).getValues();
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    if (refZalKey_(cellStr_(r[0]), cellStr_(r[2])) === key) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function refListExists_(sheet, label) {
+  return refPrzExists_(sheet, label);
+}
+
+function handleAddReferenceZaladunekPost_(body) {
+  var nazwaPelna = cellStr_(body && body.nazwaPelna);
+  var nazwaSkrocona = cellStr_(body && body.nazwaSkrocona);
+  var adres = cellStr_(body && body.adres);
+  var typ = cellStr_(body && body.typ);
+  if (!adres) {
+    throw new Error('adres required');
+  }
+  if (!nazwaPelna && !nazwaSkrocona) {
+    throw new Error('nazwa required');
+  }
+  if (!nazwaPelna) {
+    nazwaPelna = nazwaSkrocona;
+  }
+  if (!nazwaSkrocona) {
+    nazwaSkrocona = nazwaPelna;
+  }
+  var sheet = getOrCreateRefZalSheet_();
+  if (refZalExists_(sheet, nazwaPelna, adres)) {
+    return jsonResponse({ ok: false, error: 'duplicate' });
+  }
+  var lat = body && body.lat != null && body.lat !== '' ? parseFloat(body.lat) : '';
+  var lon = body && body.lon != null && body.lon !== '' ? parseFloat(body.lon) : '';
+  if (isNaN(lat)) {
+    lat = '';
+  }
+  if (isNaN(lon)) {
+    lon = '';
+  }
+  sheet.appendRow([nazwaPelna, nazwaSkrocona, adres, typ, lat, lon]);
+  return jsonResponse({
+    ok: true,
+    entry: {
+      nazwaPelna: nazwaPelna,
+      nazwaSkrocona: nazwaSkrocona,
+      adres: adres,
+      typ: typ,
+      lat: lat === '' ? null : lat,
+      lon: lon === '' ? null : lon,
+    },
+  });
 }
 
 function parsePlanowaneRowIndex_(body) {
@@ -875,7 +1440,7 @@ function scanMaxNumberFiltered_(acceptFn) {
   for (var si = 0; si < sheets.length; si++) {
     var sheet = sheets[si];
     var name = sheet.getName();
-    if (name === HARMONOGRAM_SHEET_NAME) {
+    if (name === HARMONOGRAM_SHEET_NAME || isReferenceSheetName_(name)) {
       continue;
     }
     var lastRow = sheet.getLastRow();

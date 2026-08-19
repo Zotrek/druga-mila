@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "generate": "tsx src/run.ts",
+    "seed:sheets": "tsx src/seedReferenceSheets.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
