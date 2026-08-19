@@ -147,26 +147,177 @@
     .map-combined-generate { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #b45309; background: #b45309; color: #fff; cursor: pointer; }
     .map-combined-generate:disabled { opacity: 0.45; cursor: not-allowed; }
   
-    .map-manual-add-btn { width: 100%; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #6f42c1; background: #6f42c1; color: #fff; cursor: pointer; margin-top: 6px; }
-    .map-manual-add-btn:hover { filter: brightness(1.05); }
-    .manual-admin-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
-    .manual-admin-tabs button { flex: 1; min-width: 0; padding: 8px 6px; font-size: 12px; border: 1px solid #ccc; background: #f8f8f8; border-radius: 6px; cursor: pointer; }
-    .manual-admin-tabs button.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+    .map-manual-add-btn {
+      width: 100%;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px dashed #6366f1;
+      background: #eef2ff;
+      color: #4338ca;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .map-manual-add-btn:hover {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+    #manual-admin-modal .doc-modal-panel {
+      padding: 20px 22px 18px;
+    }
+    #manual-admin-modal .doc-modal-panel h3 {
+      margin: 0 0 6px;
+      font-size: 17px;
+      color: #1a1a1a;
+    }
+    .manual-admin-intro {
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+    .manual-admin-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      padding: 4px;
+      flex-wrap: wrap;
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    .manual-admin-tabs button {
+      flex: 1;
+      min-width: 0;
+      padding: 9px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #64748b;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .manual-admin-tabs button:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.7);
+      color: #334155;
+    }
+    .manual-admin-tabs button.active {
+      background: #fff;
+      color: #0d6efd;
+      border-color: #dbeafe;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
     .manual-admin-panel { display: none; }
-    .manual-admin-panel.active { display: block; }
-    .manual-admin-panel label { display: block; font-size: 12px; font-weight: 600; margin: 8px 0 4px; color: #333; }
-    .manual-admin-panel input, .manual-admin-panel select, .manual-admin-panel textarea { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
+    .manual-admin-panel.active {
+      display: block;
+      padding: 14px 14px 12px;
+      background: #fafbfc;
+      border: 1px solid #e8edf2;
+      border-radius: 8px;
+    }
+    .manual-admin-panel label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 10px 0 5px;
+      color: #334155;
+    }
+    .manual-admin-panel label:first-child { margin-top: 0; }
+    .manual-admin-panel input,
+    .manual-admin-panel select,
+    .manual-admin-panel textarea {
+      width: 100%;
+      padding: 9px 11px;
+      font-size: 13px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #1e293b;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .manual-admin-panel input:focus,
+    .manual-admin-panel select:focus,
+    .manual-admin-panel textarea:focus {
+      outline: none;
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+    }
     .manual-admin-panel textarea { min-height: 72px; resize: vertical; }
-    .manual-admin-hint { font-size: 11px; color: #666; margin: 4px 0 0; line-height: 1.4; }
-    .manual-admin-status { font-size: 12px; margin: 10px 0 0; min-height: 1.2em; color: #0d6efd; }
+    .manual-admin-hint { font-size: 11px; color: #64748b; margin: 6px 0 0; line-height: 1.45; }
+    .manual-admin-status {
+      font-size: 12px;
+      margin: 12px 0 0;
+      min-height: 1.2em;
+      color: #0d6efd;
+      font-weight: 500;
+    }
     .manual-admin-status.is-error { color: #b02a37; }
     .manual-admin-status.is-warn { color: #664d03; }
-    .manual-admin-warn { margin-top: 10px; padding: 8px 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; font-size: 12px; color: #664d03; line-height: 1.4; }
-    .manual-admin-coords-row { display: flex; gap: 8px; margin-top: 8px; }
+    .manual-admin-warn {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #fff8e6;
+      border: 1px solid #fbbf24;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #92400e;
+      line-height: 1.45;
+    }
+    .manual-admin-coords-row { display: flex; gap: 10px; margin-top: 8px; }
     .manual-admin-coords-row > div { flex: 1; min-width: 0; }
-    .manual-admin-link-btn { background: none; border: none; padding: 0; font-size: 11px; color: #0d6efd; cursor: pointer; text-decoration: underline; }
-    .manual-admin-secondary-btn { width: 100%; margin-top: 8px; padding: 8px 10px; font-size: 12px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; }
-    .manual-admin-panel button.primary.is-busy { opacity: 0.75; cursor: wait; }
+    .manual-admin-link-btn {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 11px;
+      color: #0d6efd;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .manual-admin-link-btn:hover { color: #0a58ca; }
+    .manual-admin-submit {
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid #0d6efd;
+      background: #0d6efd;
+      color: #fff;
+      cursor: pointer;
+      transition: filter 0.15s ease, opacity 0.15s ease;
+    }
+    .manual-admin-submit:hover:not(:disabled) { filter: brightness(1.06); }
+    .manual-admin-submit:disabled,
+    .manual-admin-submit.is-busy { opacity: 0.75; cursor: wait; }
+    .manual-admin-secondary-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #475569;
+      cursor: pointer;
+    }
+    .manual-admin-secondary-btn:hover:not(:disabled) { background: #f8fafc; }
+    .manual-admin-secondary-btn:disabled,
+    .manual-admin-secondary-btn.is-busy { opacity: 0.75; cursor: wait; }
+    #manual-admin-modal .doc-modal-actions {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #e8edf2;
+    }
     </style>
 </head>
 <body>
@@ -379,7 +530,7 @@
   <div id="manual-admin-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="manual-admin-title">
       <h3 id="manual-admin-title">Dodaj dane ręcznie</h3>
-      <p class="manual-admin-hint">Wpisy zapisują się na stałe w arkuszu Google — zakładki „Miejsca załadunku”, „Przewoźnicy”, „Miejsca dostawy”.</p>
+      <p class="manual-admin-intro">Wpisy zapisują się na stałe w arkuszu Google — zakładki „Miejsca załadunku”, „Przewoźnicy”, „Miejsca dostawy”.</p>
       <div class="manual-admin-tabs" role="tablist">
         <button type="button" id="manual-admin-tab-zal" class="active" data-tab="zal">Miejsce załadunku</button>
         <button type="button" id="manual-admin-tab-prz" data-tab="prz">Przewoźnik</button>
@@ -425,7 +576,7 @@
         <div id="manual-admin-zal-geocode-fail" class="manual-admin-warn" hidden role="alert">
           Geokodowanie nie powiodło się. Sprawdź adres albo podaj współrzędne ręcznie powyżej i kliknij „Zapisz” ponownie.
         </div>
-        <button type="button" id="manual-admin-zal-submit" class="primary" style="width:100%;margin-top:10px">Zapisz miejsce załadunku</button>
+        <button type="button" id="manual-admin-zal-submit" class="manual-admin-submit">Zapisz miejsce załadunku</button>
         <button type="button" id="manual-admin-zal-submit-no-pin" class="manual-admin-secondary-btn" hidden>Zapisz bez pinezki (tylko lista)</button>
       </div>
       <div id="manual-admin-panel-prz" class="manual-admin-panel">
@@ -440,7 +591,7 @@
         <label for="manual-admin-prz-bdo">nr BDO</label>
         <input type="text" id="manual-admin-prz-bdo" autocomplete="off" />
         <p class="manual-admin-hint">Adres jest geokodowany (Lat/Lon) przy zapisie.</p>
-        <button type="button" id="manual-admin-prz-submit" class="primary" style="width:100%;margin-top:10px">Zapisz przewoźnika</button>
+        <button type="button" id="manual-admin-prz-submit" class="manual-admin-submit">Zapisz przewoźnika</button>
       </div>
       <div id="manual-admin-panel-dos" class="manual-admin-panel">
         <label for="manual-admin-dos-pelna">Nazwa pełna</label>
@@ -451,7 +602,7 @@
         <input type="text" id="manual-admin-dos-adres" autocomplete="off" placeholder="np. 32-540 Bolęcin Fabryczna 5" />
         <label for="manual-admin-dos-typ">Typ</label>
         <input type="text" id="manual-admin-dos-typ" autocomplete="off" placeholder="np. BOLĘCIN, SORTOWNIA…" />
-        <button type="button" id="manual-admin-dos-submit" class="primary" style="width:100%;margin-top:10px">Zapisz miejsce dostawy</button>
+        <button type="button" id="manual-admin-dos-submit" class="manual-admin-submit">Zapisz miejsce dostawy</button>
       </div>
       <p id="manual-admin-status" class="manual-admin-status" aria-live="polite"></p>
       <div class="doc-modal-actions">
