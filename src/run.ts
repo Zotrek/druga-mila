@@ -2,7 +2,8 @@
  * Pipeline CLI: points → geocode → buildMapHtml → index.html.
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
+import { copyFile, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { getConfig } from './config.js';
 import { readPoints } from './readPoints.js';
 import { readPodwyko } from './readPodwyko.js';
@@ -94,7 +95,10 @@ async function main(): Promise<void> {
   );
 
   await writeFile(cfg.outputHtml, html, 'utf-8');
+  const faviconOut = join(dirname(cfg.outputHtml), 'favicon.png');
+  await copyFile(cfg.faviconPath, faviconOut);
   console.log(`  zapisano: ${cfg.outputHtml} (${html.length} B)`);
+  console.log(`  favicon: ${faviconOut}`);
   console.log(`  word: ${cfg.wordTemplatePath} (${templateBytes.length} B)`);
   console.log(`  webApp: ${cfg.webAppUrl || '(brak — Word bez POST)'}`);
   console.log('[druga-mila] generate OK');

@@ -74,6 +74,7 @@ export const DEFAULT_OUTPUT_HTML = join(PROJECT_ROOT, 'index.html');
 export const DEFAULT_POINTS_XLSX = join(PROJECT_ROOT, 'data', 'druga-mila.xlsx');
 export const DEFAULT_PODWYKO_XLSX = join(PROJECT_ROOT, 'docs', 'podwyko lista.xlsx');
 export const DEFAULT_WORD_TEMPLATE = join(PROJECT_ROOT, 'docs', 'pusty.docx');
+export const DEFAULT_FAVICON_PATH = join(PROJECT_ROOT, 'docs', 'favicon.png');
 
 export const DEFAULT_NOMINATIM_USER_AGENT =
   'druga-mila/1.0 (https://github.com/zotrek/druga-mila; lokalny build mapy)';
@@ -90,6 +91,7 @@ export interface AppConfig {
   pointsXlsxPath: string;
   podwykoXlsxPath: string;
   wordTemplatePath: string;
+  faviconPath: string;
   nominatimUserAgent: string;
 }
 
@@ -112,6 +114,7 @@ export function getConfig(): AppConfig {
     pointsXlsxPath: process.env.POINTS_XLSX_PATH?.trim() ?? DEFAULT_POINTS_XLSX,
     podwykoXlsxPath: process.env.PODWYKO_XLSX_PATH?.trim() ?? DEFAULT_PODWYKO_XLSX,
     wordTemplatePath: process.env.WORD_TEMPLATE_PATH?.trim() ?? DEFAULT_WORD_TEMPLATE,
+    faviconPath: process.env.FAVICON_PATH?.trim() ?? DEFAULT_FAVICON_PATH,
     nominatimUserAgent:
       process.env.NOMINATIM_USER_AGENT?.trim() ?? DEFAULT_NOMINATIM_USER_AGENT,
   };

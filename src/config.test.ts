@@ -106,6 +106,7 @@ describe('config', () => {
       expect(cfg.pointsXlsxPath).toContain('druga-mila.xlsx');
       expect(cfg.podwykoXlsxPath).toContain('podwyko lista.xlsx');
       expect(cfg.wordTemplatePath).toContain('pusty.docx');
+      expect(cfg.faviconPath).toContain('favicon.png');
       expect(cfg.nominatimUserAgent.length).toBeGreaterThan(0);
     });
 

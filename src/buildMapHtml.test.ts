@@ -33,6 +33,7 @@ describe('buildMapHtml', () => {
     );
 
     expect(html).toContain('leaflet@1.9.4');
+    expect(html).toContain('rel="icon" href="./favicon.png"');
     expect(html).toContain('CD Test');
     expect(html).toContain('map-address-search');
     expect(html).toContain('name="map-type-filter"');
