@@ -441,11 +441,13 @@ export function manualAdminBrowserScript(): string {
       return false;
     }
 
-    /** Po dodaniu pinezki — widok ok. powiatu (nie ulicy). Leaflet ~10–11. */
+    /** Po ręcznym dodaniu pinezki — widok ok. powiatu (nie ulicy). Leaflet ~10–11.
+     *  Nie używać przy hydratacji z Sheets — to psuje startowy widok Polski. */
     var NEW_PIN_FOCUS_ZOOM = 11;
 
-    function addMapMarkerAdmin(point, loadIdx) {
+    function addMapMarkerAdmin(point, loadIdx, options) {
       if (typeof map === 'undefined' || typeof pinIcon !== 'function') return;
+      var opts = options || {};
       var marker = L.marker([point.lat, point.lon], { icon: pinIcon(point.kolor, false) });
       marker.bindPopup('');
       marker.addTo(map);
@@ -456,7 +458,9 @@ export function manualAdminBrowserScript(): string {
         marker.setPopupContent(buildPopupHtml(point, loadIdx));
         wirePopupControls(marker, loadIdx);
       });
-      map.setView([point.lat, point.lon], NEW_PIN_FOCUS_ZOOM);
+      if (opts.focusMap) {
+        map.setView([point.lat, point.lon], NEW_PIN_FOCUS_ZOOM);
+      }
       if (typeof applyAddressSearch === 'function') applyAddressSearch();
     }
 
@@ -492,7 +496,7 @@ export function manualAdminBrowserScript(): string {
           kolor: colorHexForKindAdmin(kind)
         };
         PUNKTY.push(mapPoint);
-        addMapMarkerAdmin(mapPoint, loadIdx);
+        addMapMarkerAdmin(mapPoint, loadIdx, { focusMap: !fromRemote });
       } else if (!fromRemote) {
         return loadIdx;
       }

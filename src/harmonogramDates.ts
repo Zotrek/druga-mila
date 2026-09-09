@@ -72,9 +72,13 @@ function formatDotDate(d: Date): string {
   return `${dd}.${mm}.${yyyy}`;
 }
 
+/** Od tego dnia miesiąca proponujemy też cały kolejny miesiąc. */
+export const INCLUDE_NEXT_MONTH_FROM_DAY = 22;
+
 /**
- * Daty w miesiącu `today` (ten sam miesiąc/rok) z dnia >= dziś,
- * których getDay() ∈ weekdays. Zwraca dd.mm.rrrr posortowane.
+ * Daty weekdays w miesiącu `today` od dnia >= dziś (bez dat wstecz).
+ * Od dnia {@link INCLUDE_NEXT_MONTH_FROM_DAY} dołącza też cały następny miesiąc.
+ * Zwraca dd.mm.rrrr chronologicznie.
  */
 export function datesForWeekdaysInMonth(weekdays: number[], today: Date = new Date()): string[] {
   if (!weekdays.length) {
@@ -84,14 +88,27 @@ export function datesForWeekdaysInMonth(weekdays: number[], today: Date = new Da
   const base = startOfLocalDay(today);
   const year = base.getFullYear();
   const month = base.getMonth();
-  const lastDay = new Date(year, month + 1, 0).getDate();
+  const dayOfMonth = base.getDate();
   const out: string[] = [];
-  for (let day = base.getDate(); day <= lastDay; day++) {
+
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  for (let day = dayOfMonth; day <= lastDay; day++) {
     const d = new Date(year, month, day);
     if (wanted.has(d.getDay())) {
       out.push(formatDotDate(d));
     }
   }
+
+  if (dayOfMonth >= INCLUDE_NEXT_MONTH_FROM_DAY) {
+    const lastDayNext = new Date(year, month + 2, 0).getDate();
+    for (let day = 1; day <= lastDayNext; day++) {
+      const d = new Date(year, month + 1, day);
+      if (wanted.has(d.getDay())) {
+        out.push(formatDotDate(d));
+      }
+    }
+  }
+
   return out;
 }
 

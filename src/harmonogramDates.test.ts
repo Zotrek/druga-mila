@@ -61,6 +61,41 @@ describe('datesForWeekdaysInMonth', () => {
       '31.08.2026',
     ]);
   });
+
+  it('test_datesForWeekdaysInMonth_before_22_only_current_month', () => {
+    // 21.08.2026 = piątek — przed progiem 22 → bez września
+    const today = new Date(2026, 7, 21);
+    expect(datesForWeekdaysInMonth([1], today)).toEqual([
+      '24.08.2026',
+      '31.08.2026',
+    ]);
+  });
+
+  it('test_datesForWeekdaysInMonth_from_22_includes_next_month', () => {
+    // 22.08.2026 = sobota → pozostałe poniedziałki sierpnia + wszystkie we wrześniu
+    const today = new Date(2026, 7, 22);
+    expect(datesForWeekdaysInMonth([1], today)).toEqual([
+      '24.08.2026',
+      '31.08.2026',
+      '07.09.2026',
+      '14.09.2026',
+      '21.09.2026',
+      '28.09.2026',
+    ]);
+  });
+
+  it('test_datesForWeekdaysInMonth_december_rolls_to_january', () => {
+    // 22.12.2026 = wtorek → pozostałe wtorki XII + wszystkie w I 2027
+    const today = new Date(2026, 11, 22);
+    expect(datesForWeekdaysInMonth([2], today)).toEqual([
+      '22.12.2026',
+      '29.12.2026',
+      '05.01.2027',
+      '12.01.2027',
+      '19.01.2027',
+      '26.01.2027',
+    ]);
+  });
 });
 
 describe('proposeDatesFromDzienOdbioru', () => {

@@ -328,7 +328,7 @@ export function wordModalHtml(): string {
         </div>
       </div>
       <div id="doc-harm-dates-wrap" hidden>
-        <p class="doc-bulk-points-title">Terminy w tym miesiącu</p>
+        <p class="doc-bulk-points-title">Proponowane terminy</p>
         <div id="doc-harm-dates-list" class="harm-dates-list" role="list"></div>
         <div class="doc-modal-actions" style="justify-content:flex-start;margin-top:8px">
           <button type="button" id="doc-btn-harm-add-date">Dodaj datę</button>
@@ -990,6 +990,7 @@ export function wordModalBrowserScript(): string {
       var yyyy = d.getFullYear();
       return dd + '.' + mm + '.' + yyyy;
     }
+    var INCLUDE_NEXT_MONTH_FROM_DAY = 22;
     function datesForWeekdaysInMonth(weekdays, today) {
       if (!weekdays || !weekdays.length) return [];
       var wanted = {};
@@ -1003,6 +1004,13 @@ export function wordModalBrowserScript(): string {
       for (var day = startDay; day <= lastDay; day++) {
         var d = new Date(year, month, day);
         if (wanted[d.getDay()]) out.push(formatDotDateLocal(d));
+      }
+      if (startDay >= INCLUDE_NEXT_MONTH_FROM_DAY) {
+        var lastDayNext = new Date(year, month + 2, 0).getDate();
+        for (var nd = 1; nd <= lastDayNext; nd++) {
+          var ndate = new Date(year, month + 1, nd);
+          if (wanted[ndate.getDay()]) out.push(formatDotDateLocal(ndate));
+        }
       }
       return out;
     }

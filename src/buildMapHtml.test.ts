@@ -167,6 +167,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('listReferenceData');
     expect(html).toContain('addReferenceZaladunek');
     expect(html).toContain('Zapisz miejsce załadunku');
+    expect(html).toContain('focusMap: !fromRemote');
+    expect(html).toContain('opts.focusMap');
     expect(html).toContain('formatPrzewoznikForWordJs');
     expect(html).toContain('manual-admin-prz-wysw');
     expect(html).toContain('manual-admin-zal-lat');
