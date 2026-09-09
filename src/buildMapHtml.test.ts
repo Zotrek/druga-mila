@@ -44,6 +44,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain(COLOR_BOLECIN);
     expect(html).toContain('normalizeForAddressSearchMap');
     expect(html).toContain('Filtr typu');
+    expect(html).toContain('.setView([52.1, 19.4], 6)');
+    expect(html).not.toContain('group.getBounds().pad(0.08)');
   });
 
   it('test_buildMapHtml_embeds_word_modal_when_template_present', () => {

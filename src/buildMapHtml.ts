@@ -229,11 +229,6 @@ ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <s
       });
     });
 
-    if (markerEntries.length > 0) {
-      var group = L.featureGroup(markerEntries.map(function(e) { return e.marker; }));
-      map.fitBounds(group.getBounds().pad(0.08));
-    }
-
     function getColorFilterMode() {
       var el = document.querySelector('input[name="map-type-filter"]:checked');
       return el ? el.value : 'wszystkie';
