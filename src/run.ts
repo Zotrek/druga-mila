@@ -4,7 +4,7 @@
 
 import { copyFile, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { getConfig } from './config.js';
+import { getConfig, PROJECT_ROOT } from './config.js';
 import { readPoints } from './readPoints.js';
 import { readPodwyko } from './readPodwyko.js';
 import { readUnloadDelivery } from './readUnloadDelivery.js';
@@ -95,10 +95,16 @@ async function main(): Promise<void> {
   );
 
   await writeFile(cfg.outputHtml, html, 'utf-8');
-  const faviconOut = join(dirname(cfg.outputHtml), 'favicon.png');
+  const outDir = dirname(cfg.outputHtml);
+  const faviconOut = join(outDir, 'favicon.png');
   await copyFile(cfg.faviconPath, faviconOut);
+  const iconEditSrc = join(PROJECT_ROOT, 'docs', 'icon-edit.png');
+  const iconDeleteSrc = join(PROJECT_ROOT, 'docs', 'icon-delete.png');
+  await copyFile(iconEditSrc, join(outDir, 'icon-edit.png'));
+  await copyFile(iconDeleteSrc, join(outDir, 'icon-delete.png'));
   console.log(`  zapisano: ${cfg.outputHtml} (${html.length} B)`);
   console.log(`  favicon: ${faviconOut}`);
+  console.log(`  icons: ${join(outDir, 'icon-edit.png')}, ${join(outDir, 'icon-delete.png')}`);
   console.log(`  word: ${cfg.wordTemplatePath} (${templateBytes.length} B)`);
   console.log(`  webApp: ${cfg.webAppUrl || '(brak — Word bez POST)'}`);
   console.log('[druga-mila] generate OK');

@@ -128,6 +128,9 @@ describe('buildMapHtml', () => {
     expect(html).toContain('deleteHarmonogram');
     expect(html).toContain('openHarmonogramEditForm');
     expect(html).toContain('harmonogram-add-delete');
+    expect(html).toContain('icon-edit.png');
+    expect(html).toContain('icon-delete.png');
+    expect(html).toContain('harm-icon-btn');
     expect(html).toContain('Edytuj w Harmonogramie');
     expect(html).toContain('doc-inp-data-od');
     expect(html).toContain('doc-inp-data-do');
