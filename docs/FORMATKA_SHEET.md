@@ -43,6 +43,7 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 | Kolumny | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **II Adres odbioru**, **II Nazwa kontrahenta**, **Dzień odbioru**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
 | Lista | GET `action=listHarmonogram` (mapowanie po nagłówkach; kolejność kolumn może się różnić) |
 | Dodaj | POST `mode: "addHarmonogram"` — tylko szablon; bez DM/DMH, bez miesiąca, bez Bolęcin |
+| Update / delete | POST `mode: "updateHarmonogram"` / `"deleteHarmonogram"` (wymaga `harmonogramRow`; bez numeru / miesiąca / Bolęcin) |
 | Generacja z mapy | UI proponuje daty z „Dzień odbioru” (edytowalne) → N× POST `commitHarm` (seria **DMH1…**) + Word; wiersz Harmonogramu **zostaje** |
 | **Łączony (II)** | Gdy **II Adres** lub **II Nazwa** niepuste: jak protokół łączony — na termin **1× DMH*** (adresy `Adres1; Adres2`, nazwy `Nazwa1-Nazwa2`) + **2× Word** (osobno I i II) |
 | Numeracja DMH | Osobna pula; GET `previewNumberHarm`; skan tylko `DMH*` |
@@ -96,6 +97,8 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 | `updatePlan` | Wymaga `planowaneRow`; nadpisuje pola wiersza (numer bez zmian); bez Bolęcina |
 | `deletePlan` | Wymaga `planowaneRow`; usuwa wiersz z `Planowane` (numer wraca do puli przy następnym skanie) |
 | `addHarmonogram` | Append wiersza do `Harmonogram` (12 kolumn); bez numeru / miesiąca / Bolęcin |
+| `updateHarmonogram` | Wymaga `harmonogramRow`; nadpisuje pola wiersza w `Harmonogram` |
+| `deleteHarmonogram` | Wymaga `harmonogramRow`; usuwa wiersz z `Harmonogram` |
 | `commitHarm` | Jak commit, ale seria **DMH***; Harmonogram bez zmian |
 
 > Przeglądarka często wysyła POST jako `text/plain` (unikanie preflight CORS) — Web App musi czytać `e.postData.contents` i `JSON.parse`, nie polegać na `application/json`.

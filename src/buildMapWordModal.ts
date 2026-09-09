@@ -112,6 +112,14 @@ export function wordModalCss(): string {
     .planowane-list-meta { color: #666; font-size: 11px; }
     .planowane-list-empty { font-size: 12px; color: #666; margin: 8px 0; }
     #harmonogram-picker .planowane-list-item:hover { background: #e6f7f5; border-color: #0d9488; }
+    .harm-list-row { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 0 0 6px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fff; box-sizing: border-box; }
+    .harm-list-row:hover { border-color: #0d9488; background: #e6f7f5; }
+    .harm-list-main { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; font-size: 12px; color: #333; }
+    .harm-list-main strong { font-size: 13px; }
+    .harm-list-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .harm-list-actions button { flex: 1; min-width: 72px; padding: 5px 8px; font-size: 11px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; }
+    .harm-list-actions button.harm-edit { border-color: #0d9488; color: #0f766e; }
+    .harm-list-actions button.danger { border-color: #dc3545; color: #b02a37; }
     .harm-dates-list { margin-top: 6px; max-height: min(220px, 40vh); overflow-y: auto; border: 1px solid #e8e8e8; border-radius: 6px; padding: 6px 8px; background: #fafafa; }
     .harm-dates-list-row { display: flex; gap: 8px; align-items: center; margin: 0 0 6px; }
     .harm-dates-list-row input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; }
@@ -237,6 +245,7 @@ export function wordModalHtml(): string {
       <input type="text" id="harm-add-znacznik" maxlength="40" autocomplete="off" />
       <div class="doc-modal-actions">
         <button type="button" id="harmonogram-add-cancel">Anuluj</button>
+        <button type="button" id="harmonogram-add-delete" class="danger" hidden>Usuń</button>
         <button type="button" id="harmonogram-add-save" class="primary">Zapisz</button>
       </div>
     </div>
@@ -1675,13 +1684,12 @@ export function wordModalBrowserScript(): string {
           if (statusEl) {
             statusEl.textContent = rows.length === 0
               ? 'Brak stałych odbiorów w Harmonogramie.'
-              : (rows.length + ' stałych — kliknij, aby wygenerować.');
+              : (rows.length + ' stałych — Generuj / Edytuj / Usuń.');
           }
           rows.forEach(function(row) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'planowane-list-item';
-            btn.setAttribute('role', 'listitem');
+            var wrap = document.createElement('div');
+            wrap.className = 'harm-list-row';
+            wrap.setAttribute('role', 'listitem');
             var title = (row.nazwaKontrahenta || row.adresOdbioru || 'bez nazwy') +
               (row.dzienOdbioru ? ' · ' + row.dzienOdbioru : '') +
               (harmRowHasSecondLoad(row) ? ' · łączony' : '');
@@ -1693,16 +1701,42 @@ export function wordModalBrowserScript(): string {
                 adresMeta = (adresMeta ? adresMeta + '; ' : '') + (a2 || n2);
               }
             }
-            btn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
+            var mainBtn = document.createElement('button');
+            mainBtn.type = 'button';
+            mainBtn.className = 'harm-list-main';
+            mainBtn.title = 'Generuj protokół';
+            mainBtn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
               '<span class="planowane-list-meta">' + escapeHtmlMap(adresMeta) + '</span>' +
               '<span class="planowane-list-meta">' +
               escapeHtmlMap([row.ktoOdbiera, row.miejsceZrzutu, row.rodzajZbiorki].filter(Boolean).join(' · ')) +
               '</span>';
-            btn.addEventListener('click', function() {
+            mainBtn.addEventListener('click', function() {
               closeHarmonogramPicker();
               openHarmonogramDocModal(row);
             });
-            listEl.appendChild(btn);
+            var actions = document.createElement('div');
+            actions.className = 'harm-list-actions';
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'harm-edit';
+            editBtn.textContent = 'Edytuj';
+            editBtn.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              openHarmonogramEditForm(row);
+            });
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'danger';
+            delBtn.textContent = 'Usuń';
+            delBtn.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              deleteHarmonogramRow(row);
+            });
+            actions.appendChild(editBtn);
+            actions.appendChild(delBtn);
+            wrap.appendChild(mainBtn);
+            wrap.appendChild(actions);
+            listEl.appendChild(wrap);
           });
         })
         .catch(function(err) {
@@ -1835,6 +1869,7 @@ export function wordModalBrowserScript(): string {
       previewNumerFromApi();
     }
     function resetHarmonogramAddForm() {
+      window.__harmEditRow = null;
       ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-val-nazwa',
         'harm-add-adres-ii','harm-add-nazwa-ii','harm-add-val-nazwa-ii',
         'harm-add-kto','harm-add-val-kto','harm-add-zrzut','harm-add-val-zrzut','harm-add-zbiorka',
@@ -1844,6 +1879,55 @@ export function wordModalBrowserScript(): string {
       document.querySelectorAll('.harm-add-dzien-cb').forEach(function(cb) {
         cb.checked = false;
       });
+      syncHarmonogramAddFormMode();
+    }
+    function syncHarmonogramAddFormMode() {
+      var isEdit = !!(window.__harmEditRow && window.__harmEditRow.rowIndex);
+      var titleEl = document.getElementById('harmonogram-add-title');
+      if (titleEl) titleEl.textContent = isEdit ? 'Edytuj w Harmonogramie' : 'Dodaj do Harmonogramu';
+      var saveBtn = document.getElementById('harmonogram-add-save');
+      if (saveBtn) saveBtn.textContent = isEdit ? 'Zapisz zmiany' : 'Zapisz';
+      var delBtn = document.getElementById('harmonogram-add-delete');
+      if (delBtn) delBtn.hidden = !isEdit;
+    }
+    function setHarmAddDzienOdbioru(raw) {
+      var wanted = {};
+      String(raw || '').split(/[/;,|]+/).forEach(function(part) {
+        var t = String(part || '').trim().toLowerCase();
+        if (t) wanted[t] = true;
+      });
+      document.querySelectorAll('.harm-add-dzien-cb').forEach(function(cb) {
+        cb.checked = !!wanted[String(cb.value || '').trim().toLowerCase()];
+      });
+    }
+    function fillHarmonogramAddFormFromRow(row) {
+      if (!row) return;
+      var setVal = function(id, v) {
+        var el = document.getElementById(id);
+        if (el) el.value = v != null ? String(v) : '';
+      };
+      setVal('harm-add-stawka', row.stawka);
+      setVal('harm-add-uwagi', row.uwagi);
+      setVal('harm-add-adres', row.adresOdbioru);
+      setVal('harm-add-nazwa', row.nazwaKontrahenta);
+      setVal('harm-add-val-nazwa', '');
+      setVal('harm-add-adres-ii', row.adresOdbioruIi);
+      setVal('harm-add-nazwa-ii', row.nazwaKontrahentaIi);
+      setVal('harm-add-val-nazwa-ii', '');
+      setVal('harm-add-zbiorka', row.rodzajZbiorki);
+      setVal('harm-add-worki', row.ileWorkow);
+      setVal('harm-add-transport', row.rodzajTransportu);
+      setVal('harm-add-awizacja', row.awizacja);
+      setVal('harm-add-znacznik', row.znacznikMiejsca);
+      setHarmAddDzienOdbioru(row.dzienOdbioru);
+      selectPodwykoByLabel('harm-add-val-kto', 'harm-add-kto', row.ktoOdbiera);
+      selectMiejsceDostawyByLabel('harm-add-val-zrzut', 'harm-add-zrzut', row.miejsceZrzutu);
+      if (row.ktoOdbiera && !(document.getElementById('harm-add-kto') || {}).value) {
+        setVal('harm-add-kto', row.ktoOdbiera);
+      }
+      if (row.miejsceZrzutu && !(document.getElementById('harm-add-zrzut') || {}).value) {
+        setVal('harm-add-zrzut', row.miejsceZrzutu);
+      }
     }
     function collectHarmAddDzienOdbioru() {
       var days = [];
@@ -1860,17 +1944,25 @@ export function wordModalBrowserScript(): string {
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
     }
+    function openHarmonogramEditForm(row) {
+      var m = document.getElementById('harmonogram-add');
+      if (!m || !wordDocEnabled || !row || !row.rowIndex) return;
+      resetHarmonogramAddForm();
+      window.__harmEditRow = row;
+      fillHarmonogramAddFormFromRow(row);
+      syncHarmonogramAddFormMode();
+      m.style.display = 'flex';
+      m.setAttribute('aria-hidden', 'false');
+    }
     function closeHarmonogramAddForm() {
       var m = document.getElementById('harmonogram-add');
       if (!m) return;
       m.style.display = 'none';
       m.setAttribute('aria-hidden', 'true');
+      window.__harmEditRow = null;
+      syncHarmonogramAddFormMode();
     }
-    function submitHarmonogramAddForm() {
-      if (!WEBAPP_URL) {
-        alert('Dodanie do Harmonogramu wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
-        return;
-      }
+    function buildHarmonogramFormPayload() {
       var pr = resolvePodwyko('harm-add-val-kto', 'harm-add-kto');
       var md = resolveMiejsceDostawy('harm-add-val-zrzut', 'harm-add-zrzut');
       var nazwaHid = document.getElementById('harm-add-val-nazwa');
@@ -1893,8 +1985,7 @@ export function wordModalBrowserScript(): string {
         nazwaKontrahentaIi = lpIi.nazwaPelna || lpIi.nazwaSkrocona || nazwaKontrahentaIi;
         if (!String(adresOdbioruIi).trim()) adresOdbioruIi = lpIi.adres || '';
       }
-      var payload = {
-        mode: 'addHarmonogram',
+      return {
         stawka: (document.getElementById('harm-add-stawka') || {}).value || '',
         uwagi: (document.getElementById('harm-add-uwagi') || {}).value || '',
         adresOdbioru: adresOdbioru,
@@ -1910,25 +2001,83 @@ export function wordModalBrowserScript(): string {
         awizacja: (document.getElementById('harm-add-awizacja') || {}).value || '',
         znacznikMiejsca: znacznikMiejsca
       };
+    }
+    function submitHarmonogramAddForm() {
+      if (!WEBAPP_URL) {
+        alert('Zapis w Harmonogramie wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
+      var editRow = window.__harmEditRow;
+      var isEdit = !!(editRow && editRow.rowIndex);
+      var payload = buildHarmonogramFormPayload();
+      payload.mode = isEdit ? 'updateHarmonogram' : 'addHarmonogram';
+      if (isEdit) payload.harmonogramRow = editRow.rowIndex;
       if (!String(payload.nazwaKontrahenta).trim() && !String(payload.adresOdbioru).trim()) {
         alert('Podaj nazwę kontrahenta lub adres odbioru.');
         return;
       }
       var btn = document.getElementById('harmonogram-add-save');
+      var delBtn = document.getElementById('harmonogram-add-delete');
       if (btn) btn.disabled = true;
+      if (delBtn) delBtn.disabled = true;
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          alert('Nie udało się dodać do Harmonogramu: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          alert(isEdit
+            ? ('Nie udało się zapisać zmian: ' + (resp && resp.error ? resp.error : 'błąd API'))
+            : ('Nie udało się dodać do Harmonogramu: ' + (resp && resp.error ? resp.error : 'błąd API')));
           return;
         }
         closeHarmonogramAddForm();
         loadHarmonogramList();
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się dodać do Harmonogramu (sieć / Web App).');
+        alert(isEdit
+          ? 'Nie udało się zapisać zmian (sieć / Web App).'
+          : 'Nie udało się dodać do Harmonogramu (sieć / Web App).');
       }).finally(function() {
         if (btn) btn.disabled = false;
+        if (delBtn) delBtn.disabled = false;
       });
+    }
+    function deleteHarmonogramRow(row) {
+      if (!WEBAPP_URL) {
+        alert('Usuwanie wymaga Web App.');
+        return;
+      }
+      if (!row || !row.rowIndex) {
+        alert('Brak wiersza Harmonogramu.');
+        return;
+      }
+      var label = row.nazwaKontrahenta || row.adresOdbioru || 'ten wpis';
+      if (!window.confirm('Usunąć z Harmonogramu: ' + label + '?')) {
+        return;
+      }
+      var saveBtn = document.getElementById('harmonogram-add-save');
+      var delBtn = document.getElementById('harmonogram-add-delete');
+      if (saveBtn) saveBtn.disabled = true;
+      if (delBtn) delBtn.disabled = true;
+      appendFormatkaRow({ mode: 'deleteHarmonogram', harmonogramRow: row.rowIndex }).then(function(resp) {
+        if (!resp || !resp.ok) {
+          alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          return;
+        }
+        closeHarmonogramAddForm();
+        loadHarmonogramList();
+      }).catch(function(err) {
+        console.error(err);
+        alert('Nie udało się usunąć z Harmonogramu.');
+      }).finally(function() {
+        if (saveBtn) saveBtn.disabled = false;
+        if (delBtn) delBtn.disabled = false;
+      });
+    }
+    function deleteHarmonogramFromForm() {
+      var editRow = window.__harmEditRow;
+      if (!editRow || !editRow.rowIndex) {
+        alert('Brak wiersza Harmonogramu.');
+        return;
+      }
+      deleteHarmonogramRow(editRow);
     }
     function runHarmonogramDocGenerate(options) {
       var opts = options || {};
@@ -2569,9 +2718,11 @@ export function wordModalBrowserScript(): string {
     }
     var harmonogramAddCancel = document.getElementById('harmonogram-add-cancel');
     var harmonogramAddSave = document.getElementById('harmonogram-add-save');
+    var harmonogramAddDelete = document.getElementById('harmonogram-add-delete');
     var harmonogramAdd = document.getElementById('harmonogram-add');
     if (harmonogramAddCancel) harmonogramAddCancel.addEventListener('click', closeHarmonogramAddForm);
     if (harmonogramAddSave) harmonogramAddSave.addEventListener('click', submitHarmonogramAddForm);
+    if (harmonogramAddDelete) harmonogramAddDelete.addEventListener('click', deleteHarmonogramFromForm);
     if (harmonogramAdd) {
       harmonogramAdd.addEventListener('click', function(ev) {
         if (ev.target === this) closeHarmonogramAddForm();

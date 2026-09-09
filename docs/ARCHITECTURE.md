@@ -143,7 +143,7 @@ Deploy + kontrakt: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md). Kod: [`google-apps-
 | GET | `action=previewNumber` | Podgląd następnego numeru (**skan wszystkich zakładek**, bez rezerwacji) |
 | GET | `action=modalData` | **Tylko numer** `{ ok, numer }` — **bez** `lastTransportDate` (DM nie filtruje plomb) |
 | GET | `action=listPlanowane` | Lista wierszy zakładki `Planowane` |
-| POST | JSON, `Content-Type: text/plain` | LockService → wg `mode`: `commit` (miesiąc±Bolęcin), `plan` (`Planowane`), `realize`, `updatePlan`, `deletePlan` → `{ ok, numer? }` |
+| POST | JSON, `Content-Type: text/plain` | LockService → wg `mode`: `commit` (miesiąc±Bolęcin), `plan` / `realize` / `updatePlan` / `deletePlan` (`Planowane`), `addHarmonogram` / `updateHarmonogram` / `deleteHarmonogram` / `commitHarm` → `{ ok, numer? }` |
 
 > `modalData` w plombach zwraca też ostatnią datę transportu. W DM **nie** — endpoint zostaje dla spójności UX (jeden GET przy otwarciu modala), ale payload to wyłącznie podgląd numeru.
 

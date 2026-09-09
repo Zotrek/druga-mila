@@ -16,6 +16,8 @@
  *   updatePlan    → nadpis wiersza Planowane
  *   deletePlan    → usunięcie z Planowane
  *   addHarmonogram → append do Harmonogram (szablon stały, bez numeru)
+ *   updateHarmonogram → nadpis wiersza Harmonogram
+ *   deleteHarmonogram → usunięcie z Harmonogram
  *   commitHarm    → append miesiąca + Bolęcin (seria DMH*; Harmonogram bez zmian)
  *   addReferenceZaladunek → append do „Miejsca załadunku”
  *   addReferencePrzewoznik → append do „Przewoźnicy”
@@ -267,6 +269,12 @@ function doPost(e) {
     if (mode === 'addHarmonogram') {
       return handleAddHarmonogramPost_(body);
     }
+    if (mode === 'updateHarmonogram') {
+      return handleUpdateHarmonogramPost_(body);
+    }
+    if (mode === 'deleteHarmonogram') {
+      return handleDeleteHarmonogramPost_(body);
+    }
     if (mode === 'commitHarm') {
       return handleCommitHarmPost_(body);
     }
@@ -384,6 +392,28 @@ function handleDeletePlanPost_(body) {
 function handleAddHarmonogramPost_(body) {
   var sheet = getOrCreateHarmonogramSheet_();
   sheet.appendRow(buildHarmonogramRowValuesForSheet_(sheet, body));
+  return jsonResponse({ ok: true });
+}
+
+function handleUpdateHarmonogramPost_(body) {
+  var rowIndex = parseHarmonogramRowIndex_(body);
+  var sheet = getOrCreateHarmonogramSheet_();
+  if (rowIndex < 2 || rowIndex > sheet.getLastRow()) {
+    throw new Error('harmonogramRow out of range');
+  }
+  // getRange(row, column, numRows, numColumns) — 3./4. to liczba wierszy/kolumn, NIE endRow/endCol
+  var rowVals = buildHarmonogramRowValuesForSheet_(sheet, body);
+  sheet.getRange(rowIndex, 1, 1, rowVals.length).setValues([rowVals]);
+  return jsonResponse({ ok: true });
+}
+
+function handleDeleteHarmonogramPost_(body) {
+  var rowIndex = parseHarmonogramRowIndex_(body);
+  var sheet = getOrCreateHarmonogramSheet_();
+  if (rowIndex < 2 || rowIndex > sheet.getLastRow()) {
+    throw new Error('harmonogramRow out of range');
+  }
+  sheet.deleteRow(rowIndex);
   return jsonResponse({ ok: true });
 }
 
@@ -945,6 +975,15 @@ function parsePlanowaneRowIndex_(body) {
   var n = parseInt(raw, 10);
   if (isNaN(n)) {
     throw new Error('planowaneRow required');
+  }
+  return n;
+}
+
+function parseHarmonogramRowIndex_(body) {
+  var raw = body && body.harmonogramRow != null ? body.harmonogramRow : body && body.rowIndex;
+  var n = parseInt(raw, 10);
+  if (isNaN(n)) {
+    throw new Error('harmonogramRow required');
   }
   return n;
 }
