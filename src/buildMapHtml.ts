@@ -149,7 +149,7 @@ ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <s
     const LOAD_POINTS = ${JSON.stringify(wordEmbed?.loadPoints ?? [])};
     const MANUAL_OVERLAY = ${JSON.stringify(manualOverlay)};
 
-    const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 6);
+    const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>'
