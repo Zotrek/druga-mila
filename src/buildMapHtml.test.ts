@@ -112,6 +112,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Planowane');
     expect(html).toContain('openPlanowanePicker');
     expect(html).toContain('listPlanowane');
+    expect(html).toContain('deletePlanowaneRow');
+    expect(html).toContain('Realizuj / Edytuj / Usuń');
     expect(html).toContain('Zapisz planowane');
     expect(html).toContain('Tylko zapisz w Excelu');
     expect(html).toContain('doc-btn-save-excel');

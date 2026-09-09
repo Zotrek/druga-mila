@@ -126,6 +126,7 @@
     #harmonogram-picker .planowane-list-item:hover { background: #e6f7f5; border-color: #0d9488; }
     .harm-list-row { display: flex; flex-direction: column; gap: 6px; width: 100%; margin: 0 0 6px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; background: #fff; box-sizing: border-box; }
     .harm-list-row:hover { border-color: #0d9488; background: #e6f7f5; }
+    #planowane-picker .harm-list-row:hover { border-color: #6f42c1; background: #f3eef9; }
     .harm-list-main { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; font-size: 12px; color: #333; }
     .harm-list-main strong { font-size: 13px; }
     .harm-list-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; }
@@ -2111,24 +2112,54 @@
           if (statusEl) {
             statusEl.textContent = rows.length === 0
               ? 'Brak planowanych transportów.'
-              : (rows.length + ' planowanych — kliknij, aby zrealizować.');
+              : (rows.length + ' planowanych — Realizuj / Edytuj / Usuń.');
           }
           rows.forEach(function(row) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'planowane-list-item';
-            btn.setAttribute('role', 'listitem');
+            var wrap = document.createElement('div');
+            wrap.className = 'harm-list-row';
+            wrap.setAttribute('role', 'listitem');
             var title = (row.numer || '—') + ' · ' + (row.nazwaKontrahenta || row.adresOdbioru || 'bez nazwy');
-            btn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
+            var mainBtn = document.createElement('button');
+            mainBtn.type = 'button';
+            mainBtn.className = 'harm-list-main';
+            mainBtn.title = 'Realizuj planowane';
+            mainBtn.innerHTML = '<strong>' + escapeHtmlMap(title) + '</strong>' +
               '<span class="planowane-list-meta">' + escapeHtmlMap(row.adresOdbioru || '') + '</span>' +
               '<span class="planowane-list-meta">' +
               escapeHtmlMap([row.dataOdbioru, row.ktoOdbiera, row.miejsceZrzutu].filter(Boolean).join(' · ')) +
               '</span>';
-            btn.addEventListener('click', function() {
+            mainBtn.addEventListener('click', function() {
               closePlanowanePicker();
               openRealizeDocModal(row);
             });
-            listEl.appendChild(btn);
+            var actions = document.createElement('div');
+            actions.className = 'harm-list-actions';
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'harm-icon-btn harm-edit';
+            editBtn.title = 'Edytuj';
+            editBtn.setAttribute('aria-label', 'Edytuj');
+            editBtn.innerHTML = '<img src="./icon-edit.png" alt="" width="18" height="18" />';
+            editBtn.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              closePlanowanePicker();
+              openRealizeDocModal(row);
+            });
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'harm-icon-btn danger';
+            delBtn.title = 'Usuń';
+            delBtn.setAttribute('aria-label', 'Usuń');
+            delBtn.innerHTML = '<img src="./icon-delete.png" alt="" width="18" height="18" />';
+            delBtn.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              deletePlanowaneRow(row);
+            });
+            actions.appendChild(editBtn);
+            actions.appendChild(delBtn);
+            wrap.appendChild(mainBtn);
+            wrap.appendChild(actions);
+            listEl.appendChild(wrap);
           });
         })
         .catch(function(err) {
@@ -2792,27 +2823,28 @@
         if (btn) btn.disabled = false;
       });
     }
-    function deletePlanowaneFromModal() {
+    function deletePlanowaneRow(row) {
       if (!WEBAPP_URL) {
         alert('Usuwanie wymaga Web App.');
         return;
       }
-      var plan = window.__realizePlan;
-      if (!plan || !plan.rowIndex) {
+      if (!row || !row.rowIndex) {
         alert('Brak wiersza planowanego.');
         return;
       }
-      if (!window.confirm('Usunąć ' + (plan.numer || '') + ' z Planowane? Numer wróci do puli.')) {
+      if (!window.confirm('Usunąć ' + (row.numer || '') + ' z Planowane? Numer wróci do puli.')) {
         return;
       }
       var btn = document.getElementById('doc-btn-delete-plan');
       if (btn) btn.disabled = true;
-      appendFormatkaRow({ mode: 'deletePlan', planowaneRow: plan.rowIndex }).then(function(resp) {
+      appendFormatkaRow({ mode: 'deletePlan', planowaneRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
           alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
           return;
         }
-        closeDocModal();
+        if (window.__realizePlan && window.__realizePlan.rowIndex === row.rowIndex) {
+          closeDocModal();
+        }
         openPlanowanePicker();
       }).catch(function(err) {
         console.error(err);
@@ -2820,6 +2852,14 @@
       }).finally(function() {
         if (btn) btn.disabled = false;
       });
+    }
+    function deletePlanowaneFromModal() {
+      var plan = window.__realizePlan;
+      if (!plan || !plan.rowIndex) {
+        alert('Brak wiersza planowanego.');
+        return;
+      }
+      deletePlanowaneRow(plan);
     }
     function renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer, options) {
       var opts = options || {};
