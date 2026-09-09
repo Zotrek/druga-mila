@@ -41,6 +41,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('map-address-search');
     expect(html).toContain('name="map-type-filter"');
     expect(html).toContain('value="bolecin"');
+    expect(html).not.toContain('value="puste"');
+    expect(html).not.toContain('>Puste (');
     expect(html).toContain(COLOR_CD);
     expect(html).toContain(COLOR_BOLECIN);
     expect(html).toContain('normalizeForAddressSearchMap');

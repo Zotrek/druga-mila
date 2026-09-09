@@ -327,7 +327,6 @@ ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <s
         '<label><input type="radio" name="map-type-filter" value="wszystkie" checked /> Wszystkie</label>' +
         '<label><input type="radio" name="map-type-filter" value="cd" /> CD</label>' +
         '<label><input type="radio" name="map-type-filter" value="plac" /> PLAC</label>' +
-        '<label><input type="radio" name="map-type-filter" value="puste" /> Puste</label>' +
         '<label><input type="radio" name="map-type-filter" value="bolecin" /> Bolęcin</label>' +
         '</div></div>' +
         (wordDocEnabled
@@ -393,7 +392,6 @@ ${
         '<h3>Legenda</h3><ul>' +
         '<li><span class="legend-swatch" style="background:${COLOR_CD}"></span>CD (' + COLOR_COUNTS.cd + ')</li>' +
         '<li><span class="legend-swatch" style="background:${COLOR_PLAC}"></span>PLAC (' + COLOR_COUNTS.plac + ')</li>' +
-        '<li><span class="legend-swatch" style="background:${COLOR_PUSTE}"></span>Puste (' + COLOR_COUNTS.puste + ')</li>' +
         '<li><span class="legend-swatch" style="background:${COLOR_BOLECIN}"></span>Bolęcin (' + COLOR_COUNTS.bolecin + ')</li>' +
         '</ul>';
       return div;
