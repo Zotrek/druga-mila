@@ -154,7 +154,7 @@ Deploy + kontrakt: [`FORMATKA_SHEET.md`](FORMATKA_SHEET.md). Kod: [`google-apps-
 | Start (brak numerów na żadnej zakładce) | **`DM1`** |
 | Zakładki miesięczne | Nazwa z `dataOdbioru` → `Sierpień 2026`; create + nagłówki przy pierwszym POST miesiąca |
 | Zakładka `Planowane` | Stała; te same 15 kolumn; rezerwacja numeru bez Word/Bolęcin (`mode: plan`) |
-| Arkusz Bolęcin | ID `14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc`; gdy cel = Bolęcin/Biosystem — dodatkowy append (10 kolumn, te same zakładki miesięczne); przy `commit`/`realize` też formatka główna; **nie** przy `plan` |
+| Arkusz Bolęcin | ID `14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc`; gdy cel = Bolęcin/Biosystem — dodatkowy append (10 kolumn, te same zakładki miesięczne); przy `commit`/`realize` też formatka główna; **nie** przy `plan`; z `bolecinOnly` — **tylko** Bolęcin |
 | Źródło prawdy | Kolumna „Nr zlecenia” na **wszystkich** zakładkach formatki głównej w tym `Planowane` (skan przy preview i POST) |
 | Script Property `formatkaLastNumber` | Cache po udanym zapisie — **nie** pali numerów przy podglądzie |
 | Regex | `^(.*?)(\d+)$` → prefiks + liczba; samo `\d+` → prefiks pusty |
@@ -211,8 +211,10 @@ Body POST (kierunek pól):
 | Bulk | Multi-select → pętla POST + docx |
 | Protokół łączony | Osobny tryb: dokładnie 2 miejsca (mapa lub lista) → 1 POST (sklejone pola) + 2 docx (ten sam DM*); nazwy `-`, adresy `; ` (`src/combineLoadPoints.ts`) |
 | Harmonogram + II | Gdy wiersz Harmonogramu ma niepuste `II Adres` / `II Nazwa` → jak łączony: 1× `commitHarm` (sklejone) + 2× Word na termin |
+| Harmonogram częstotliwość | `czestotliwosc` + `pierwszyDzienObowiazywania` → propozycja dat: co tydzień / co 14 dni / co miesiąc |
 | Planowane | Przycisk listy + „Zapisz planowane”; realizacja = Word + `mode: realize` (bez planu w hurt/łączonym) |
 | Tylko Excel | Przycisk „Tylko zapisz w Excelu” — ten sam POST co generacja (`skipWord`), bez docxtemplater / `saveAs` |
+| Tylko Bolęcin | Checkbox „Nie jest drugą milą (tylko Excel Bolęcin)” — widoczny przy celu Bolęcin/Biosystem; POST `bolecinOnly: true` → bez formatki 2 mili / bez DM*; Word opcjonalnie jak zwykle |
 | Word | PizZip + docxtemplater; szablon base64 w HTML |
 
 Wszystkie pola opcjonalne — brak `alert` wymagalności przy generacji.

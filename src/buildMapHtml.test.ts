@@ -119,6 +119,9 @@ describe('buildMapHtml', () => {
     expect(html).toContain('Zapisz planowane');
     expect(html).toContain('Tylko zapisz w Excelu');
     expect(html).toContain('doc-btn-save-excel');
+    expect(html).toContain('doc-chk-bolecin-only');
+    expect(html).toContain('bolecinOnly');
+    expect(html).toContain('Nie jest drugą milą');
     expect(html).toContain('doc-modal-actions--gen');
     expect(html).toContain('skipWord');
     expect(html).toContain("mode === 'realize'");
@@ -147,6 +150,13 @@ describe('buildMapHtml', () => {
     expect(html).not.toContain('Wstaw zakres');
     expect(html).toContain('openHarmonogramPicker');
     expect(html).toContain('proposeDatesFromDzienOdbioru');
+    expect(html).toContain('proposeHarmonogramDates');
+    expect(html).toContain('harm-add-czestotliwosc');
+    expect(html).toContain('co dwa tygodnie');
+    expect(html).toContain('co miesiąc');
+    expect(html).toContain('harm-add-pierwszy-dzien');
+    expect(html).toContain('pierwszyDzienObowiazywania');
+    expect(html).toContain('czestotliwosc');
     expect(html).toContain('harmRowHasSecondLoad');
     expect(html).toContain('adresOdbioruIi');
     expect(html).toContain('Stały odbiór (łączony)');

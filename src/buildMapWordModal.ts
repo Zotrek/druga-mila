@@ -89,6 +89,17 @@ export function wordModalCss(): string {
     .doc-bulk-points-title { font-size: 12px; font-weight: 600; margin: 0 0 6px; color: #333; }
     .doc-bulk-points-list { margin: 0; padding: 0 0 0 16px; font-size: 12px; color: #444; line-height: 1.45; }
     .doc-bulk-numer-info { font-size: 12px; color: #0d6efd; margin: 8px 0 0; min-height: 1.2em; }
+    .doc-bolecin-only-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 12px 0 4px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+    }
+    .doc-bolecin-only-label input { width: auto; margin: 0; flex-shrink: 0; cursor: pointer; }
     .popup-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
     .popup-actions button { padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #0d6efd; background: #0d6efd; color: #fff; cursor: pointer; }
     .popup-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -221,6 +232,23 @@ export function wordModalHtml(): string {
         <label><input type="checkbox" class="harm-add-dzien-cb" value="sobota" /> sobota</label>
         <label><input type="checkbox" class="harm-add-dzien-cb" value="niedziela" /> niedziela</label>
       </div>
+      <label for="harm-add-czestotliwosc">Częstotliwość</label>
+      <select id="harm-add-czestotliwosc">
+        <option value="co tydzień">co tydzień</option>
+        <option value="co dwa tygodnie">co dwa tygodnie</option>
+        <option value="co miesiąc">co miesiąc</option>
+      </select>
+      <label for="harm-add-pierwszy-dzien">Pierwszy dzień obowiązywania</label>
+      <div class="doc-date-row">
+        <input type="text" id="harm-add-pierwszy-dzien" maxlength="10" placeholder="dd.mm.rrrr" inputmode="numeric" autocomplete="off" spellcheck="false" />
+        <button type="button" id="harm-add-pierwszy-dzien-cal" class="doc-date-cal-btn" title="Kalendarz" aria-label="Wybierz pierwszy dzień obowiązywania">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2zm12 8H5v10h14V10zm0-4H5v2h14V6z"/>
+          </svg>
+        </button>
+        <input type="date" id="harm-add-pierwszy-dzien-picker" class="doc-date-picker-hidden" tabindex="-1" aria-hidden="true" />
+      </div>
+      <p class="doc-date-range-hint">Wymagany przy „co dwa tygodnie” (kotwica siatki 14 dni). Przy innych częstotliwościach — nie proponuj dat wcześniej.</p>
       <label for="harm-add-kto">Kto odbiera</label>
       <div class="doc-combobox-wrap">
         <input type="text" id="harm-add-kto" class="doc-combobox-input" autocomplete="off" spellcheck="false" placeholder="Wpisz fragment…" />
@@ -294,6 +322,10 @@ export function wordModalHtml(): string {
         <input type="hidden" id="doc-val-miejsce" value="" />
         <ul id="doc-sel-miejsce-list" class="doc-combobox-list" role="listbox" hidden></ul>
       </div>
+      <label id="doc-bolecin-only-wrap" class="doc-bolecin-only-label" hidden>
+        <input type="checkbox" id="doc-chk-bolecin-only" />
+        Nie jest drugą milą (tylko Excel Bolęcin)
+      </label>
       <label for="doc-inp-awizacja">Dane do awizacji</label>
       <input type="text" id="doc-inp-awizacja" maxlength="120" autocomplete="off" spellcheck="false" />
       <label for="doc-inp-okno-awizacji">Okno awizacji (tylko Google)</label>
@@ -646,6 +678,7 @@ export function wordModalBrowserScript(): string {
       }
       if (deletePlanBtn) deletePlanBtn.hidden = !isRealize;
       if (numerEl) numerEl.readOnly = isRealize;
+      syncBolecinOnlyUi();
     }
     function renderBulkPointsList(indices) {
       var listEl = document.getElementById('doc-bulk-points-list');
@@ -913,6 +946,8 @@ export function wordModalBrowserScript(): string {
         var el = document.getElementById(id); if (el) el.value = '';
       });
       var z = document.getElementById('doc-sel-zbiorka'); if (z) z.value = '';
+      var bolecinOnly = document.getElementById('doc-chk-bolecin-only');
+      if (bolecinOnly) bolecinOnly.checked = false;
       ['doc-inp-data-od','doc-inp-data-do','doc-inp-data-od-picker','doc-inp-data-do-picker'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
@@ -924,6 +959,7 @@ export function wordModalBrowserScript(): string {
         if (harmList) harmList.innerHTML = '';
       }
       hideAllComboboxLists();
+      syncBolecinOnlyUi();
     }
     function hideAllComboboxLists() {
       document.querySelectorAll('.doc-combobox-list').forEach(function(ul) { ul.hidden = true; });
@@ -992,6 +1028,46 @@ export function wordModalBrowserScript(): string {
       return dd + '.' + mm + '.' + yyyy;
     }
     var INCLUDE_NEXT_MONTH_FROM_DAY = 22;
+    function parseDotDateLocal(raw) {
+      var s = String(raw || '').trim();
+      if (!s) return null;
+      var m = s.match(/^(\\d{1,2})[./-](\\d{1,2})[./-](\\d{4})$/);
+      if (!m) return null;
+      var dd = Number(m[1]);
+      var mm = Number(m[2]);
+      var yyyy = Number(m[3]);
+      if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+      var d = new Date(yyyy, mm - 1, dd);
+      if (d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    function parseHarmFrequency(raw) {
+      var n = normalizePlDayToken(String(raw || ''));
+      if (!n) return 'co tydzień';
+      if (n.indexOf('dwa') >= 0 && n.indexOf('tygod') >= 0) return 'co dwa tygodnie';
+      if (n.indexOf('miesiac') >= 0 || n.indexOf('miesiecz') >= 0) return 'co miesiąc';
+      return 'co tydzień';
+    }
+    function addDaysLocal(d, n) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+    }
+    function daysBetweenLocal(a, b) {
+      var ms = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime() -
+        new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+      return Math.round(ms / 86400000);
+    }
+    function firstWeekdayOnOrAfterLocal(from, weekday) {
+      var d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+      var delta = (weekday - d.getDay() + 7) % 7;
+      return addDaysLocal(d, delta);
+    }
+    function proposalWindowEndLocal(today) {
+      var base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (base.getDate() >= INCLUDE_NEXT_MONTH_FROM_DAY) {
+        return new Date(base.getFullYear(), base.getMonth() + 2, 0);
+      }
+      return new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    }
     function datesForWeekdaysInMonth(weekdays, today) {
       if (!weekdays || !weekdays.length) return [];
       var wanted = {};
@@ -1015,8 +1091,87 @@ export function wordModalBrowserScript(): string {
       }
       return out;
     }
+    function proposeHarmonogramDates(opts) {
+      var today = opts && opts.today ? opts.today : new Date();
+      today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      var weekdays = parseWeekdaysFromDzienOdbioru(opts && opts.dzienOdbioru);
+      var freq = parseHarmFrequency(opts && opts.czestotliwosc);
+      var firstDay = parseDotDateLocal(opts && opts.pierwszyDzienObowiazywania);
+      var start = firstDay && firstDay > today ? firstDay : today;
+      var end = proposalWindowEndLocal(today);
+      var out = [];
+      var seen = {};
+      function pushDate(d) {
+        if (d < start || d > end) return;
+        var key = formatDotDateLocal(d);
+        if (seen[key]) return;
+        seen[key] = true;
+        out.push(key);
+      }
+      if (freq === 'co dwa tygodnie') {
+        if (!weekdays.length) return [];
+        var anchor = firstDay || today;
+        for (var bi = 0; bi < weekdays.length; bi++) {
+          var wd = weekdays[bi];
+          var gridStart = firstWeekdayOnOrAfterLocal(anchor, wd);
+          var d = firstWeekdayOnOrAfterLocal(start, wd);
+          var diff = daysBetweenLocal(gridStart, d);
+          if (diff < 0) {
+            d = gridStart;
+            if (d < start) {
+              var lag = daysBetweenLocal(d, start);
+              d = addDaysLocal(d, Math.ceil(lag / 14) * 14);
+            }
+            diff = daysBetweenLocal(gridStart, d);
+          }
+          var rem = ((diff % 14) + 14) % 14;
+          if (rem !== 0) d = addDaysLocal(d, 14 - rem);
+          while (d <= end) {
+            pushDate(d);
+            d = addDaysLocal(d, 14);
+          }
+        }
+        return sortDotDateStrings(out);
+      }
+      if (freq === 'co miesiąc') {
+        var anchorM = firstDay || today;
+        var dayOfMonth = anchorM.getDate();
+        var y = start.getFullYear();
+        var m = start.getMonth();
+        var endY = end.getFullYear();
+        var endM = end.getMonth();
+        while (y < endY || (y === endY && m <= endM)) {
+          var lastInM = new Date(y, m + 1, 0).getDate();
+          var fromDay = Math.min(dayOfMonth, lastInM);
+          if (!weekdays.length) {
+            pushDate(new Date(y, m, fromDay));
+          } else {
+            for (var mi = 0; mi < weekdays.length; mi++) {
+              var md = firstWeekdayOnOrAfterLocal(new Date(y, m, fromDay), weekdays[mi]);
+              if (md.getMonth() === m) pushDate(md);
+            }
+          }
+          m += 1;
+          if (m > 11) { m = 0; y += 1; }
+        }
+        return sortDotDateStrings(out);
+      }
+      var weekly = datesForWeekdaysInMonth(weekdays, today);
+      if (!firstDay) return weekly;
+      return weekly.filter(function(s) {
+        var pd = parseDotDateLocal(s);
+        return pd && pd >= firstDay;
+      });
+    }
+    function sortDotDateStrings(arr) {
+      return arr.slice().sort(function(a, b) {
+        var pa = parseDotDateLocal(a);
+        var pb = parseDotDateLocal(b);
+        return (pa ? pa.getTime() : 0) - (pb ? pb.getTime() : 0);
+      });
+    }
     function proposeDatesFromDzienOdbioru(raw, today) {
-      return datesForWeekdaysInMonth(parseWeekdaysFromDzienOdbioru(raw), today || new Date());
+      return proposeHarmonogramDates({ dzienOdbioru: raw, today: today || new Date() });
     }
     function normQ(t) {
       return normalizeForAddressSearchMap(t);
@@ -1084,6 +1239,7 @@ export function wordModalBrowserScript(): string {
       function(ix, it) {
         document.getElementById('doc-val-miejsce').value = String(ix);
         document.getElementById('doc-sel-miejsce').value = it.label;
+        syncBolecinOnlyUi();
       }
     );
     wireCombobox('harm-add-kto', 'harm-add-val-kto', 'harm-add-kto-list',
@@ -1138,6 +1294,7 @@ export function wordModalBrowserScript(): string {
           var it = MIEJSCA_DOSTAWY[bi];
           document.getElementById('doc-val-miejsce').value = String(bi);
           document.getElementById('doc-sel-miejsce').value = it.label;
+          syncBolecinOnlyUi();
         }
       }
     }
@@ -1161,6 +1318,16 @@ export function wordModalBrowserScript(): string {
       zbiorkaEl.addEventListener('change', function() {
         applyBiosystemIfManualZbiorka(zbiorkaEl.value);
       });
+    }
+    var miejsceInpEl = document.getElementById('doc-sel-miejsce');
+    if (miejsceInpEl) {
+      miejsceInpEl.addEventListener('input', syncBolecinOnlyUi);
+      miejsceInpEl.addEventListener('change', syncBolecinOnlyUi);
+      miejsceInpEl.addEventListener('blur', syncBolecinOnlyUi);
+    }
+    var bolecinOnlyChk = document.getElementById('doc-chk-bolecin-only');
+    if (bolecinOnlyChk) {
+      bolecinOnlyChk.addEventListener('change', syncBolecinOnlyUi);
     }
     var harmZbiorkaEl = document.getElementById('harm-add-zbiorka');
     if (harmZbiorkaEl) {
@@ -1382,6 +1549,60 @@ export function wordModalBrowserScript(): string {
     function resolveMiejsceDostawy(hiddenId, inputId) {
       return resolveListEntry(MIEJSCA_DOSTAWY, hiddenId, inputId);
     }
+    /** Lustro isBolecinDestination (TS / Apps Script) — UI checkboxa. */
+    function normalizeBolecinTextClient(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\\u0300-\\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+    }
+    function isBolecinDestinationClient(label, adres) {
+      var combined = normalizeBolecinTextClient((label || '') + ' ' + (adres || ''));
+      if (!combined) return false;
+      return combined.indexOf('bolecin') >= 0 || combined.indexOf('biosystem') >= 0;
+    }
+    function isBolecinOnlyChecked() {
+      var wrap = document.getElementById('doc-bolecin-only-wrap');
+      var chk = document.getElementById('doc-chk-bolecin-only');
+      return !!(wrap && !wrap.hidden && chk && chk.checked);
+    }
+    function syncBolecinOnlyUi() {
+      var wrap = document.getElementById('doc-bolecin-only-wrap');
+      var chk = document.getElementById('doc-chk-bolecin-only');
+      var savePlanBtn = document.getElementById('doc-btn-save-plan');
+      var md = resolveMiejsceDostawy('doc-val-miejsce', 'doc-sel-miejsce');
+      var typed = ((document.getElementById('doc-sel-miejsce') || {}).value || '');
+      var isBolecin = isBolecinDestinationClient(md.label, md.value) ||
+        isBolecinDestinationClient(typed, md.value || typed);
+      if (wrap) {
+        wrap.hidden = !isBolecin;
+        if (!isBolecin && chk) chk.checked = false;
+      }
+      var only = isBolecinOnlyChecked();
+      if (savePlanBtn) {
+        if (only) {
+          savePlanBtn.disabled = true;
+          savePlanBtn.title = 'Niedostępne przy „tylko Excel Bolęcin”';
+        } else {
+          savePlanBtn.title = '';
+          var genBtn = document.getElementById('doc-btn-generate');
+          if (!(genBtn && genBtn.getAttribute('data-busy'))) {
+            savePlanBtn.disabled = false;
+          }
+        }
+      }
+    }
+    function excelSavedMessage(numerOrCount) {
+      if (isBolecinOnlyChecked()) {
+        var s = String(numerOrCount || '').trim();
+        if (s && /termin|wiersz/i.test(s)) {
+          return 'Zapisano w Excelu Bolęcin: ' + s;
+        }
+        return 'Zapisano w Excelu Bolęcin.';
+      }
+      return 'Zapisano w Excelu: ' + numerOrCount;
+    }
     function resolveZaladunek() {
       var hid = document.getElementById('doc-val-zaladunek');
       if (hid && hid.value !== '') {
@@ -1551,6 +1772,7 @@ export function wordModalBrowserScript(): string {
     }
     function selectMiejsceDostawyByLabel(hiddenId, inputId, label) {
       selectListByLabel(MIEJSCA_DOSTAWY, hiddenId, inputId, label);
+      if (hiddenId === 'doc-val-miejsce') syncBolecinOnlyUi();
     }
     function openPlanowanePicker() {
       var m = document.getElementById('planowane-picker');
@@ -1735,6 +1957,7 @@ export function wordModalBrowserScript(): string {
             wrap.setAttribute('role', 'listitem');
             var title = (row.nazwaKontrahenta || row.adresOdbioru || 'bez nazwy') +
               (row.dzienOdbioru ? ' · ' + row.dzienOdbioru : '') +
+              (row.czestotliwosc ? ' · ' + row.czestotliwosc : '') +
               (harmRowHasSecondLoad(row) ? ' · łączony' : '');
             var adresMeta = row.adresOdbioru || '';
             if (harmRowHasSecondLoad(row)) {
@@ -1908,7 +2131,11 @@ export function wordModalBrowserScript(): string {
       if (transport) transport.value = row.rodzajTransportu || '';
       var uwagi = document.getElementById('doc-inp-uwagi');
       if (uwagi) uwagi.value = row.uwagi || '';
-      window.__harmDates = proposeDatesFromDzienOdbioru(row.dzienOdbioru);
+      window.__harmDates = proposeHarmonogramDates({
+        dzienOdbioru: row.dzienOdbioru,
+        czestotliwosc: row.czestotliwosc,
+        pierwszyDzienObowiazywania: row.pierwszyDzienObowiazywania
+      });
       renderHarmDatesList();
       setDocModalMode('harmonogram');
       m.style.display = 'flex';
@@ -1920,9 +2147,12 @@ export function wordModalBrowserScript(): string {
       ['harm-add-stawka','harm-add-uwagi','harm-add-adres','harm-add-nazwa','harm-add-val-nazwa',
         'harm-add-adres-ii','harm-add-nazwa-ii','harm-add-val-nazwa-ii',
         'harm-add-kto','harm-add-val-kto','harm-add-zrzut','harm-add-val-zrzut','harm-add-zbiorka',
-        'harm-add-worki','harm-add-transport','harm-add-awizacja','harm-add-znacznik'].forEach(function(id) {
+        'harm-add-worki','harm-add-transport','harm-add-awizacja','harm-add-znacznik',
+        'harm-add-pierwszy-dzien','harm-add-pierwszy-dzien-picker'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.value = '';
       });
+      var freqEl = document.getElementById('harm-add-czestotliwosc');
+      if (freqEl) freqEl.value = 'co tydzień';
       document.querySelectorAll('.harm-add-dzien-cb').forEach(function(cb) {
         cb.checked = false;
       });
@@ -1966,6 +2196,9 @@ export function wordModalBrowserScript(): string {
       setVal('harm-add-transport', row.rodzajTransportu);
       setVal('harm-add-awizacja', row.awizacja);
       setVal('harm-add-znacznik', row.znacznikMiejsca);
+      setVal('harm-add-czestotliwosc', row.czestotliwosc || 'co tydzień');
+      setVal('harm-add-pierwszy-dzien', row.pierwszyDzienObowiazywania);
+      syncDateFieldPickerFromText('harm-add-pierwszy-dzien', 'harm-add-pierwszy-dzien-picker');
       setHarmAddDzienOdbioru(row.dzienOdbioru);
       selectPodwykoByLabel('harm-add-val-kto', 'harm-add-kto', row.ktoOdbiera);
       selectMiejsceDostawyByLabel('harm-add-val-zrzut', 'harm-add-zrzut', row.miejsceZrzutu);
@@ -2040,6 +2273,8 @@ export function wordModalBrowserScript(): string {
         adresOdbioruIi: adresOdbioruIi,
         nazwaKontrahentaIi: nazwaKontrahentaIi,
         dzienOdbioru: collectHarmAddDzienOdbioru(),
+        czestotliwosc: (document.getElementById('harm-add-czestotliwosc') || {}).value || 'co tydzień',
+        pierwszyDzienObowiazywania: (document.getElementById('harm-add-pierwszy-dzien') || {}).value || '',
         ktoOdbiera: pr.label || ((document.getElementById('harm-add-kto') || {}).value || ''),
         miejsceZrzutu: md.label || ((document.getElementById('harm-add-zrzut') || {}).value || ''),
         rodzajZbiorki: (document.getElementById('harm-add-zbiorka') || {}).value || '',
@@ -2062,6 +2297,22 @@ export function wordModalBrowserScript(): string {
       if (!String(payload.nazwaKontrahenta).trim() && !String(payload.adresOdbioru).trim()) {
         alert('Podaj nazwę kontrahenta lub adres odbioru.');
         return;
+      }
+      var freq = parseHarmFrequency(payload.czestotliwosc);
+      var firstDayRaw = String(payload.pierwszyDzienObowiazywania || '').trim();
+      if (freq === 'co dwa tygodnie' && !firstDayRaw) {
+        alert('Przy „co dwa tygodnie” podaj pierwszy dzień obowiązywania.');
+        return;
+      }
+      if (firstDayRaw && !parseDotDateLocal(firstDayRaw)) {
+        alert('Pierwszy dzień obowiązywania: użyj formatu dd.mm.rrrr.');
+        return;
+      }
+      if (firstDayRaw) {
+        var formattedFirst = formatDotDateLocal(parseDotDateLocal(firstDayRaw));
+        payload.pierwszyDzienObowiazywania = formattedFirst;
+        var firstInp = document.getElementById('harm-add-pierwszy-dzien');
+        if (firstInp) firstInp.value = formattedFirst;
       }
       var btn = document.getElementById('harmonogram-add-save');
       var delBtn = document.getElementById('harmonogram-add-delete');
@@ -2247,7 +2498,7 @@ export function wordModalBrowserScript(): string {
               generated + ', błędy: ' + failed + '.'
             );
           } else if (skipWord) {
-            alert('Zapisano w Excelu: ' + generated + ' termin(ów).');
+            alert(excelSavedMessage(generated + ' termin(ów)'));
           }
         });
       }).catch(function(err) {
@@ -2262,6 +2513,10 @@ export function wordModalBrowserScript(): string {
     function savePlanowaneFromModal() {
       if (!WEBAPP_URL) {
         alert('Zapisz planowane wymaga Web App (DRUGA_MILA_WEBAPP_URL).');
+        return;
+      }
+      if (isBolecinOnlyChecked()) {
+        alert('„Zapisz planowane” niedostępne przy „tylko Excel Bolęcin”.');
         return;
       }
       var isRealize = window.__docModalMode === 'realize';
@@ -2377,7 +2632,7 @@ export function wordModalBrowserScript(): string {
       };
     }
     function buildFormatkaPayload(zal, shared, numerOverride) {
-      return {
+      var payload = {
         numer: numerOverride != null ? numerOverride : '',
         numerFaktury: '',
         stawka: String(shared.stawka || '').trim(),
@@ -2396,6 +2651,10 @@ export function wordModalBrowserScript(): string {
         znacznikMiejsca: String(zal.typ || '').trim(),
         uwagi: String(shared.uwagi || '').trim()
       };
+      if (isBolecinOnlyChecked()) {
+        payload.bolecinOnly = true;
+      }
+      return payload;
     }
     function delayMs(ms) {
       return new Promise(function(resolve) { window.setTimeout(resolve, ms); });
@@ -2525,7 +2784,7 @@ export function wordModalBrowserScript(): string {
             var numer = String(resp.numer || numerWpisany || plan.numer || '');
             if (numerEl) numerEl.value = numer;
             if (skipWord) {
-              alert('Zapisano w Excelu: ' + numer);
+              alert(excelSavedMessage(numer));
               closeDocModal();
               return;
             }
@@ -2543,7 +2802,7 @@ export function wordModalBrowserScript(): string {
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
           if (skipWord) {
-            alert('Zapisano w Excelu: ' + numer);
+            alert(excelSavedMessage(numer));
             closeDocModal();
             return;
           }
@@ -2596,7 +2855,7 @@ export function wordModalBrowserScript(): string {
         if (skipWord) {
           clearCombinedSelection();
           closeDocModal();
-          alert('Zapisano w Excelu: ' + numer);
+          alert(excelSavedMessage(numer || (isBolecinOnlyChecked() ? '' : 'OK')));
           return Promise.resolve();
         }
         var chain = Promise.resolve();
@@ -2709,7 +2968,7 @@ export function wordModalBrowserScript(): string {
               generated + ', błędy: ' + failed + '.'
             );
           } else if (skipWord) {
-            alert('Zapisano w Excelu: ' + generated + ' wiersz(y).');
+            alert(excelSavedMessage(generated + ' wiersz(y)'));
           }
         });
       }).catch(function(err) {
@@ -2788,5 +3047,6 @@ export function wordModalBrowserScript(): string {
     if (harmAddDateBtn) harmAddDateBtn.addEventListener('click', addHarmDateRow);
     wireDateField('doc-inp-data-od', 'doc-inp-data-od-picker', 'doc-btn-data-od-cal');
     wireDateField('doc-inp-data-do', 'doc-inp-data-do-picker', 'doc-btn-data-do-cal');
+    wireDateField('harm-add-pierwszy-dzien', 'harm-add-pierwszy-dzien-picker', 'harm-add-pierwszy-dzien-cal');
   `;
 }

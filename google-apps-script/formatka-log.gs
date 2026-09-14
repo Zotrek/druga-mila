@@ -157,13 +157,15 @@ var HARM_COL = {
   adresOdbioruIi: 5,
   nazwaKontrahentaIi: 6,
   dzienOdbioru: 7,
-  ktoOdbiera: 8,
-  miejsceZrzutu: 9,
-  rodzajZbiorki: 10,
-  ileWorkow: 11,
-  rodzajTransportu: 12,
-  awizacja: 13,
-  znacznikMiejsca: 14,
+  czestotliwosc: 8,
+  pierwszyDzienObowiazywania: 9,
+  ktoOdbiera: 10,
+  miejsceZrzutu: 11,
+  rodzajZbiorki: 12,
+  ileWorkow: 13,
+  rodzajTransportu: 14,
+  awizacja: 15,
+  znacznikMiejsca: 16,
 };
 
 var HARMONOGRAM_HEADER_ROW = [
@@ -174,6 +176,8 @@ var HARMONOGRAM_HEADER_ROW = [
   'II Adres odbioru',
   'II Nazwa kontrahenta / podmiot handlowy',
   'Dzień odbioru',
+  'Częstotliwość',
+  'Pierwszy dzień obowiązywania',
   'Kto odbiera',
   'Miejsce zrzutu',
   'Rodzaj zbiórki',
@@ -298,7 +302,23 @@ function doPost(e) {
   }
 }
 
+function isBolecinOnly_(body) {
+  return !!(body && (body.bolecinOnly === true || body.bolecinOnly === 'true' || body.bolecinOnly === 1));
+}
+
+/** Tylko arkusz Bolęcin — bez formatki 2 mili i bez numeru DM/DMH. */
+function handleBolecinOnlyAppend_(body) {
+  if (!isBolecinDestination_(body)) {
+    throw new Error('bolecinOnly wymaga celu Bolęcin/Biosystem');
+  }
+  appendBolecinRow_(body);
+  return jsonResponse({ ok: true, bolecinOnly: true });
+}
+
 function handleCommitPost_(body) {
+  if (isBolecinOnly_(body)) {
+    return handleBolecinOnlyAppend_(body);
+  }
   var numer = resolveFormatkaNumber_(body);
   appendFormatkaRow_(numer, body);
   if (isBolecinDestination_(body)) {
@@ -347,6 +367,15 @@ function handleRealizePost_(body) {
     throw new Error('realize requires numer');
   }
   var commitBody = mergeBody_(body, { czyProtokolZrobiony: 'tak', numer: numer });
+  if (isBolecinOnly_(body)) {
+    if (!isBolecinDestination_(commitBody)) {
+      throw new Error('bolecinOnly wymaga celu Bolęcin/Biosystem');
+    }
+    appendBolecinRow_(commitBody);
+    sheet.deleteRow(rowIndex);
+    syncCounterAfterWrite_(numer);
+    return jsonResponse({ ok: true, numer: String(numer), bolecinOnly: true });
+  }
   appendFormatkaRow_(numer, commitBody);
   if (isBolecinDestination_(commitBody)) {
     appendBolecinRow_(commitBody);
@@ -418,6 +447,9 @@ function handleDeleteHarmonogramPost_(body) {
 }
 
 function handleCommitHarmPost_(body) {
+  if (isBolecinOnly_(body)) {
+    return handleBolecinOnlyAppend_(body);
+  }
   var numer = resolveHarmNumber_(body);
   var commitBody = mergeBody_(body, { czyProtokolZrobiony: 'tak', numer: numer });
   appendFormatkaRow_(numer, commitBody);
@@ -1193,12 +1225,35 @@ function getOrCreatePlanowaneSheet_() {
 function getOrCreateHarmonogramSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(HARMONOGRAM_SHEET_NAME);
-  if (sheet) {
+  if (!sheet) {
+    sheet = ss.insertSheet(HARMONOGRAM_SHEET_NAME);
+    sheet.getRange(1, 1, 1, HARMONOGRAM_HEADER_ROW.length).setValues([HARMONOGRAM_HEADER_ROW]);
     return sheet;
   }
-  sheet = ss.insertSheet(HARMONOGRAM_SHEET_NAME);
-  sheet.getRange(1, 1, 1, HARMONOGRAM_HEADER_ROW.length).setValues([HARMONOGRAM_HEADER_ROW]);
+  ensureHarmonogramExtraColumns_(sheet);
   return sheet;
+}
+
+/** Dopina brakujące kolumny Częstotliwość / Pierwszy dzień na istniejącym arkuszu. */
+function ensureHarmonogramExtraColumns_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var have = {};
+  for (var i = 0; i < headers.length; i++) {
+    var k = fieldKeyFromHeader_(headers[i]);
+    if (k) {
+      have[k] = true;
+    }
+  }
+  var extras = [
+    ['Częstotliwość', 'czestotliwosc'],
+    ['Pierwszy dzień obowiązywania', 'pierwszyDzienObowiazywania'],
+  ];
+  for (var e = 0; e < extras.length; e++) {
+    if (!have[extras[e][1]]) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(extras[e][0]);
+    }
+  }
 }
 
 function cellStr_(value) {
@@ -1254,6 +1309,7 @@ function listHarmonogramRows_() {
   if (!sheet) {
     return [];
   }
+  ensureHarmonogramExtraColumns_(sheet);
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) {
     return [];
@@ -1281,7 +1337,7 @@ function listHarmonogramRows_() {
   return rows;
 }
 
-/** Kanoniczna kolejność nagłówków Harmonogram (z kolumnami II). */
+/** Kanoniczna kolejność nagłówków Harmonogram (z kolumnami II + częstotliwość). */
 function buildHarmonogramRowValues_(body) {
   return [
     body.stawka != null ? String(body.stawka) : '',
@@ -1291,6 +1347,8 @@ function buildHarmonogramRowValues_(body) {
     body.adresOdbioruIi != null ? String(body.adresOdbioruIi) : '',
     body.nazwaKontrahentaIi != null ? String(body.nazwaKontrahentaIi) : '',
     body.dzienOdbioru != null ? String(body.dzienOdbioru) : '',
+    body.czestotliwosc != null ? String(body.czestotliwosc) : '',
+    body.pierwszyDzienObowiazywania != null ? String(body.pierwszyDzienObowiazywania) : '',
     body.ktoOdbiera != null ? String(body.ktoOdbiera) : '',
     body.miejsceZrzutu != null ? String(body.miejsceZrzutu) : '',
     body.rodzajZbiorki != null ? String(body.rodzajZbiorki) : '',
@@ -1397,6 +1455,13 @@ function fieldKeyFromHeader_(h) {
   }
   if (n.indexOf('nazwa kontrahenta') >= 0 || n.indexOf('podmiot handlowy') >= 0) {
     return 'nazwaKontrahenta';
+  }
+  // Przed „dzień odbioru” — „pierwszy dzień obowiązywania”
+  if (n.indexOf('pierwszy') >= 0 && n.indexOf('dzie') >= 0) {
+    return 'pierwszyDzienObowiazywania';
+  }
+  if (n.indexOf('częstotliw') >= 0 || n.indexOf('czestotliw') >= 0) {
+    return 'czestotliwosc';
   }
   if (n.indexOf('dzie') >= 0 && n.indexOf('odbior') >= 0) {
     return 'dzienOdbioru';

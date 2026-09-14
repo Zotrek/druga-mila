@@ -40,11 +40,12 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 | Reguła | Zachowanie |
 |--------|------------|
 | Nazwa | Stała: `Harmonogram` |
-| Kolumny | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **II Adres odbioru**, **II Nazwa kontrahenta**, **Dzień odbioru**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
-| Lista | GET `action=listHarmonogram` (mapowanie po nagłówkach; kolejność kolumn może się różnić) |
+| Kolumny | Stawka, uwagi, Adres odbioru, Nazwa kontrahenta, **II Adres / II Nazwa**, **Dzień odbioru**, **Częstotliwość** (`co tydzień` / `co dwa tygodnie` / `co miesiąc`), **Pierwszy dzień obowiązywania**, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca |
+| Lista | GET `action=listHarmonogram` (mapowanie po nagłówkach; kolejność kolumn może się różnić; brakujące kolumny częstotliwości dopinane automatycznie) |
 | Dodaj | POST `mode: "addHarmonogram"` — tylko szablon; bez DM/DMH, bez miesiąca, bez Bolęcin |
 | Update / delete | POST `mode: "updateHarmonogram"` / `"deleteHarmonogram"` (wymaga `harmonogramRow`; bez numeru / miesiąca / Bolęcin) |
-| Generacja z mapy | UI proponuje daty z „Dzień odbioru” (edytowalne) → N× POST `commitHarm` (seria **DMH1…**) + Word; wiersz Harmonogramu **zostaje** |
+| Generacja z mapy | UI proponuje daty z „Dzień odbioru” + częstotliwość + pierwszy dzień (edytowalne) → N× POST `commitHarm` (seria **DMH1…**) + Word; wiersz Harmonogramu **zostaje** |
+| Propozycja dat | **co tydzień** — wszystkie wybrane dni tygodnia w oknie; **co dwa tygodnie** — co 14 dni od pierwszego dnia obowiązywania; **co miesiąc** — raz w miesiącu (dzień ≥ dzień kotwicy, dopasowany weekday). Okno: bieżący miesiąc; od 22. też następny |
 | **Łączony (II)** | Gdy **II Adres** lub **II Nazwa** niepuste: jak protokół łączony — na termin **1× DMH*** (adresy `Adres1; Adres2`, nazwy `Nazwa1-Nazwa2`) + **2× Word** (osobno I i II) |
 | Numeracja DMH | Osobna pula; GET `previewNumberHarm`; skan tylko `DMH*` |
 
@@ -53,6 +54,8 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 ## Arkusz Bolęcin (drugi zapis)
 
 Gdy **miejsce zrzutu** to Bolęcin (etykieta/adres zawiera „Bolęcin” / „Bolecin” **lub** „Biosystem”), Apps Script dopisuje wiersz **dodatkowo** do drugiego arkusza — równolegle do formatki głównej (zawsze oba).
+
+Flaga POST `bolecinOnly: true` (checkbox w modalu: „Nie jest drugą milą”) — zapis **wyłącznie** do arkusza Bolęcin: bez formatki `lista-druga-mila`, bez numeru DM/DMH. Przy `realize` usuwa też wiersz z `Planowane`.
 
 - **URL:** https://docs.google.com/spreadsheets/d/14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc/edit
 - **ID:** `14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc`
@@ -91,15 +94,15 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 
 | `mode` | Zachowanie |
 |--------|------------|
-| *(brak)* / `commit` | Append do zakładki miesiąca + Bolęcin jeśli cel Biosystem/Bolęcin; seria **DM***; pole `uwagi` → kolumna Uwagi |
+| *(brak)* / `commit` | Append do zakładki miesiąca + Bolęcin jeśli cel Biosystem/Bolęcin; seria **DM***; pole `uwagi` → kolumna Uwagi. Flaga `bolecinOnly: true` → **tylko** arkusz Bolęcin (bez formatki, bez numeru) |
 | `plan` | Append do `Planowane`; wymusza `Czy protokół = nie`; **bez** Bolęcina; numer auto jak commit |
-| `realize` | Wymaga `numer` + `planowaneRow`; append miesiąca + Bolęcin; `deleteRow` w `Planowane` |
+| `realize` | Wymaga `numer` + `planowaneRow`; append miesiąca + Bolęcin; `deleteRow` w `Planowane`. Z `bolecinOnly: true` → tylko Bolęcin + usunięcie z Planowane (numer wraca do puli) |
 | `updatePlan` | Wymaga `planowaneRow`; nadpisuje pola wiersza (numer bez zmian); bez Bolęcina |
 | `deletePlan` | Wymaga `planowaneRow`; usuwa wiersz z `Planowane` (numer wraca do puli przy następnym skanie) |
 | `addHarmonogram` | Append wiersza do `Harmonogram` (12 kolumn); bez numeru / miesiąca / Bolęcin |
 | `updateHarmonogram` | Wymaga `harmonogramRow`; nadpisuje pola wiersza w `Harmonogram` |
 | `deleteHarmonogram` | Wymaga `harmonogramRow`; usuwa wiersz z `Harmonogram` |
-| `commitHarm` | Jak commit, ale seria **DMH***; Harmonogram bez zmian |
+| `commitHarm` | Jak commit, ale seria **DMH***; Harmonogram bez zmian. Z `bolecinOnly: true` → tylko Bolęcin (bez DMH) |
 
 > Przeglądarka często wysyła POST jako `text/plain` (unikanie preflight CORS) — Web App musi czytać `e.postData.contents` i `JSON.parse`, nie polegać na `application/json`.
 
