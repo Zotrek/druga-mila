@@ -149,6 +149,8 @@ describe('buildMapHtml', () => {
     expect(html).not.toContain('doc-inp-okno-od');
     expect(html).not.toContain('Wstaw zakres');
     expect(html).toContain('openHarmonogramPicker');
+    expect(html).toContain('id="harmonogram-search"');
+    expect(html).toContain('renderHarmonogramList');
     expect(html).toContain('proposeDatesFromDzienOdbioru');
     expect(html).toContain('proposeHarmonogramDates');
     expect(html).toContain('harm-add-czestotliwosc');
