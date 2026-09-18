@@ -34,6 +34,9 @@ describe('buildMapHtml', () => {
 
     expect(html).toContain('leaflet@1.9.4');
     expect(html).toContain('rel="icon" href="./favicon.png"');
+    expect(html).toContain('map-logo-loader-logo');
+    expect(html).toContain('map-logo-pulse');
+    expect(html).toContain('setMapLogoLoading');
     expect(html).toContain('tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
     expect(html).not.toContain('basemaps.cartocdn.com');
     expect(html).not.toContain('tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -100,7 +103,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('downloadBothWord');
     expect(html).toContain('setDocGenerateBusy');
     expect(html).toContain('Generowanie…');
-    expect(html).toContain('doc-spin');
+    expect(html).toContain('setMapLogoLoading(true');
+    expect(html).not.toContain('doc-spin');
     expect(html).toContain('manual-bulk-picker');
     expect(html).toContain('openManualBulkPicker');
     expect(html).toContain('Zaznacz do hurtu');

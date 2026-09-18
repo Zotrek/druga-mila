@@ -308,11 +308,15 @@ export function manualAdminBrowserScript(): string {
 
     function setManualAdminStatus(msg, kind) {
       var el = document.getElementById('manual-admin-status');
-      if (!el) return;
-      el.textContent = msg || '';
-      el.classList.remove('is-error', 'is-warn');
-      if (kind === 'error') el.classList.add('is-error');
-      else if (kind === 'warn') el.classList.add('is-warn');
+      if (el) {
+        el.textContent = msg || '';
+        el.classList.remove('is-error', 'is-warn');
+        if (kind === 'error') el.classList.add('is-error');
+        else if (kind === 'warn') el.classList.add('is-warn');
+      }
+      var loader = document.getElementById('map-logo-loader');
+      var label = document.getElementById('map-logo-loader-label');
+      if (label && loader && !loader.hidden && msg) label.textContent = msg;
     }
 
     function showZalCoordsSection(show) {
@@ -396,6 +400,9 @@ export function manualAdminBrowserScript(): string {
       if (!btn) return;
       btn.disabled = !!busy;
       btn.classList.toggle('is-busy', !!busy);
+      if (typeof setMapLogoLoading === 'function') {
+        setMapLogoLoading(!!busy, busy ? 'Zapisuję…' : '');
+      }
     }
 
     function openManualAdminModal() {
@@ -532,6 +539,7 @@ export function manualAdminBrowserScript(): string {
 
     function loadReferenceDataFromSheets() {
       if (!WEBAPP_URL) return Promise.resolve();
+      if (typeof setMapLogoLoading === 'function') setMapLogoLoading(true, 'Ładowanie danych…');
       return fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listReferenceData')
         .then(function(r) { return r.json(); })
         .then(function(resp) {
@@ -541,7 +549,10 @@ export function manualAdminBrowserScript(): string {
           (data.przewoznicy || []).forEach(function(e) { applyReferencePrzewoznikEntry(e); });
           (data.miejscaDostawy || []).forEach(function(e) { applyReferenceDostawaEntry(e); });
         })
-        .catch(function() { /* cicho — mapa działa z danymi z buildu */ });
+        .catch(function() { /* cicho — mapa działa z danymi z buildu */ })
+        .finally(function() {
+          if (typeof setMapLogoLoading === 'function') setMapLogoLoading(false);
+        });
     }
 
     function submitManualZaladunek() {

@@ -56,23 +56,6 @@ export function wordModalCss(): string {
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
     .doc-modal-actions button.excel { background: #198754; color: #fff; border-color: #198754; }
     .doc-modal-actions button:disabled { opacity: 0.7; cursor: wait; }
-    .doc-modal-actions button.primary.is-busy,
-    .doc-modal-actions button.excel.is-busy { position: relative; padding-left: 34px; }
-    .doc-modal-actions button.primary.is-busy::before,
-    .doc-modal-actions button.excel.is-busy::before {
-      content: '';
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      width: 14px;
-      height: 14px;
-      margin-top: -7px;
-      border: 2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: doc-spin 0.7s linear infinite;
-    }
-    @keyframes doc-spin { to { transform: rotate(360deg); } }
     .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
     .doc-modal-hint.is-busy { color: #0d6efd; font-weight: 600; }
     .doc-date-row { display: flex; gap: 8px; align-items: center; }
@@ -760,6 +743,7 @@ export function wordModalBrowserScript(): string {
         return;
       }
       if (bulkNumerInfo) bulkNumerInfo.textContent = 'Pobieranie podglądu numeracji…';
+      setMapLogoLoading(true, 'Pobieranie numeracji…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=modalData')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -774,7 +758,8 @@ export function wordModalBrowserScript(): string {
         })
         .catch(function() {
           if (bulkNumerInfo) bulkNumerInfo.textContent = 'Nie udało się pobrać podglądu — przy generacji i tak auto z API.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function openCombinedDocModal(indicesOpt) {
       var m = document.getElementById('doc-modal');
@@ -1663,6 +1648,7 @@ export function wordModalBrowserScript(): string {
       }
       if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
       var action = window.__docModalMode === 'harmonogram' ? 'previewNumberHarm' : 'modalData';
+      setMapLogoLoading(true, 'Pobieranie numeru…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=' + action)
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -1686,7 +1672,8 @@ export function wordModalBrowserScript(): string {
         })
         .catch(function() {
           if (hint) hint.textContent = 'Nie udało się pobrać numeru — sprawdź Web App / sieć.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function appendFormatkaRow(payload) {
       return fetch(WEBAPP_URL, {
@@ -1803,6 +1790,7 @@ export function wordModalBrowserScript(): string {
         return;
       }
       if (statusEl) statusEl.textContent = 'Ładowanie…';
+      setMapLogoLoading(true, 'Ładowanie planowanych…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listPlanowane')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -1870,7 +1858,8 @@ export function wordModalBrowserScript(): string {
           if (seq !== planowaneListSeq) return;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy planowanych.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function openRealizeDocModal(row) {
       var m = document.getElementById('doc-modal');
@@ -2049,6 +2038,7 @@ export function wordModalBrowserScript(): string {
         return;
       }
       if (statusEl) statusEl.textContent = 'Ładowanie…';
+      setMapLogoLoading(true, 'Ładowanie harmonogramu…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listHarmonogram')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -2068,7 +2058,8 @@ export function wordModalBrowserScript(): string {
           window.__harmonogramLoaded = false;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy Harmonogramu.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function syncHarmDatesFromInputs() {
       var listEl = document.getElementById('doc-harm-dates-list');
@@ -2373,6 +2364,7 @@ export function wordModalBrowserScript(): string {
       var delBtn = document.getElementById('harmonogram-add-delete');
       if (btn) btn.disabled = true;
       if (delBtn) delBtn.disabled = true;
+      setMapLogoLoading(true, isEdit ? 'Zapisuję harmonogram…' : 'Dodaję do harmonogramu…');
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
           alert(isEdit
@@ -2388,6 +2380,7 @@ export function wordModalBrowserScript(): string {
           ? 'Nie udało się zapisać zmian (sieć / Web App).'
           : 'Nie udało się dodać do Harmonogramu (sieć / Web App).');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (btn) btn.disabled = false;
         if (delBtn) delBtn.disabled = false;
       });
@@ -2409,6 +2402,7 @@ export function wordModalBrowserScript(): string {
       var delBtn = document.getElementById('harmonogram-add-delete');
       if (saveBtn) saveBtn.disabled = true;
       if (delBtn) delBtn.disabled = true;
+      setMapLogoLoading(true, 'Usuwam z harmonogramu…');
       appendFormatkaRow({ mode: 'deleteHarmonogram', harmonogramRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
           alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
@@ -2420,6 +2414,7 @@ export function wordModalBrowserScript(): string {
         console.error(err);
         alert('Nie udało się usunąć z Harmonogramu.');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (saveBtn) saveBtn.disabled = false;
         if (delBtn) delBtn.disabled = false;
       });
@@ -2586,6 +2581,7 @@ export function wordModalBrowserScript(): string {
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
       var btn = document.getElementById('doc-btn-save-plan');
       if (btn) btn.disabled = true;
+      setMapLogoLoading(true, 'Zapisuję planowane…');
       var payload = buildFormatkaPayload(zal, shared, isRealize ? numerWpisany : (numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '') ? numerWpisany : ''));
       payload.mode = isRealize ? 'updatePlan' : 'plan';
       payload.czyProtokolZrobiony = 'nie';
@@ -2608,6 +2604,7 @@ export function wordModalBrowserScript(): string {
         console.error(err);
         alert('Nie udało się zapisać planowanego (sieć / Web App).');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (btn) btn.disabled = false;
       });
     }
@@ -2625,6 +2622,7 @@ export function wordModalBrowserScript(): string {
       }
       var btn = document.getElementById('doc-btn-delete-plan');
       if (btn) btn.disabled = true;
+      setMapLogoLoading(true, 'Usuwam planowane…');
       appendFormatkaRow({ mode: 'deletePlan', planowaneRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
           alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
@@ -2638,6 +2636,7 @@ export function wordModalBrowserScript(): string {
         console.error(err);
         alert('Nie udało się usunąć planowanego.');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (btn) btn.disabled = false;
       });
     }
@@ -2723,6 +2722,7 @@ export function wordModalBrowserScript(): string {
       var deletePlanBtn = document.getElementById('doc-btn-delete-plan');
       var hint = document.getElementById('doc-modal-hint');
       if (busy) {
+        setMapLogoLoading(true, statusText || busyLabel || 'Ładowanie…');
         if (btn && !btn.getAttribute('data-busy')) {
           btn.setAttribute('data-busy', '1');
           __docGenBusyLabel = btn.textContent || 'Pobierz .docx';
@@ -2752,6 +2752,7 @@ export function wordModalBrowserScript(): string {
           if (statusText) hint.textContent = statusText;
         }
       } else {
+        setMapLogoLoading(false);
         if (btn) {
           btn.classList.remove('is-busy');
           btn.removeAttribute('aria-busy');
@@ -2774,6 +2775,8 @@ export function wordModalBrowserScript(): string {
     function updateDocGenerateStatus(statusText) {
       var hint = document.getElementById('doc-modal-hint');
       if (hint && statusText) hint.textContent = statusText;
+      var label = document.getElementById('map-logo-loader-label');
+      if (label && statusText) label.textContent = statusText;
     }
     function generateDocxLocal(options) {
       var opts = options || {};

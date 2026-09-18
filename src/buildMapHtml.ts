@@ -124,6 +124,11 @@ export function buildMapHtml(
     .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
     .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
     .map-empty-banner { position: absolute; z-index: 1100; left: 50%; top: 48px; transform: translateX(-50%); background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); max-width: min(420px, calc(100vw - 24px)); text-align: center; }
+    .map-logo-loader { position: fixed; z-index: 30000; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .map-logo-loader[hidden] { display: none !important; }
+    .map-logo-loader-panel { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 22px; background: rgba(255,255,255,0.96); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); font-size: 13px; font-weight: 600; color: #555; border: 1px solid rgba(255,255,255,0.7); text-align: center; }
+    .map-logo-loader-logo { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; animation: map-logo-pulse 1.2s ease-in-out infinite; }
+    @keyframes map-logo-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
 ${wordEnabled ? wordModalCss() : ''}${wordEnabled ? manualAdminCss() : ''}  </style>
 </head>
 <body>
@@ -133,6 +138,12 @@ ${
     ? `  <div class="map-empty-banner" role="status">Brak punktów z współrzędnymi. Sprawdź Excel Załadunek i uruchom <code>npm run generate</code>.</div>\n`
     : ''
 }  <div id="map"></div>
+  <div id="map-logo-loader" class="map-logo-loader" role="status" aria-live="polite" aria-busy="false" hidden>
+    <div class="map-logo-loader-panel">
+      <img class="map-logo-loader-logo" src="./favicon.png" alt="" width="64" height="64">
+      <span id="map-logo-loader-label">Ładowanie…</span>
+    </div>
+  </div>
 ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <script>
     const PUNKTY = ${JSON.stringify(payload)};
     const COLOR_COUNTS = ${JSON.stringify(counts)};
@@ -148,6 +159,18 @@ ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <s
     )};
     const LOAD_POINTS = ${JSON.stringify(wordEmbed?.loadPoints ?? [])};
     const MANUAL_OVERLAY = ${JSON.stringify(manualOverlay)};
+    var mapLogoLoaderDepth = 0;
+    function setMapLogoLoading(loading, message) {
+      var el = document.getElementById('map-logo-loader');
+      if (!el) return;
+      if (loading) mapLogoLoaderDepth += 1;
+      else mapLogoLoaderDepth = Math.max(0, mapLogoLoaderDepth - 1);
+      var on = mapLogoLoaderDepth > 0;
+      el.hidden = !on;
+      el.setAttribute('aria-busy', on ? 'true' : 'false');
+      var label = document.getElementById('map-logo-loader-label');
+      if (label && message) label.textContent = message;
+    }
 
     const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {

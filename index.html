@@ -40,6 +40,11 @@
     .map-type-filter-options label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; cursor: pointer; margin: 0; }
     .map-brand { position: absolute; z-index: 1000; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(255,255,255,0.92); padding: 6px 14px; border-radius: 8px; box-shadow: 0 1px 5px rgba(0,0,0,0.2); font-weight: 700; font-size: 14px; pointer-events: none; }
     .map-empty-banner { position: absolute; z-index: 1100; left: 50%; top: 48px; transform: translateX(-50%); background: #fff3cd; border: 1px solid #ffc107; color: #664d03; padding: 10px 16px; border-radius: 8px; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); max-width: min(420px, calc(100vw - 24px)); text-align: center; }
+    .map-logo-loader { position: fixed; z-index: 30000; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+    .map-logo-loader[hidden] { display: none !important; }
+    .map-logo-loader-panel { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 22px; background: rgba(255,255,255,0.96); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); font-size: 13px; font-weight: 600; color: #555; border: 1px solid rgba(255,255,255,0.7); text-align: center; }
+    .map-logo-loader-logo { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; animation: map-logo-pulse 1.2s ease-in-out infinite; }
+    @keyframes map-logo-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
 
     .doc-modal-overlay { position: fixed; inset: 0; z-index: 20000; background: rgba(0,0,0,0.45); display: flex; align-items: flex-start; justify-content: center; padding: 24px 12px; overflow: auto; }
     .doc-modal-panel { background: #fff; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); padding: 18px 20px; width: min(520px, 100%); margin-top: 24px; }
@@ -68,23 +73,6 @@
     .doc-modal-actions button.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
     .doc-modal-actions button.excel { background: #198754; color: #fff; border-color: #198754; }
     .doc-modal-actions button:disabled { opacity: 0.7; cursor: wait; }
-    .doc-modal-actions button.primary.is-busy,
-    .doc-modal-actions button.excel.is-busy { position: relative; padding-left: 34px; }
-    .doc-modal-actions button.primary.is-busy::before,
-    .doc-modal-actions button.excel.is-busy::before {
-      content: '';
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      width: 14px;
-      height: 14px;
-      margin-top: -7px;
-      border: 2px solid rgba(255,255,255,0.35);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: doc-spin 0.7s linear infinite;
-    }
-    @keyframes doc-spin { to { transform: rotate(360deg); } }
     .doc-modal-hint { font-size: 11px; color: #666; margin-top: 8px; }
     .doc-modal-hint.is-busy { color: #0d6efd; font-weight: 600; }
     .doc-date-row { display: flex; gap: 8px; align-items: center; }
@@ -348,6 +336,12 @@
 <body>
   <div class="map-brand">Druga Mila</div>
   <div id="map"></div>
+  <div id="map-logo-loader" class="map-logo-loader" role="status" aria-live="polite" aria-busy="false" hidden>
+    <div class="map-logo-loader-panel">
+      <img class="map-logo-loader-logo" src="./favicon.png" alt="" width="64" height="64">
+      <span id="map-logo-loader-label">Ładowanie…</span>
+    </div>
+  </div>
   <div id="manual-bulk-picker" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="manual-bulk-title">
       <h3 id="manual-bulk-title">Hurt — wybór załadunków</h3>
@@ -670,6 +664,18 @@
     const MIEJSCA_DOSTAWY = [{"label":"BIOSYSTEM","value":"BIOSYSTEM Bolęcin 32-540 Bolęcin Fabryczna 5"},{"label":"CZYŻEW","value":"UT Dariusz Godlewski 18-220 Czyżew Zambrowska 12"},{"label":"DISONI","value":"Disoni Trade Hpuse 05-100 Nowy Dwór Mazowiecki Gen. Wiktora Thommee 35a"},{"label":"ALKOM","value":"ALKOM Józefowo 64-310 Lwówek Józefowo 26A"},{"label":"TRASZKAN","value":"Traszkan Wywóz Nieczystoći 32-413 Zegartowice Zegartowice 105"},{"label":"SANIT TRANS","value":"Sanit Trans 43-392 Czechowice Dziedzice Prusa 33"},{"label":"RYPIN","value":"RZUOK Rypin 87-500 Rypin  Puszcza Miejska 24"},{"label":"EKO-RECYKLING","value":"EKO-RECYKLING POLSKA 41-103 Siemianowice Ślaskie Wyzwolenia 2"},{"label":"MIKI","value":"MIKI Recykling 30-741 Kraków Nad Drwiną 33"},{"label":"SOKOŁÓW MAŁOPOLSKI","value":"Sortownia Sokołów Małopolski 36-050 Sokołów Małopolski Łazienna 7"},{"label":"PLOMAT PMC","value":"PMC PLOMAT 09-408 Płock Lubuska 15"},{"label":"ZAGRODA STRZYŻÓW","value":"ZAGRODA 38-100 Strzyżów 1-go Maja 38b"},{"label":"GPW LUBLIN","value":"GPW Plac Pośredni Lublin 21-100 Lubartów Wandy Śliwiny 26"},{"label":"GPW GDAŃSK","value":"GPW Plac Pośredni Gdańsk 82-500 Górki Górki 26"},{"label":"INDORAMA ŁĘCZYCA","value":"Indorama Ventures Recycling Poland ŁĘCZYCA 99-100 Łęczyca, ul.Lotnicza 4"},{"label":"INDORAMA BIELSKO-BIAŁA","value":"Indorama Ventures Recycling Poland Bielsko-Biała 43-346 Bielsko-Biała, Konwojowa 96"},{"label":"PAPC TRZEBINIA","value":"PAPC Sp. z o.o. TRZEBINIA 32-540 Trzebinia ul. Sikorskiego 7"},{"label":"GPW KONSOLIDACJA Z WROCŁAW","value":"GPW WROCŁAW Północna 30, PL55300 Środa Śląska"},{"label":"BLUE CARGO","value":"BLUE CARGO 54-028 Wrocław Rajska 3"}];
     const LOAD_POINTS = [{"nazwaPelna":"CD Jaskółka Sokółka","nazwaSkrocona":"SOKÓŁKA","adres":"16-100 Sokółka Przemysłowa 20","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SPOŁEM Radom","nazwaSkrocona":"SPOŁEM RADOM","adres":"26-600 Radom Wyścigowa 20","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD StopMarket Klecza","nazwaSkrocona":"KLECZA","adres":"34-124 Klecza Górna Barwałd Średni 71","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"ITUM OWOCE Rybnik","nazwaSkrocona":"ITUM RYBNIK","adres":"44-200 Rybnik Rudzka 47","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD Bort Wimar Grodków","nazwaSkrocona":"GRODKÓW","adres":"49-200 Grodków Sienkiewicza 104","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Lubań ZGiUK","nazwaSkrocona":"LUBAŃ","adres":"59-800 Lubań Bazaltowa 1","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"BIOCOLLECT plac pośredni","nazwaSkrocona":"BIOCOLLECT","adres":"84-207 Koleczkowo","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"BIOSYSTEM Bolęcin","nazwaSkrocona":"BIOSYSTEM","adres":"32-540 Bolęcin Fabryczna 5","typ":"BOLĘCIN","rodzajZbiorki":""},{"nazwaPelna":"CD - WOY","nazwaSkrocona":"WOY BUKOWIEC","adres":"26-300 Bukowiec Opoczyński 7a","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SCH Staszów","nazwaSkrocona":"STASZÓW","adres":"28-200 Staszów Towarowa 2","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SELMET Pasłęk","nazwaSkrocona":"SELMET","adres":"14-400 Pasłęk Westerplatte 31","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac Pośredni Czyżew","nazwaSkrocona":"CZYŻEW","adres":"18-220 Czyżew Zambrowska 12","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"EKOART. Plac pośredni","nazwaSkrocona":"EKO-ART.","adres":"26-110 Skarżysko Kamienna Asfaltowa 1","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni TARGET Speed","nazwaSkrocona":"TARGET","adres":"63-940 Bojanowo Giżyn 7","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD GS ZWOLEŃ","nazwaSkrocona":"ZWOLEŃ","adres":"26-700 Zwoleń Jagiełły 2","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD Express II Koszęcin","nazwaSkrocona":"KOSZĘCIN","adres":"42-286 Koszęcin Ligonia 11B","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD JUBILAT Kraków","nazwaSkrocona":"JUBILAT","adres":"31-111 Kraków Krasińskiego 1","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SPOŁEM Lubartów","nazwaSkrocona":"SPOŁEM LUBARTÓW","adres":"21-100 Lubartów Krzywe Koło 53","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SPOŁEM Tomaszów Lubelski","nazwaSkrocona":"SPOŁEM TOM LUBEL","adres":"22-600 Tomaszów Lubelski Lipowa 14","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SPOŁEM Racibórz","nazwaSkrocona":"SPOŁEM RACIBÓRZ","adres":"47-400 Racibórz Londzina 4","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Plac Pośredni PMC PLOMAT","nazwaSkrocona":"PLOMAT PMC","adres":"09-408 Płock Lubuska 15","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD NAXPOL Marszowice","nazwaSkrocona":"NAXPOL CD","adres":"32-420 Marszowice Marszowice 189","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Plac Czarny Staw Panda","nazwaSkrocona":"PANDA","adres":"95-070 Aleksandrów Łódżki Nowy Adamów 3","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"BOMAZ Plac Zduńska Wola","nazwaSkrocona":"BOMAZ","adres":"98-220 Zduńska Wola Opiesińska 19","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac Pośredni JEST","nazwaSkrocona":"JEST","adres":"41-109 Gliwice Oświęcimska 51k","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"DRAMP Padew Narodowa","nazwaSkrocona":"PADEW","adres":"39-340 Padew Narodowa Piechoty 64","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni Blue Cargo","nazwaSkrocona":"BLUE CARGO","adres":"54-028 Wrocław Rajska 3","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni Brzesko PW Your Partner","nazwaSkrocona":"YOUR PARTNER","adres":"32-800 Brzesko Dworcowa 2","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"GPW Plac Pośredni Lublin","nazwaSkrocona":"GPW LUBLIN","adres":"21-100 Lubartów Wandy Śliwiny 26","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"plac pośredni GEODIS Bydgoszcz","nazwaSkrocona":"GEODIS","adres":"87-100 Toruń Kanałowa 79","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni RPM JAROCIN","nazwaSkrocona":"RPM Jarocin","adres":"63-200 Jarocin Szubianki 8","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni Kraków","nazwaSkrocona":"THOR","adres":"31-128 Kraków","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni ZAGRODA","nazwaSkrocona":"ZAGRODA STRZYŻÓW","adres":"38-100 Strzyżów 1-go Maja 38b","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD PAKMAN TORIMPEX Toruń","nazwaSkrocona":"TORIMPEX","adres":"87-100 Toruń Leszczynowa 3","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni GPW Wądroże","nazwaSkrocona":"GPW WĄDROŻE","adres":"59-430 Wądroże Wielkie Wądroże Wielkie 246","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Sortownia Sokołów Małopolski","nazwaSkrocona":"SOKOŁÓW MAŁOPOLSKI","adres":"36-050 Sokołów Małopolski Łazienna 7","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD Niedrzwica Duża","nazwaSkrocona":"NIEDRZWICA","adres":"24-220 Niedrzwica Duża Spółdzielcza 2","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SPOŁEM Nidzica","nazwaSkrocona":"SPOŁEM NIDZICA","adres":"13-100 Nidzica Sprzymierzonych 25","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD STEK-ROL Dębica","nazwaSkrocona":"DĘBICA","adres":"39-200 Dębica Fabryczna 1","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD BJANEX Suwałki`","nazwaSkrocona":"BJANEX SUWAŁKI","adres":"16-400 Suwałki Leśna 68","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD GS SCh Nidzica","nazwaSkrocona":"NIDZICA","adres":"13-100 Nidzica Traugutta 20","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Plac MAK MET OŁAWA","nazwaSkrocona":"OŁAWA","adres":"55-200 Oława Kasztanowa 2","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac Pośredni BIAŁOBRZEGI","nazwaSkrocona":"BIAŁOBRZEGI","adres":"26-800 Białobrzegi Kościelna 97C","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni PAPIRUS","nazwaSkrocona":"PAPIRUS","adres":"70-010 Szczecin Szczawiowa 54a","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni LUX BUS","nazwaSkrocona":"LUX BUS","adres":"05-123 Olszewnica Stara Wiejska 11L","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD AF-LIDER Emilia","nazwaSkrocona":"EMILIA","adres":"95-100 Emilia Zgierska 24","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"Plac pośredni Wiślanka","nazwaSkrocona":"WIŚLANKA","adres":"43-460 Wisła Malinka 41C","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"Plac Pośredni SELMET","nazwaSkrocona":"SELMET","adres":"14-400 Pasłęk Westerplatte 31","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"GPW Plac Pośredni Gdańsk","nazwaSkrocona":"GPW GDAŃSK","adres":"82-500 Górki Górki 26","typ":"PLAC","rodzajZbiorki":""},{"nazwaPelna":"CD VOBIANO Złoczew","nazwaSkrocona":"ZŁOCZEW","adres":"98-270 Złoczew Parkowa 10C","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD SPOŁEM Poniatowa","nazwaSkrocona":"SPOŁEM PONIATOWA","adres":"24-320 Poniatowa Brzozowa 2","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD GAMA RURARZ","nazwaSkrocona":"GAMA RURARZ","adres":"08-300 Sokołów Podlaski Olszowa 1","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD A&K HURT-MARKET","nazwaSkrocona":"AK MIELEC","adres":"39-300 Mielec Piaskowa 8","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD MAGNOLIA Głowno","nazwaSkrocona":"MAGNOLIA","adres":"95-015 Głowno Sikorskiego 102","typ":"CD","rodzajZbiorki":""},{"nazwaPelna":"CD GRAM SADECKI","nazwaSkrocona":"GRAM","adres":"09-400 Płock Kostrogaj 21","typ":"CD","rodzajZbiorki":""}];
     const MANUAL_OVERLAY = {"zaladunek":[],"przewoznicy":[],"miejscaDostawy":[]};
+    var mapLogoLoaderDepth = 0;
+    function setMapLogoLoading(loading, message) {
+      var el = document.getElementById('map-logo-loader');
+      if (!el) return;
+      if (loading) mapLogoLoaderDepth += 1;
+      else mapLogoLoaderDepth = Math.max(0, mapLogoLoaderDepth - 1);
+      var on = mapLogoLoaderDepth > 0;
+      el.hidden = !on;
+      el.setAttribute('aria-busy', on ? 'true' : 'false');
+      var label = document.getElementById('map-logo-loader-label');
+      if (label && message) label.textContent = message;
+    }
 
     const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
@@ -1280,6 +1286,7 @@
         return;
       }
       if (bulkNumerInfo) bulkNumerInfo.textContent = 'Pobieranie podglądu numeracji…';
+      setMapLogoLoading(true, 'Pobieranie numeracji…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=modalData')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -1294,7 +1301,8 @@
         })
         .catch(function() {
           if (bulkNumerInfo) bulkNumerInfo.textContent = 'Nie udało się pobrać podglądu — przy generacji i tak auto z API.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function openCombinedDocModal(indicesOpt) {
       var m = document.getElementById('doc-modal');
@@ -2183,6 +2191,7 @@
       }
       if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
       var action = window.__docModalMode === 'harmonogram' ? 'previewNumberHarm' : 'modalData';
+      setMapLogoLoading(true, 'Pobieranie numeru…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=' + action)
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -2206,7 +2215,8 @@
         })
         .catch(function() {
           if (hint) hint.textContent = 'Nie udało się pobrać numeru — sprawdź Web App / sieć.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function appendFormatkaRow(payload) {
       return fetch(WEBAPP_URL, {
@@ -2323,6 +2333,7 @@
         return;
       }
       if (statusEl) statusEl.textContent = 'Ładowanie…';
+      setMapLogoLoading(true, 'Ładowanie planowanych…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listPlanowane')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -2390,7 +2401,8 @@
           if (seq !== planowaneListSeq) return;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy planowanych.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function openRealizeDocModal(row) {
       var m = document.getElementById('doc-modal');
@@ -2569,6 +2581,7 @@
         return;
       }
       if (statusEl) statusEl.textContent = 'Ładowanie…';
+      setMapLogoLoading(true, 'Ładowanie harmonogramu…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listHarmonogram')
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -2588,7 +2601,8 @@
           window.__harmonogramLoaded = false;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy Harmonogramu.';
-        });
+        })
+        .finally(function() { setMapLogoLoading(false); });
     }
     function syncHarmDatesFromInputs() {
       var listEl = document.getElementById('doc-harm-dates-list');
@@ -2893,6 +2907,7 @@
       var delBtn = document.getElementById('harmonogram-add-delete');
       if (btn) btn.disabled = true;
       if (delBtn) delBtn.disabled = true;
+      setMapLogoLoading(true, isEdit ? 'Zapisuję harmonogram…' : 'Dodaję do harmonogramu…');
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
           alert(isEdit
@@ -2908,6 +2923,7 @@
           ? 'Nie udało się zapisać zmian (sieć / Web App).'
           : 'Nie udało się dodać do Harmonogramu (sieć / Web App).');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (btn) btn.disabled = false;
         if (delBtn) delBtn.disabled = false;
       });
@@ -2929,6 +2945,7 @@
       var delBtn = document.getElementById('harmonogram-add-delete');
       if (saveBtn) saveBtn.disabled = true;
       if (delBtn) delBtn.disabled = true;
+      setMapLogoLoading(true, 'Usuwam z harmonogramu…');
       appendFormatkaRow({ mode: 'deleteHarmonogram', harmonogramRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
           alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
@@ -2940,6 +2957,7 @@
         console.error(err);
         alert('Nie udało się usunąć z Harmonogramu.');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (saveBtn) saveBtn.disabled = false;
         if (delBtn) delBtn.disabled = false;
       });
@@ -3106,6 +3124,7 @@
       var numerWpisany = numerEl ? String(numerEl.value).trim() : '';
       var btn = document.getElementById('doc-btn-save-plan');
       if (btn) btn.disabled = true;
+      setMapLogoLoading(true, 'Zapisuję planowane…');
       var payload = buildFormatkaPayload(zal, shared, isRealize ? numerWpisany : (numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '') ? numerWpisany : ''));
       payload.mode = isRealize ? 'updatePlan' : 'plan';
       payload.czyProtokolZrobiony = 'nie';
@@ -3128,6 +3147,7 @@
         console.error(err);
         alert('Nie udało się zapisać planowanego (sieć / Web App).');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (btn) btn.disabled = false;
       });
     }
@@ -3145,6 +3165,7 @@
       }
       var btn = document.getElementById('doc-btn-delete-plan');
       if (btn) btn.disabled = true;
+      setMapLogoLoading(true, 'Usuwam planowane…');
       appendFormatkaRow({ mode: 'deletePlan', planowaneRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
           alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
@@ -3158,6 +3179,7 @@
         console.error(err);
         alert('Nie udało się usunąć planowanego.');
       }).finally(function() {
+        setMapLogoLoading(false);
         if (btn) btn.disabled = false;
       });
     }
@@ -3243,6 +3265,7 @@
       var deletePlanBtn = document.getElementById('doc-btn-delete-plan');
       var hint = document.getElementById('doc-modal-hint');
       if (busy) {
+        setMapLogoLoading(true, statusText || busyLabel || 'Ładowanie…');
         if (btn && !btn.getAttribute('data-busy')) {
           btn.setAttribute('data-busy', '1');
           __docGenBusyLabel = btn.textContent || 'Pobierz .docx';
@@ -3272,6 +3295,7 @@
           if (statusText) hint.textContent = statusText;
         }
       } else {
+        setMapLogoLoading(false);
         if (btn) {
           btn.classList.remove('is-busy');
           btn.removeAttribute('aria-busy');
@@ -3294,6 +3318,8 @@
     function updateDocGenerateStatus(statusText) {
       var hint = document.getElementById('doc-modal-hint');
       if (hint && statusText) hint.textContent = statusText;
+      var label = document.getElementById('map-logo-loader-label');
+      if (label && statusText) label.textContent = statusText;
     }
     function generateDocxLocal(options) {
       var opts = options || {};
@@ -3695,11 +3721,15 @@
 
     function setManualAdminStatus(msg, kind) {
       var el = document.getElementById('manual-admin-status');
-      if (!el) return;
-      el.textContent = msg || '';
-      el.classList.remove('is-error', 'is-warn');
-      if (kind === 'error') el.classList.add('is-error');
-      else if (kind === 'warn') el.classList.add('is-warn');
+      if (el) {
+        el.textContent = msg || '';
+        el.classList.remove('is-error', 'is-warn');
+        if (kind === 'error') el.classList.add('is-error');
+        else if (kind === 'warn') el.classList.add('is-warn');
+      }
+      var loader = document.getElementById('map-logo-loader');
+      var label = document.getElementById('map-logo-loader-label');
+      if (label && loader && !loader.hidden && msg) label.textContent = msg;
     }
 
     function showZalCoordsSection(show) {
@@ -3783,6 +3813,9 @@
       if (!btn) return;
       btn.disabled = !!busy;
       btn.classList.toggle('is-busy', !!busy);
+      if (typeof setMapLogoLoading === 'function') {
+        setMapLogoLoading(!!busy, busy ? 'Zapisuję…' : '');
+      }
     }
 
     function openManualAdminModal() {
@@ -3919,6 +3952,7 @@
 
     function loadReferenceDataFromSheets() {
       if (!WEBAPP_URL) return Promise.resolve();
+      if (typeof setMapLogoLoading === 'function') setMapLogoLoading(true, 'Ładowanie danych…');
       return fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listReferenceData')
         .then(function(r) { return r.json(); })
         .then(function(resp) {
@@ -3928,7 +3962,10 @@
           (data.przewoznicy || []).forEach(function(e) { applyReferencePrzewoznikEntry(e); });
           (data.miejscaDostawy || []).forEach(function(e) { applyReferenceDostawaEntry(e); });
         })
-        .catch(function() { /* cicho — mapa działa z danymi z buildu */ });
+        .catch(function() { /* cicho — mapa działa z danymi z buildu */ })
+        .finally(function() {
+          if (typeof setMapLogoLoading === 'function') setMapLogoLoading(false);
+        });
     }
 
     function submitManualZaladunek() {
