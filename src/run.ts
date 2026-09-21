@@ -1,5 +1,5 @@
 /**
- * Pipeline CLI: points → geocode → buildMapHtml → index.html.
+ * Pipeline CLI: points → (popraw adres) → geocode → buildMapHtml → index.html.
  */
 
 import { copyFile, readFile, writeFile } from 'node:fs/promises';
@@ -13,8 +13,48 @@ import {
   mergeLoadPoints,
   readManualOverlay,
 } from './readManualOverlay.js';
-import { attachCoords, geocodeAddresses } from './geocode.js';
+import {
+  attachCoords,
+  geocodeAddresses,
+  loadGeocodeCache,
+  saveGeocodeCache,
+} from './geocode.js';
 import { buildMapHtml } from './buildMapHtml.js';
+import {
+  mergePoprawAdresIntoGeocodeCache,
+  parsePoprawAdresList,
+} from './poprawAdres.js';
+
+/** Pobiera poprawAdres z Web App i nadpisuje geocode-cache. */
+async function applyPoprawAdresFromWebApp(
+  webAppUrl: string,
+  cachePath: string,
+): Promise<number> {
+  const sep = webAppUrl.includes('?') ? '&' : '?';
+  const url = `${webAppUrl}${sep}action=listReferenceData`;
+  const res = await fetch(url);
+  const text = await res.text();
+  let json: { ok?: boolean; data?: { poprawAdres?: unknown } };
+  try {
+    json = JSON.parse(text) as typeof json;
+  } catch {
+    console.warn('[druga-mila] poprawAdres — nieprawidłowa odpowiedź listReferenceData');
+    return 0;
+  }
+  if (!json.ok || !json.data) {
+    return 0;
+  }
+  const entries = parsePoprawAdresList(json.data.poprawAdres);
+  if (!entries.length) {
+    return 0;
+  }
+  const cache = await loadGeocodeCache(cachePath);
+  const n = mergePoprawAdresIntoGeocodeCache(cache, entries);
+  if (n > 0) {
+    await saveGeocodeCache(cachePath, cache);
+  }
+  return n;
+}
 
 async function main(): Promise<void> {
   const cfg = getConfig();
@@ -43,6 +83,18 @@ async function main(): Promise<void> {
   console.log(
     `  kolory: CD=${byKind.cd} PLAC=${byKind.plac} puste=${byKind.puste} Bolęcin=${byKind.bolecin}`,
   );
+
+  if (cfg.webAppUrl) {
+    try {
+      const n = await applyPoprawAdresFromWebApp(cfg.webAppUrl, cfg.geocodeCachePath);
+      console.log(`  poprawAdres → geocode-cache: ${n}`);
+    } catch (err) {
+      console.warn(
+        '[druga-mila] poprawAdres — pominięto (Web App niedostępny):',
+        err instanceof Error ? err.message : err,
+      );
+    }
+  }
 
   const { results, stats } = await geocodeAddresses(
     points.map((p) => p.adres),

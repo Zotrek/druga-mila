@@ -196,6 +196,13 @@ describe('buildMapHtml', () => {
     expect(html).toContain('manual-admin-zal-zbiorka');
     expect(html).toContain('manual-admin-zal-geocode-fail');
     expect(html).toContain('Zapisz bez pinezki');
+    expect(html).toContain('Popraw adres');
+    expect(html).toContain('manual-admin-tab-popraw');
+    expect(html).toContain('manual-admin-panel-popraw');
+    expect(html).toContain('addPoprawAdres');
+    expect(html).toContain('openPoprawAdresFromPoint');
+    expect(html).toContain('poprawAdres');
+    expect(html).toContain('Zapisz poprawkę adresu');
   });
 
   it('test_buildMapHtml_empty_points_shows_banner', () => {

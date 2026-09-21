@@ -561,12 +561,43 @@ export function wordModalBrowserScript(): string {
           '<button type="button" class="btn-gen-doc"' + (multiSelected ? ' disabled' : '') +
           ' data-load-idx="' + loadIdx + '">Generuj protokół</button></div>';
       }
+      if (WEBAPP_URL) {
+        html += '<button type="button" class="map-popraw-adres-btn btn-popraw-adres" data-load-idx="' +
+          loadIdx + '">Popraw adres</button>';
+      }
       return html;
     }
     function wirePopupControls(marker, loadIdx) {
-      if (!wordDocEnabled || loadIdx < 0) return;
       var el = marker.getPopup() && marker.getPopup().getElement();
       if (!el) return;
+      var poprawBtn = el.querySelector('.btn-popraw-adres');
+      if (poprawBtn && typeof window.openPoprawAdresFromPoint === 'function') {
+        poprawBtn.onclick = function(ev) {
+          if (ev.stopPropagation) ev.stopPropagation();
+          var p = null;
+          for (var i = 0; i < markerEntries.length; i++) {
+            if (markerEntries[i].loadIdx === loadIdx) { p = markerEntries[i].p; break; }
+          }
+          if (!p && loadIdx >= 0 && LOAD_POINTS[loadIdx]) {
+            p = {
+              nazwaPelna: LOAD_POINTS[loadIdx].nazwaPelna,
+              nazwaSkrocona: LOAD_POINTS[loadIdx].nazwaSkrocona,
+              adres: LOAD_POINTS[loadIdx].adres,
+              lat: null,
+              lon: null
+            };
+            for (var j = 0; j < markerEntries.length; j++) {
+              if (markerEntries[j].loadIdx === loadIdx && markerEntries[j].p) {
+                p.lat = markerEntries[j].p.lat;
+                p.lon = markerEntries[j].p.lon;
+                break;
+              }
+            }
+          }
+          if (p) window.openPoprawAdresFromPoint(p, loadIdx);
+        };
+      }
+      if (!wordDocEnabled || loadIdx < 0) return;
       var cb = el.querySelector('.popup-bulk-cb');
       if (cb) {
         cb.onchange = function() {

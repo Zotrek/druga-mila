@@ -111,6 +111,7 @@ Tagi: `numer_zlecenia_transportowego`, `miejsce_zaladunku`, `przewoznik`, `miejs
 | Env (opcjonalnie) | `GEOCODE_CACHE_PATH` — domyślnie `./data/geocode-cache.json` |
 | Model | Uproszczony wzorzec `arkusz-mapa` phase5: klucz = znormalizowany adres → `{ lat, lon, status, … }` |
 | Odświeżanie | Tylko przy lokalnym `npm run generate` |
+| Popraw adres | Przy generate: GET `listReferenceData.poprawAdres` → nadpisanie wpisów cache (jeśli jest `DRUGA_MILA_WEBAPP_URL`). Runtime: popup / zakładka → POST `addPoprawAdres` + live `setLatLng` |
 
 **Bez** Actions cache jako głównego mechanizmu.
 
@@ -292,8 +293,10 @@ Edycja druga-mila.xlsx / podwyko lista.xlsx
 | `src/readPoints.ts` | Odczyt `druga-mila.xlsx` (Załadunek); pomijanie pustego C |
 | `src/readPodwyko.ts` | Odczyt `podwyko lista.xlsx` (A=UI, B=Word) |
 | `src/geocode.ts` | Nominatim + rate limit + `data/geocode-cache.json` |
+| `src/poprawAdres.ts` | Klucz/match poprawek adresu; merge do geocode-cache |
 | `src/buildMapHtml.ts` | Szablon Leaflet: pinezki, legenda, search, filtr, modal, embed docx/podwyko/URL Web App |
-| `src/run.ts` | Pipeline CLI: points → geocode → build → zapis `index.html` |
+| `src/buildMapManualAdmin.ts` | Modal: załadunek / przewoźnik / dostawa / **Popraw adres** |
+| `src/run.ts` | Pipeline CLI: points → poprawAdres → geocode → build → zapis `index.html` |
 | `src/nextNumber.ts` | Czysta funkcja inkrementu alfanumerycznego (testowana; lustro logiki `.gs`) |
 | `src/monthSheetName.ts` | Nazwa zakładki miesięcznej z `dataOdbioru` (testowana; lustro `.gs`) |
 | `src/dataZaladunkuRange.ts` | Data załadunku Od / Od+Do → `dd.mm.rrrr` lub `13.08/14.08.2026` |

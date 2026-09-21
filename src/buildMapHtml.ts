@@ -237,7 +237,7 @@ ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <s
         }
       }
       var marker = L.marker([p.lat, p.lon], { icon: pinIcon(p.kolor, false) });
-      marker.bindPopup(wordDocEnabled ? '' : (
+      marker.bindPopup((wordDocEnabled || WEBAPP_URL) ? '' : (
         '<div class="popup-name">' + escapeHtmlMap(p.nazwaPelna) + '</div>' +
         '<div class="popup-short">' + escapeHtmlMap(p.nazwaSkrocona) + '</div>' +
         '<div class="popup-address">' + escapeHtmlMap(p.adres) + '</div>'
@@ -246,7 +246,7 @@ ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <s
       var entry = { p: p, marker: marker, loadIdx: loadIdx };
       markerEntries.push(entry);
       marker.on('popupopen', function() {
-        if (!wordDocEnabled) return;
+        if (!wordDocEnabled && !WEBAPP_URL) return;
         marker.setPopupContent(buildPopupHtml(p, loadIdx));
         wirePopupControls(marker, loadIdx);
       });

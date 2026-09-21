@@ -8,7 +8,7 @@
  * GET ?action=previewNumberHarm  → { ok, numer }  (podgląd DMH* — NIE rezerwuje)
  * GET ?action=listPlanowane      → { ok, rows: [...] }
  * GET ?action=listHarmonogram    → { ok, rows: [...] }  (II Adres/Nazwa jeśli w arkuszu)
- * GET ?action=listReferenceData  → { ok, zaladunek, przewoznicy, miejscaDostawy }
+ * GET ?action=listReferenceData  → { ok, data: { zaladunek, przewoznicy, miejscaDostawy, poprawAdres } }
  * POST (body JSON, Content-Type: text/plain) — wg body.mode:
  *   (brak)/commit → append miesiąca + Bolęcin (seria DM*)
  *   plan          → append Planowane (bez Bolęcina, czyProtokol=nie)
@@ -22,7 +22,8 @@
  *   addReferenceZaladunek → append do „Miejsca załadunku”
  *   addReferencePrzewoznik → append do „Przewoźnicy”
  *   addReferenceDostawa → append do „Miejsca dostawy”
- *   seedReferenceData → nadpisuje 3 zakładki danymi z Excel (npm run seed:sheets)
+ *   addPoprawAdres → upsert do „Popraw adres” (klucz: adres|nazwaPelna|nazwaSkrocona)
+ *   seedReferenceData → nadpisuje 3 zakładki danymi z Excel (npm run seed:sheets); NIE czyści „Popraw adres”
  *
  * Zakładki miesięczne: przy pierwszym transporcie miesiąca tworzona jest zakładka
  * „Sierpień 2026” (z dataOdbioru / Data załadunku). Numeracja DM* ciągła — skan zakładek
@@ -84,6 +85,7 @@ var HARMONOGRAM_SHEET_NAME = 'Harmonogram';
 var REF_ZAL_SHEET_NAME = 'Miejsca załadunku';
 var REF_PRZ_SHEET_NAME = 'Przewoźnicy';
 var REF_DOS_SHEET_NAME = 'Miejsca dostawy';
+var REF_POPRAW_SHEET_NAME = 'Popraw adres';
 
 var OLD_REF_SHEET_NAMES = {
   'Dane ręczne - Załadunek': REF_ZAL_SHEET_NAME,
@@ -101,6 +103,16 @@ var REF_PRZ_HEADER = [
   'nr BDO',
   'Lat',
   'Lon',
+];
+var REF_POPRAW_HEADER = [
+  'Nazwa pełna',
+  'Nazwa skrócona',
+  'Adres',
+  'Lat',
+  'Lon',
+  'Uwagi',
+  'UpdatedAt',
+  'Author',
 ];
 
 /** NIP i nr BDO — format tekstowy (@), inaczej Sheets obcina wiodące zera (000011660 → 11660). */
@@ -290,6 +302,9 @@ function doPost(e) {
     }
     if (mode === 'addReferenceDostawa') {
       return handleAddReferenceDostawaPost_(body);
+    }
+    if (mode === 'addPoprawAdres') {
+      return handleAddPoprawAdresPost_(body);
     }
     if (mode === 'seedReferenceData') {
       return handleSeedReferenceDataPost_(body);
@@ -682,6 +697,17 @@ function getOrCreateRefPrzSheet_() {
   return sheet;
 }
 
+function getOrCreateRefPoprawSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(REF_POPRAW_SHEET_NAME);
+  if (sheet) {
+    return sheet;
+  }
+  sheet = ss.insertSheet(REF_POPRAW_SHEET_NAME);
+  sheet.getRange(1, 1, 1, REF_POPRAW_HEADER.length).setValues([REF_POPRAW_HEADER]);
+  return sheet;
+}
+
 function getOrCreateRefListSheet_(sheetName, headerRow) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(sheetName);
@@ -834,7 +860,158 @@ function listReferenceData_() {
     zaladunek: listReferenceZaladunek_(),
     przewoznicy: listReferencePrzewoznicy_(),
     miejscaDostawy: listReferenceDostawa_(),
+    poprawAdres: listReferencePoprawAdres_(),
   };
+}
+
+/** PL locale: "50,39196" → 50.39196 */
+function parseCoord_(raw) {
+  if (raw == null || raw === '') {
+    return NaN;
+  }
+  if (typeof raw === 'number') {
+    return raw;
+  }
+  return parseFloat(String(raw).trim().replace(',', '.'));
+}
+
+function normalizePoprawKeyPart_(text) {
+  var s = String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  s = s
+    .replace(/ł/g, 'l')
+    .replace(/Ł/g, 'l')
+    .toLowerCase()
+    .replace(/,/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return s;
+}
+
+function refPoprawKey_(adres, nazwaPelna, nazwaSkrocona) {
+  return (
+    normalizePoprawKeyPart_(adres) +
+    '\0' +
+    normalizePoprawKeyPart_(nazwaPelna) +
+    '\0' +
+    normalizePoprawKeyPart_(nazwaSkrocona)
+  );
+}
+
+function listReferencePoprawAdres_() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(REF_POPRAW_SHEET_NAME);
+  if (!sheet) {
+    return [];
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return [];
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, REF_POPRAW_HEADER.length).getValues();
+  var out = [];
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    var adres = cellStr_(r[2]);
+    var lat = parseCoord_(r[3]);
+    var lon = parseCoord_(r[4]);
+    if (!adres || isNaN(lat) || isNaN(lon)) {
+      continue;
+    }
+    out.push({
+      nazwaPelna: cellStr_(r[0]),
+      nazwaSkrocona: cellStr_(r[1]),
+      adres: adres,
+      lat: lat,
+      lon: lon,
+      uwagi: cellStr_(r[5]),
+      updatedAt: cellStr_(r[6]),
+      author: cellStr_(r[7]),
+    });
+  }
+  return out;
+}
+
+function findPoprawAdresRow_(sheet, adres, nazwaPelna, nazwaSkrocona) {
+  var key = refPoprawKey_(adres, nazwaPelna, nazwaSkrocona);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return 0;
+  }
+  var numDataRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numDataRows, 3).getValues();
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    if (refPoprawKey_(cellStr_(r[2]), cellStr_(r[0]), cellStr_(r[1])) === key) {
+      return i + 2;
+    }
+  }
+  return 0;
+}
+
+function parsePoprawCoords_(body) {
+  var lat = parseCoord_(body && body.lat);
+  var lon = parseCoord_(body && (body.lon != null ? body.lon : body.lng));
+  if (isNaN(lat) || isNaN(lon)) {
+    throw new Error('lat and lon required');
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    throw new Error('coordinates out of range');
+  }
+  return { lat: lat, lon: lon };
+}
+
+function handleAddPoprawAdresPost_(body) {
+  var nazwaPelna = cellStr_(body && body.nazwaPelna);
+  var nazwaSkrocona = cellStr_(body && body.nazwaSkrocona);
+  var adres = cellStr_(body && body.adres);
+  var uwagi = cellStr_(body && body.uwagi);
+  var coords = parsePoprawCoords_(body);
+  if (!adres) {
+    throw new Error('adres required');
+  }
+  if (!nazwaPelna && !nazwaSkrocona) {
+    nazwaPelna = '';
+    nazwaSkrocona = '';
+  }
+  var sheet = getOrCreateRefPoprawSheet_();
+  var existingRow = findPoprawAdresRow_(sheet, adres, nazwaPelna, nazwaSkrocona);
+  var now = new Date().toISOString();
+  var author = '';
+  try {
+    author = Session.getActiveUser().getEmail() || '';
+  } catch (ignore) {
+    author = '';
+  }
+  var rowValues = [
+    nazwaPelna,
+    nazwaSkrocona,
+    adres,
+    coords.lat,
+    coords.lon,
+    uwagi,
+    now,
+    author,
+  ];
+  if (existingRow > 0) {
+    sheet.getRange(existingRow, 1, 1, REF_POPRAW_HEADER.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+  return jsonResponse({
+    ok: true,
+    entry: {
+      nazwaPelna: nazwaPelna,
+      nazwaSkrocona: nazwaSkrocona,
+      adres: adres,
+      lat: coords.lat,
+      lon: coords.lon,
+      uwagi: uwagi,
+      updatedAt: now,
+      author: author,
+    },
+  });
 }
 
 function refPrzExists_(sheet, label) {

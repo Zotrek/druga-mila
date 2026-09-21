@@ -173,6 +173,23 @@ export function manualAdminCss(): string {
     .manual-admin-secondary-btn:hover:not(:disabled) { background: #f8fafc; }
     .manual-admin-secondary-btn:disabled,
     .manual-admin-secondary-btn.is-busy { opacity: 0.75; cursor: wait; }
+    .map-popraw-adres-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid #0d9488;
+      background: #ccfbf1;
+      color: #0f766e;
+      cursor: pointer;
+    }
+    .map-popraw-adres-btn:hover {
+      background: #0d9488;
+      border-color: #0d9488;
+      color: #fff;
+    }
     #manual-admin-modal .doc-modal-actions {
       margin-top: 14px;
       padding-top: 14px;
@@ -185,11 +202,12 @@ export function manualAdminHtml(): string {
   return `  <div id="manual-admin-modal" class="doc-modal-overlay" style="display:none" aria-hidden="true">
     <div class="doc-modal-panel" role="dialog" aria-labelledby="manual-admin-title">
       <h3 id="manual-admin-title">Dodaj dane ręcznie</h3>
-      <p class="manual-admin-intro">Wpisy zapisują się na stałe w arkuszu Google — zakładki „Miejsca załadunku”, „Przewoźnicy”, „Miejsca dostawy”.</p>
+      <p class="manual-admin-intro">Wpisy zapisują się na stałe w arkuszu Google — zakładki „Miejsca załadunku”, „Przewoźnicy”, „Miejsca dostawy”, „Popraw adres”.</p>
       <div class="manual-admin-tabs" role="tablist">
         <button type="button" id="manual-admin-tab-zal" class="active" data-tab="zal">Miejsce załadunku</button>
         <button type="button" id="manual-admin-tab-prz" data-tab="prz">Przewoźnik</button>
         <button type="button" id="manual-admin-tab-dos" data-tab="dos">Miejsce dostawy</button>
+        <button type="button" id="manual-admin-tab-popraw" data-tab="popraw">Popraw adres</button>
       </div>
       <div id="manual-admin-panel-zal" class="manual-admin-panel active">
         <label for="manual-admin-zal-pelna">Nazwa pełna</label>
@@ -258,6 +276,28 @@ export function manualAdminHtml(): string {
         <label for="manual-admin-dos-typ">Typ</label>
         <input type="text" id="manual-admin-dos-typ" autocomplete="off" placeholder="np. BOLĘCIN, SORTOWNIA…" />
         <button type="button" id="manual-admin-dos-submit" class="manual-admin-submit">Zapisz miejsce dostawy</button>
+      </div>
+      <div id="manual-admin-panel-popraw" class="manual-admin-panel">
+        <label for="manual-admin-popraw-pelna">Nazwa pełna</label>
+        <input type="text" id="manual-admin-popraw-pelna" autocomplete="off" />
+        <label for="manual-admin-popraw-skrocona">Nazwa skrócona</label>
+        <input type="text" id="manual-admin-popraw-skrocona" autocomplete="off" />
+        <label for="manual-admin-popraw-adres">Adres (kanoniczny)</label>
+        <input type="text" id="manual-admin-popraw-adres" autocomplete="off" />
+        <div class="manual-admin-coords-row">
+          <div>
+            <label for="manual-admin-popraw-lat">Lat</label>
+            <input type="text" id="manual-admin-popraw-lat" inputmode="decimal" autocomplete="off" />
+          </div>
+          <div>
+            <label for="manual-admin-popraw-lon">Lon</label>
+            <input type="text" id="manual-admin-popraw-lon" inputmode="decimal" autocomplete="off" />
+          </div>
+        </div>
+        <label for="manual-admin-popraw-uwagi">Uwagi</label>
+        <input type="text" id="manual-admin-popraw-uwagi" autocomplete="off" />
+        <p class="manual-admin-hint">Zapis do zakładki „Popraw adres”. Pinezka przesuwa się od razu; przy następnym generate trafia też do cache geokodu.</p>
+        <button type="button" id="manual-admin-popraw-submit" class="manual-admin-submit">Zapisz poprawkę adresu</button>
       </div>
       <p id="manual-admin-status" class="manual-admin-status" aria-live="polite"></p>
       <div class="doc-modal-actions">
@@ -405,13 +445,14 @@ export function manualAdminBrowserScript(): string {
       }
     }
 
-    function openManualAdminModal() {
+    function openManualAdminModal(tab) {
       var m = document.getElementById('manual-admin-modal');
       if (!m) return;
       setManualAdminStatus('');
       if (!WEBAPP_URL) {
         setManualAdminStatus('Brak URL Web App — zapis na stałe niedostępny.', 'error');
       }
+      switchManualAdminTab(tab || 'zal');
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
     }
@@ -421,16 +462,126 @@ export function manualAdminBrowserScript(): string {
       if (!m) return;
       m.style.display = 'none';
       m.setAttribute('aria-hidden', 'true');
+      window.__poprawEditLoadIdx = -1;
     }
 
     function switchManualAdminTab(tab) {
-      ['zal', 'prz', 'dos'].forEach(function(t) {
+      ['zal', 'prz', 'dos', 'popraw'].forEach(function(t) {
         var panel = document.getElementById('manual-admin-panel-' + t);
         var btn = document.querySelector('.manual-admin-tabs [data-tab="' + t + '"]');
         if (panel) panel.classList.toggle('active', t === tab);
         if (btn) btn.classList.toggle('active', t === tab);
       });
       setManualAdminStatus('');
+    }
+
+    function openPoprawAdresFromPoint(point, loadIdx) {
+      window.__poprawEditLoadIdx = typeof loadIdx === 'number' ? loadIdx : -1;
+      openManualAdminModal('popraw');
+      var pelna = document.getElementById('manual-admin-popraw-pelna');
+      var skrocona = document.getElementById('manual-admin-popraw-skrocona');
+      var adres = document.getElementById('manual-admin-popraw-adres');
+      var lat = document.getElementById('manual-admin-popraw-lat');
+      var lon = document.getElementById('manual-admin-popraw-lon');
+      var uwagi = document.getElementById('manual-admin-popraw-uwagi');
+      if (pelna) pelna.value = point && point.nazwaPelna ? point.nazwaPelna : '';
+      if (skrocona) skrocona.value = point && point.nazwaSkrocona ? point.nazwaSkrocona : '';
+      if (adres) adres.value = point && point.adres ? point.adres : '';
+      if (lat) lat.value = point && point.lat != null ? String(point.lat) : '';
+      if (lon) lon.value = point && point.lon != null ? String(point.lon) : '';
+      if (uwagi) uwagi.value = '';
+    }
+
+    function normalizePoprawKeyPartJs(text) {
+      var s = String(text || '').trim().toLowerCase();
+      try {
+        s = s.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+      } catch (e) { /* ignore */ }
+      s = s.replace(/ł/g, 'l').replace(/,/g, ' ').replace(/\\s+/g, ' ').trim();
+      return s;
+    }
+
+    function poprawLookupKeyJs(adres, nazwaPelna, nazwaSkrocona) {
+      return normalizePoprawKeyPartJs(adres) + '\\0' +
+        normalizePoprawKeyPartJs(nazwaPelna) + '\\0' +
+        normalizePoprawKeyPartJs(nazwaSkrocona);
+    }
+
+    function findMarkerEntryByLoadIdx(loadIdx) {
+      for (var i = 0; i < markerEntries.length; i++) {
+        if (markerEntries[i].loadIdx === loadIdx) return markerEntries[i];
+      }
+      return null;
+    }
+
+    function findLoadIdxForPopraw(entry) {
+      var full = poprawLookupKeyJs(entry.adres, entry.nazwaPelna, entry.nazwaSkrocona);
+      var addrOnly = poprawLookupKeyJs(entry.adres, '', '');
+      for (var i = 0; i < LOAD_POINTS.length; i++) {
+        var lp = LOAD_POINTS[i];
+        var k = poprawLookupKeyJs(lp.adres, lp.nazwaPelna, lp.nazwaSkrocona);
+        if (k === full) return i;
+      }
+      for (var j = 0; j < LOAD_POINTS.length; j++) {
+        var lp2 = LOAD_POINTS[j];
+        if (poprawLookupKeyJs(lp2.adres, '', '') === addrOnly) return j;
+      }
+      for (var n = 0; n < LOAD_POINTS.length; n++) {
+        var lp3 = LOAD_POINTS[n];
+        var keyAdres = normalizePoprawKeyPartJs(entry.adres);
+        if (normalizePoprawKeyPartJs(lp3.adres) !== keyAdres) continue;
+        var keyPelna = normalizePoprawKeyPartJs(entry.nazwaPelna);
+        var keySkrocona = normalizePoprawKeyPartJs(entry.nazwaSkrocona);
+        if (keyPelna && normalizePoprawKeyPartJs(lp3.nazwaPelna) !== keyPelna) continue;
+        if (keySkrocona && normalizePoprawKeyPartJs(lp3.nazwaSkrocona) !== keySkrocona) continue;
+        return n;
+      }
+      return -1;
+    }
+
+    function applyPoprawAdresToMap(entry, loadIdxHint, opts) {
+      if (!entry) return;
+      var lat = entry.lat != null ? parseFloat(entry.lat) : NaN;
+      var lon = entry.lon != null ? parseFloat(entry.lon) : NaN;
+      if (isNaN(lat) || isNaN(lon)) return;
+      var loadIdx = typeof loadIdxHint === 'number' && loadIdxHint >= 0
+        ? loadIdxHint
+        : findLoadIdxForPopraw(entry);
+      if (loadIdx < 0) return;
+      var options = opts || {};
+      var lp = LOAD_POINTS[loadIdx];
+      if (lp) {
+        if (entry.adres) lp.adres = entry.adres;
+        if (entry.nazwaPelna) lp.nazwaPelna = entry.nazwaPelna;
+        if (entry.nazwaSkrocona) lp.nazwaSkrocona = entry.nazwaSkrocona;
+      }
+      var me = findMarkerEntryByLoadIdx(loadIdx);
+      if (me && me.p) {
+        me.p.lat = lat;
+        me.p.lon = lon;
+        if (entry.adres) me.p.adres = entry.adres;
+        if (entry.nazwaPelna) me.p.nazwaPelna = entry.nazwaPelna;
+        if (entry.nazwaSkrocona) me.p.nazwaSkrocona = entry.nazwaSkrocona;
+        if (me.marker) {
+          me.marker.setLatLng([lat, lon]);
+          if (typeof buildPopupHtml === 'function') {
+            me.marker.setPopupContent(buildPopupHtml(me.p, loadIdx));
+          }
+        }
+      }
+      for (var i = 0; i < PUNKTY.length; i++) {
+        var p = PUNKTY[i];
+        if (!p) continue;
+        if (lp && p.nazwaPelna === lp.nazwaPelna && p.adres === (lp.adres || entry.adres)) {
+          p.lat = lat;
+          p.lon = lon;
+          if (entry.adres) p.adres = entry.adres;
+        }
+      }
+      if (options.focusMap && typeof map !== 'undefined') {
+        map.setView([lat, lon], NEW_PIN_FOCUS_ZOOM);
+      }
+      if (typeof applyAddressSearch === 'function') applyAddressSearch();
     }
 
     function findLoadPointIdxAdmin(adres, nazwaPelna) {
@@ -461,7 +612,7 @@ export function manualAdminBrowserScript(): string {
       var entry = { p: point, marker: marker, loadIdx: loadIdx };
       markerEntries.push(entry);
       marker.on('popupopen', function() {
-        if (!wordDocEnabled) return;
+        if (!wordDocEnabled && !WEBAPP_URL) return;
         marker.setPopupContent(buildPopupHtml(point, loadIdx));
         wirePopupControls(marker, loadIdx);
       });
@@ -548,11 +699,81 @@ export function manualAdminBrowserScript(): string {
           (data.zaladunek || []).forEach(function(e) { applyReferenceZaladunekEntry(e, true); });
           (data.przewoznicy || []).forEach(function(e) { applyReferencePrzewoznikEntry(e); });
           (data.miejscaDostawy || []).forEach(function(e) { applyReferenceDostawaEntry(e); });
+          (data.poprawAdres || []).forEach(function(e) {
+            applyPoprawAdresToMap(e, -1, { focusMap: false });
+          });
         })
         .catch(function() { /* cicho — mapa działa z danymi z buildu */ })
         .finally(function() {
           if (typeof setMapLogoLoading === 'function') setMapLogoLoading(false);
         });
+    }
+
+    function resetPoprawForm() {
+      ['manual-admin-popraw-pelna', 'manual-admin-popraw-skrocona', 'manual-admin-popraw-adres',
+        'manual-admin-popraw-lat', 'manual-admin-popraw-lon', 'manual-admin-popraw-uwagi'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      window.__poprawEditLoadIdx = -1;
+    }
+
+    function submitManualPopraw() {
+      var btn = document.getElementById('manual-admin-popraw-submit');
+      var pelna = String((document.getElementById('manual-admin-popraw-pelna') || {}).value || '').trim();
+      var skrocona = String((document.getElementById('manual-admin-popraw-skrocona') || {}).value || '').trim();
+      var adres = String((document.getElementById('manual-admin-popraw-adres') || {}).value || '').trim();
+      var uwagi = String((document.getElementById('manual-admin-popraw-uwagi') || {}).value || '').trim();
+      if (!adres) {
+        setManualAdminStatus('Podaj adres.', 'error');
+        return;
+      }
+      var coords = parseManualLatLon('manual-admin-popraw-lat', 'manual-admin-popraw-lon');
+      if (!coords) {
+        setManualAdminStatus('Podaj Lat i Lon.', 'error');
+        return;
+      }
+      if (coords.error) {
+        setManualAdminStatus(coords.error, 'error');
+        return;
+      }
+      if (!WEBAPP_URL) {
+        setManualAdminStatus('Brak URL Web App — nie można zapisać.', 'error');
+        return;
+      }
+      var editIdx = typeof window.__poprawEditLoadIdx === 'number' ? window.__poprawEditLoadIdx : -1;
+      setManualAdminBusy(btn, true);
+      setManualAdminStatus('Zapis poprawki…');
+      postReferenceData({
+        mode: 'addPoprawAdres',
+        nazwaPelna: pelna,
+        nazwaSkrocona: skrocona,
+        adres: adres,
+        lat: coords.lat,
+        lon: coords.lon,
+        uwagi: uwagi
+      }).then(function(resp) {
+        if (!resp || !resp.ok) {
+          setManualAdminStatus('Nie udało się zapisać poprawki — sprawdź Web App (redeploy?).', 'error');
+          return;
+        }
+        var entry = resp.entry || {
+          nazwaPelna: pelna,
+          nazwaSkrocona: skrocona,
+          adres: adres,
+          lat: coords.lat,
+          lon: coords.lon,
+          uwagi: uwagi
+        };
+        applyPoprawAdresToMap(entry, editIdx, { focusMap: true });
+        setManualAdminStatus('Zapisano poprawkę — pinezka zaktualizowana.');
+        resetPoprawForm();
+        closeManualAdminModal();
+      }).catch(function() {
+        setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error');
+      }).finally(function() {
+        setManualAdminBusy(btn, false);
+      });
     }
 
     function submitManualZaladunek() {
@@ -782,6 +1003,9 @@ export function manualAdminBrowserScript(): string {
       if (przBtn) przBtn.addEventListener('click', submitManualPrzewoznik);
       var dosBtn = document.getElementById('manual-admin-dos-submit');
       if (dosBtn) dosBtn.addEventListener('click', submitManualDostawa);
+      var poprawBtn = document.getElementById('manual-admin-popraw-submit');
+      if (poprawBtn) poprawBtn.addEventListener('click', submitManualPopraw);
+      window.openPoprawAdresFromPoint = openPoprawAdresFromPoint;
       loadReferenceDataFromSheets();
     })();
 `;

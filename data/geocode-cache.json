@@ -314,13 +314,6 @@
     "displayName": "54a, Szczawiowa, Pomorzany, Zachód, Szczecin, województwo zachodniopomorskie, 70-010, Polska",
     "queriedAt": "2026-07-20T10:44:55.930Z"
   },
-  "82-500 górki górki 26": {
-    "lat": 52.628797,
-    "lon": 18.9555521,
-    "status": "ok",
-    "displayName": "Raben Logistics Polska sp. z o.o., Górka, Pikutkowo, gmina Brześć Kujawski, powiat włocławski, województwo kujawsko-pomorskie, 87-880, Polska",
-    "queriedAt": "2026-08-11T18:12:11.809Z"
-  },
   "84-207 koleczkowo": {
     "lat": 54.4864358,
     "lon": 18.3425972,
@@ -376,6 +369,13 @@
     "status": "ok",
     "displayName": "Parkowa, Złoczew, gmina Złoczew, powiat sieradzki, województwo łódzkie, 98-270, Polska",
     "queriedAt": "2026-07-20T10:45:05.969Z"
+  },
+  "górki 26 82-500 górki": {
+    "lat": 53.73094520613153,
+    "lon": 18.964791430162425,
+    "status": "ok",
+    "displayName": "Górki 26, 82-500 Górki, Polska",
+    "queriedAt": "2026-09-21T17:11:27.570Z"
   },
   "ul fabryczna 5": {
     "lat": 51.7682302,

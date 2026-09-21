@@ -9,7 +9,7 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 - **Nazwa:** lista-druga-mila
 - **ID:** `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`
 - **URL:** https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit
-- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/DMH). Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
+- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/DMH); słownik: **`Miejsca załadunku`**, **`Przewoźnicy`**, **`Miejsca dostawy`**, **`Popraw adres`**. Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
 - **Wiersz 1 — nagłówki (16 kolumn, jak Sierpień 2026):** Numer faktury, Stawka, Czy protokół zrobiony, **uwagi**, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca
 - **Migracja:** Starsze zakładki (np. Lipiec) mogą mieć `Uwagi` na końcu albo bez tej kolumny — Apps Script mapuje zapis/odczyt **po nagłówkach**. Nowe zakładki dostają układ Sierpień.
 
@@ -88,6 +88,7 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 | GET | `action=previewNumberHarm` | Podgląd następnego **DMH*** (bez rezerwacji) |
 | GET | `action=listPlanowane` | `{ ok, rows: [{ rowIndex, numer, …pola kolumn }] }` |
 | GET | `action=listHarmonogram` | `{ ok, rows: [{ rowIndex, dzienOdbioru, adresOdbioruIi?, nazwaKontrahentaIi?, …pól }] }` |
+| GET | `action=listReferenceData` | `{ ok, data: { zaladunek, przewoznicy, miejscaDostawy, poprawAdres } }` |
 | POST | JSON w body (`Content-Type: text/plain`) | LockService → wg `mode` (poniżej); zwrot `{ ok, numer? }` |
 
 ### POST `mode`
@@ -103,6 +104,21 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 | `updateHarmonogram` | Wymaga `harmonogramRow`; nadpisuje pola wiersza w `Harmonogram` |
 | `deleteHarmonogram` | Wymaga `harmonogramRow`; usuwa wiersz z `Harmonogram` |
 | `commitHarm` | Jak commit, ale seria **DMH***; Harmonogram bez zmian. Z `bolecinOnly: true` → tylko Bolęcin (bez DMH) |
+| `addReferenceZaladunek` / `Przewoznik` / `Dostawa` | Append do zakładek słownika |
+| `addPoprawAdres` | Upsert do zakładki **Popraw adres** (klucz: adres\|nazwaPelna\|nazwaSkrocona); pola: lat, lon, uwagi |
+| `seedReferenceData` | Nadpisuje 3 zakładki (załadunek / przewoźnicy / dostawa); **nie** czyści „Popraw adres” |
+
+### Zakładka Popraw adres
+
+| Reguła | Zachowanie |
+|--------|------------|
+| Nazwa | Stała: `Popraw adres` (tworzona przy pierwszym zapisie) |
+| Kolumny | Nazwa pełna, Nazwa skrócona, Adres, Lat, Lon, Uwagi, UpdatedAt, Author |
+| UI | Przycisk w popupie pinezki + zakładka w „Dodaj dane (ręcznie)” |
+| Runtime | Po zapisie pinezka przesuwa się od razu; przy starcie mapy `listReferenceData.poprawAdres` nakłada poprawki |
+| Generate | `npm run generate` pobiera poprawki i nadpisuje `geocode-cache.json` |
+
+> Po zmianie `.gs` z `addPoprawAdres`: **Deploy → Manage deployments → Edit → New version**.
 
 > Przeglądarka często wysyła POST jako `text/plain` (unikanie preflight CORS) — Web App musi czytać `e.postData.contents` i `JSON.parse`, nie polegać na `application/json`.
 
