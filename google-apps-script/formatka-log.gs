@@ -30,7 +30,8 @@
  * (w tym „Planowane”), z pominięciem numerów DMH*. Seria DMH* osobna (start DMH1).
  *
  * Transport do Bolęcina (Biosystem / Bolęcin w miejscu zrzutu lub adresie dostawy):
- * dodatkowo wiersz do arkusza BOLECIN_SHEETS_ID (węższe kolumny, też zakładki miesięczne).
+ * dodatkowo wiersz do arkusza z Script property BOLECIN_SHEETS_ID (węższe kolumny, też zakładki miesięczne).
+ * Wejście HTTP wymaga Script property GAS_SHARED_SECRET (dokleja Cloudflare Worker).
  * Zapis commit/realize/commitHarm: formatka główna + (jeśli Bolęcin) drugi arkusz.
  *
  * Źródło prawdy numeracji = kolumna „Nr zlecenia” we wszystkich zakładkach formatki głównej.
@@ -199,8 +200,13 @@ var HARMONOGRAM_HEADER_ROW = [
   'znacznik miejsca',
 ];
 
-/** Arkusz dodatkowy — tylko transporty do Bolęcina / Biosystem. */
-var BOLECIN_SHEETS_ID = '14NhJtyAwwM0OVEbzP6gN7DYyA1kJZfzyVEA1N5EL3sc';
+/**
+ * Arkusz Bolęcin — ID tylko ze Script properties (klucz BOLECIN_SHEETS_ID).
+ * Nie trzymaj produkcyjnego ID w gicie. Ustaw w Apps Script → Script properties.
+ */
+var BOLECIN_SHEETS_ID_PROP = 'BOLECIN_SHEETS_ID';
+/** Tajny klucz Worker → GAS. Script properties: GAS_SHARED_SECRET. */
+var GAS_SHARED_SECRET_KEY = 'GAS_SHARED_SECRET';
 
 var BOLECIN_HEADER_ROW = [
   'Okno awizacji',
@@ -238,6 +244,8 @@ var HARM_NUMBER_PREFIX = 'DMH';
 
 function doGet(e) {
   try {
+    var secretGate = requireAppSecret_(e, null);
+    if (secretGate) return secretGate;
     var action = (e && e.parameter && e.parameter.action) || '';
     if (action === 'modalData' || action === 'previewNumber') {
       return jsonResponse({ ok: true, numer: String(getPreviewNumber_()) });
@@ -266,6 +274,11 @@ function doPost(e) {
   try {
     var raw = (e && e.postData && e.postData.contents) || '{}';
     var body = JSON.parse(raw);
+    var secretGate = requireAppSecret_(e, body);
+    if (secretGate) return secretGate;
+    if (body && body.secret != null) {
+      delete body.secret;
+    }
     var mode = body && body.mode != null ? String(body.mode).trim() : '';
     if (mode === '' || mode === 'commit') {
       return handleCommitPost_(body);
@@ -1213,6 +1226,44 @@ function jsonResponse(obj) {
   );
 }
 
+/**
+ * @returns {GoogleAppsScript.Content.TextOutput|null}
+ */
+function requireAppSecret_(e, body) {
+  var expected = String(
+    PropertiesService.getScriptProperties().getProperty(GAS_SHARED_SECRET_KEY) || '',
+  ).trim();
+  if (!expected) {
+    return jsonResponse({
+      ok: false,
+      error: 'GAS_SHARED_SECRET not configured in Script properties',
+    });
+  }
+  var got = '';
+  if (e && e.parameter && e.parameter.secret != null) {
+    got = String(e.parameter.secret);
+  }
+  if (!got && body && body.secret != null) {
+    got = String(body.secret);
+  }
+  if (got !== expected) {
+    return jsonResponse({ ok: false, error: 'unauthorized' });
+  }
+  return null;
+}
+
+function getBolecinSheetsId_() {
+  var id = String(
+    PropertiesService.getScriptProperties().getProperty(BOLECIN_SHEETS_ID_PROP) || '',
+  ).trim();
+  if (!id) {
+    throw new Error(
+      'Brak Script property BOLECIN_SHEETS_ID — ustaw ID arkusza Bolęcin w Apps Script → Project settings → Script properties',
+    );
+  }
+  return id;
+}
+
 function setStoredLastNumber_(value) {
   PropertiesService.getScriptProperties().setProperty(FORMATKA_LAST_NUMBER_KEY, String(value));
 }
@@ -1731,7 +1782,7 @@ function appendPlanowaneRow_(numer, body) {
 
 /** Węższy wiersz do arkusza Bolęcin (bez numeracji / stawki / znacznika). */
 function appendBolecinRow_(body) {
-  var ss = SpreadsheetApp.openById(BOLECIN_SHEETS_ID);
+  var ss = SpreadsheetApp.openById(getBolecinSheetsId_());
   var sheet = getOrCreateMonthSheetInSs_(ss, body, BOLECIN_HEADER_ROW);
   var row = [
     body.oknoAwizacji != null ? String(body.oknoAwizacji) : '',

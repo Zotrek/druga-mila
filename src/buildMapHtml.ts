@@ -23,6 +23,7 @@ import {
 import { referenceFormatsBrowserScript } from './referenceFormats.js';
 import type { ManualOverlay } from './readManualOverlay.js';
 import { EMPTY_MANUAL_OVERLAY } from './readManualOverlay.js';
+import { SITE_PASSWORD_FETCH_SNIPPET } from './sitePasswordFetchSnippet.js';
 
 export interface MapHtmlPoint {
   nazwaPelna: string;
@@ -145,6 +146,7 @@ ${
     </div>
   </div>
 ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <script>
+${SITE_PASSWORD_FETCH_SNIPPET}
     const PUNKTY = ${JSON.stringify(payload)};
     const COLOR_COUNTS = ${JSON.stringify(counts)};
     const WEBAPP_URL = ${JSON.stringify(webAppUrl)};
