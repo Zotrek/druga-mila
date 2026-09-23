@@ -9,15 +9,15 @@ export function manualAdminCss(): string {
   return `
     .map-manual-add-btn {
       width: 100%;
-      padding: 8px 10px;
-      font-size: 12px;
+      padding: 6px 8px;
+      font-size: 11px;
       font-weight: 600;
-      border-radius: 6px;
+      border-radius: 5px;
       border: 1px dashed #6366f1;
       background: #eef2ff;
       color: #4338ca;
       cursor: pointer;
-      margin-top: 6px;
+      margin-top: 4px;
       transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
     .map-manual-add-btn:hover {
