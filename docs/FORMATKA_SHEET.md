@@ -9,7 +9,7 @@ Szczegóły kolumn: [`FORMATKA_GOOGLE.md`](FORMATKA_GOOGLE.md). Plan techniczny:
 - **Nazwa:** lista-druga-mila
 - **ID:** `1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0`
 - **URL:** https://docs.google.com/spreadsheets/d/1-qRyFnpjvAI1pZYkVXOUKKV9oYlxGsLidDXCtxYWzS0/edit
-- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/DMH); słownik: **`Miejsca załadunku`**, **`Przewoźnicy`**, **`Miejsca dostawy`**, **`Popraw adres`**. Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
+- **Zakładki:** miesięczne, np. `Sierpień 2026` (pełna nazwa PL + rok); stała zakładka **`Planowane`** (rezerwacje bez protokołu); stała zakładka **`Harmonogram`** (szablon stałych odbiorów — bez numeracji DM/DMH); słownik: **`Miejsca załadunku`**, **`Przewoźnicy`**, **`Miejsca dostawy`**, **`Popraw adres`** (wszystkie cztery **poza** skanem numeracji DM/DMH). Historyczny `Arkusz1` może pozostać i jest skanowany do numeracji DM.
 - **Wiersz 1 — nagłówki (16 kolumn, jak Sierpień 2026):** Numer faktury, Stawka, Czy protokół zrobiony, **uwagi**, Nr zlecenia transportowego, OKNO AWIZACJI, Adres odbioru, Nazwa kontrahenta / podmiot handlowy, Data odbioru, Kto odbiera, Miejsce zrzutu, Rodzaj zbiórki, Ile worków, rodzaj traportu, awizacja, znacznik miejsca
 - **Migracja:** Starsze zakładki (np. Lipiec) mogą mieć `Uwagi` na końcu albo bez tej kolumny — Apps Script mapuje zapis/odczyt **po nagłówkach**. Nowe zakładki dostają układ Sierpień.
 
@@ -128,7 +128,7 @@ Po każdej zmianie kodu `.gs`: **Deploy → Manage deployments → Edit → New 
 |--------|------------|
 | Start DM | Brak numerów DM (poza DMH) → **`DM1`** |
 | Start DMH | Brak `DMH*` → **`DMH1`** |
-| Źródło prawdy DM | Kolumna „Nr zlecenia” — skan z **pominięciem** `DMH*` |
+| Źródło prawdy DM | Kolumna „Nr zlecenia” — skan z **pominięciem** `DMH*` oraz zakładek słownikowych (w tym **Popraw adres** — kolumna Lon ≠ numer) |
 | Źródło prawdy DMH | Ten sam skan, **tylko** `^DMH\d+$` |
 | Auto | Inkrement końcowej liczby w danej serii |
 | Podgląd | **Nie pali** numeru |

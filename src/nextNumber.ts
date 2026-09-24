@@ -4,18 +4,11 @@
  */
 
 export function incrementAlphanumeric(value: string): string | null {
-  const s = value.trim();
-  if (!s) {
+  const parsed = parseAlphanumeric(value);
+  if (!parsed) {
     return null;
   }
-  const m = s.match(/^(.*?)(\d+)$/);
-  if (!m) {
-    return null;
-  }
-  const prefix = m[1]!;
-  const numStr = m[2]!;
-  const next = String(Number(numStr) + 1);
-  return `${prefix}${next}`;
+  return `${parsed.prefix}${parsed.num + 1}`;
 }
 
 export interface ParsedNumber {
@@ -27,6 +20,10 @@ export interface ParsedNumber {
 export function parseAlphanumeric(value: string): ParsedNumber | null {
   const s = value.trim();
   if (!s) {
+    return null;
+  }
+  // Lon/lat i inne floaty ≠ numer zlecenia (np. „17.155…” z kolumny Lon).
+  if (s.includes('.') || s.includes(',')) {
     return null;
   }
   const m = s.match(/^(.*?)(\d+)$/);

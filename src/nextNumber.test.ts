@@ -6,6 +6,7 @@ import {
   nextNumberWithPrefix,
   nextNumberExcludingPrefix,
   maxAlphanumericWithPrefix,
+  parseAlphanumeric,
 } from './nextNumber.js';
 
 describe('nextNumber', () => {
@@ -52,5 +53,18 @@ describe('nextNumber', () => {
   it('test_nextNumberExcludingPrefix_ignores_DMH_for_DM_series', () => {
     expect(nextNumberExcludingPrefix(['DM350', 'DMH400'], 'DMH', 'DM1')).toBe('DM351');
     expect(nextNumberExcludingPrefix(['DMH1', 'DMH99'], 'DMH', 'DM1')).toBe('DM1');
+  });
+
+  it('test_parseAlphanumeric_rejects_float_lon_like_values', () => {
+    expect(parseAlphanumeric('17.155156137025284')).toBeNull();
+    expect(parseAlphanumeric('17,155')).toBeNull();
+    expect(incrementAlphanumeric('17.155156137025284')).toBeNull();
+  });
+
+  it('test_nextNumberFromSheet_ignores_float_lon_keeps_DM', () => {
+    expect(
+      nextNumberFromSheet(['DM10', '17.155156137025284', '52.123456'], 'DM1'),
+    ).toBe('DM11');
+    expect(maxAlphanumeric(['17.155', 'DM5', '19.9'])).toBe('DM5');
   });
 });

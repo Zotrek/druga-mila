@@ -492,7 +492,8 @@ function isReferenceSheetName_(name) {
   return (
     name === REF_ZAL_SHEET_NAME ||
     name === REF_PRZ_SHEET_NAME ||
-    name === REF_DOS_SHEET_NAME
+    name === REF_DOS_SHEET_NAME ||
+    name === REF_POPRAW_SHEET_NAME
   );
 }
 
@@ -1274,7 +1275,7 @@ function setStoredLastNumber_(value) {
  */
 function incrementAlphanumeric_(value) {
   var s = String(value || '').trim();
-  if (!s) {
+  if (!s || s.indexOf('.') >= 0 || s.indexOf(',') >= 0) {
     return null;
   }
   var m = s.match(/^(.*?)(\d+)$/);
@@ -1849,6 +1850,10 @@ function scanMaxNumberFiltered_(acceptFn) {
         continue;
       }
       var s = String(raw).trim();
+      // Lon/lat i inne floaty (np. kolumna Lon w „Popraw adres” przy złym fallbacku) ≠ numer zlecenia.
+      if (s.indexOf('.') >= 0 || s.indexOf(',') >= 0) {
+        continue;
+      }
       if (!acceptFn(s)) {
         continue;
       }

@@ -1,7 +1,7 @@
 # Context: Popraw adres w Druga Mila
 
 > **Task:** 0008_popraw-adres  
-> **Last Updated:** 2026-09-21T19:28:00+02:00
+> **Last Updated:** 2026-09-24T18:15:00+02:00
 
 ## Key files
 
@@ -25,6 +25,12 @@
 
 - Dodano moduł, UI, Apps Script, hook generate.
 - Testy: 163 pass.
+
+## Fix (2026-09-24)
+
+- Skan numeracji DM **nie pomijał** zakładki „Popraw adres” → fallback kolumna 5 = **Lon** → podgląd numeru typu `17.155…`.
+- Fix: `isReferenceSheetName_` obejmuje `Popraw adres`; skan odrzuca wartości z `.`/`,`.
+- **Wymaga redeploy** Web App (`formatka-log.gs`).
 
 ## Dependencies
 
