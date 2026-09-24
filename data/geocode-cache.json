@@ -473,5 +473,12 @@
     "lon": null,
     "status": "fail",
     "queriedAt": "2026-08-19T14:36:01.129Z"
+  },
+  "jesionowa 20 55-095 bąków": {
+    "lat": 51.21225656,
+    "lon": 17.15515614,
+    "status": "ok",
+    "displayName": "Jesionowa 20, 55-095 Bąków",
+    "queriedAt": "2026-09-24T16:45:41.616Z"
   }
 }
