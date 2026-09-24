@@ -1,10 +1,12 @@
 # Generate mapy + deploy na Cloudflare Pages (*.pages.dev z hasłem).
 #
 # Sekrety:
-#   DRUGA_MILA_WEBAPP_URL     — https://…workers.dev/api/formatka
 #   CLOUDFLARE_API_TOKEN
 #   CLOUDFLARE_ACCOUNT_ID
 #   CLOUDFLARE_PAGES_PROJECT  — nazwa projektu Pages na CF
+#
+# Build: DRUGA_MILA_WEBAPP_URL=/api/formatka (same-origin).
+# Na CF Pages env: CFP_PASSWORD + GAS_PROXY_BASE=https://….workers.dev
 #
 # W CF: wyłącz auto-build z Gita.
 name: druga-mila — Pages
@@ -38,13 +40,8 @@ jobs:
         run: npm ci
 
       - name: Generuj mapę
-        env:
-          DRUGA_MILA_WEBAPP_URL: ${{ secrets.DRUGA_MILA_WEBAPP_URL }}
         run: |
-          if [ -z "$DRUGA_MILA_WEBAPP_URL" ]; then
-            echo "::error::Brak sekretu DRUGA_MILA_WEBAPP_URL"
-            exit 1
-          fi
+          export DRUGA_MILA_WEBAPP_URL="/api/formatka"
           npm run generate
           mkdir -p site
           cp index.html site/ 2>/dev/null || true
