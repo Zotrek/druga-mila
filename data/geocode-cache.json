@@ -377,6 +377,13 @@
     "displayName": "Górki 26, 82-500 Górki, Polska",
     "queriedAt": "2026-09-21T17:11:27.570Z"
   },
+  "jesionowa 20 55-095 bąków": {
+    "lat": 51.21225656,
+    "lon": 17.15515614,
+    "status": "ok",
+    "displayName": "Jesionowa 20, 55-095 Bąków",
+    "queriedAt": "2026-09-24T16:45:41.616Z"
+  },
   "ul fabryczna 5": {
     "lat": 51.7682302,
     "lon": 19.4689335,
@@ -473,12 +480,5 @@
     "lon": null,
     "status": "fail",
     "queriedAt": "2026-08-19T14:36:01.129Z"
-  },
-  "jesionowa 20 55-095 bąków": {
-    "lat": 51.21225656,
-    "lon": 17.15515614,
-    "status": "ok",
-    "displayName": "Jesionowa 20, 55-095 Bąków",
-    "queriedAt": "2026-09-24T16:45:41.616Z"
   }
 }
