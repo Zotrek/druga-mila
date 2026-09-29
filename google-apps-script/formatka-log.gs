@@ -770,10 +770,8 @@ function listReferenceZaladunek_() {
     if (!nazwaSkrocona) {
       nazwaSkrocona = nazwaPelna;
     }
-    var latRaw = r[5];
-    var lonRaw = r[6];
-    var lat = latRaw != null && latRaw !== '' ? parseFloat(latRaw) : null;
-    var lon = lonRaw != null && lonRaw !== '' ? parseFloat(lonRaw) : null;
+    var lat = parseCoord_(r[5]);
+    var lon = parseCoord_(r[6]);
     out.push({
       nazwaPelna: nazwaPelna,
       nazwaSkrocona: nazwaSkrocona,

@@ -424,7 +424,11 @@ export function manualAdminBrowserScript(): string {
           }
           return false;
         }
-        var entry = resp.entry || payload;
+        var entry = Object.assign({}, payload, resp.entry || {});
+        if (coords) {
+          entry.lat = coords.lat;
+          entry.lon = coords.lon;
+        }
         applyReferenceZaladunekEntry(entry, false);
         if (coords) {
           setManualAdminStatus('Zapisano — miejsce załadunku i pinezka dodane.', 'ok');
@@ -452,7 +456,7 @@ export function manualAdminBrowserScript(): string {
       if (!WEBAPP_URL) {
         setManualAdminStatus('Brak URL Web App — zapis na stałe niedostępny.', 'error');
       }
-      switchManualAdminTab(tab || 'zal');
+      switchManualAdminTab(typeof tab === 'string' ? tab : 'zal');
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
     }
@@ -974,7 +978,9 @@ export function manualAdminBrowserScript(): string {
 
     (function wireManualAdmin() {
       var openBtn = document.getElementById('map-manual-add-data');
-      if (openBtn) openBtn.addEventListener('click', openManualAdminModal);
+      if (openBtn) {
+        openBtn.addEventListener('click', function() { openManualAdminModal('zal'); });
+      }
       var closeBtn = document.getElementById('manual-admin-close');
       if (closeBtn) closeBtn.addEventListener('click', closeManualAdminModal);
       var modal = document.getElementById('manual-admin-modal');

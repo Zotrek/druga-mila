@@ -182,6 +182,9 @@ describe('buildMapHtml', () => {
     expect(html).toContain("wireCombobox('harm-add-nazwa-ii'");
     expect(html).toContain("resolvePodwyko('harm-add-val-kto'");
     expect(html).toContain('map-manual-add-data');
+    expect(html).toContain("openManualAdminModal('zal')");
+    expect(html).not.toContain("addEventListener('click', openManualAdminModal)");
+    expect(html).toContain("typeof tab === 'string' ? tab : 'zal'");
     expect(html).toContain('Dodaj dane (ręcznie)');
     expect(html).toContain('manual-admin-modal');
     expect(html).toContain('MANUAL_OVERLAY');
