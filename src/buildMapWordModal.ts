@@ -113,7 +113,7 @@ export function wordModalCss(): string {
     .harm-list-main strong { font-size: 13px; }
     .harm-list-actions { display: flex; flex-wrap: nowrap; gap: 6px; justify-content: flex-end; }
     .harm-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 5px; border-radius: 6px; border: 1px solid #ccc; background: #f8f8f8; cursor: pointer; flex: 0 0 auto; line-height: 0; }
-    .harm-icon-btn img { width: 18px; height: 18px; display: block; pointer-events: none; }
+    .harm-icon-btn img, .harm-icon-btn svg { width: 18px; height: 18px; display: block; pointer-events: none; flex-shrink: 0; }
     .harm-icon-btn.harm-edit { border-color: #0d9488; background: #f0fdfa; }
     .harm-icon-btn.danger { border-color: #dc3545; background: #fff5f5; }
     .harm-icon-btn:hover { filter: brightness(0.97); }
@@ -263,7 +263,7 @@ export function wordModalHtml(): string {
       <input type="text" id="harm-add-znacznik" maxlength="40" autocomplete="off" />
       <div class="doc-modal-actions">
         <button type="button" id="harmonogram-add-cancel">Anuluj</button>
-        <button type="button" id="harmonogram-add-delete" class="harm-icon-btn danger" hidden title="Usuń" aria-label="Usuń z Harmonogramu"><img src="./icon-delete.png" alt="" width="18" height="18" /></button>
+        <button type="button" id="harmonogram-add-delete" class="harm-icon-btn danger" hidden title="Usuń" aria-label="Usuń z Harmonogramu"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
         <button type="button" id="harmonogram-add-save" class="primary">Zapisz</button>
       </div>
     </div>
@@ -392,6 +392,8 @@ export function wordModalBrowserScript(): string {
     window.__harmRow = null;
     window.__harmonogramRows = [];
     window.__harmonogramLoaded = false;
+    var ICON_EDIT_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+    var ICON_DELETE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
 
     function joinWithDash(parts) {
       return parts.map(function(p) { return String(p || '').trim(); })
@@ -1623,6 +1625,13 @@ export function wordModalBrowserScript(): string {
       }
       return 'Zapisano w Excelu: ' + numerOrCount;
     }
+    function notifyChange(message, kind) {
+      if (typeof showAppNotice === 'function') {
+        showAppNotice(message, kind || 'ok');
+        return;
+      }
+      alert(message);
+    }
     function resolveZaladunek() {
       var hid = document.getElementById('doc-val-zaladunek');
       if (hid && hid.value !== '') {
@@ -1862,7 +1871,7 @@ export function wordModalBrowserScript(): string {
             editBtn.className = 'harm-icon-btn harm-edit';
             editBtn.title = 'Edytuj';
             editBtn.setAttribute('aria-label', 'Edytuj');
-            editBtn.innerHTML = '<img src="./icon-edit.png" alt="" width="18" height="18" />';
+            editBtn.innerHTML = ICON_EDIT_SVG;
             editBtn.addEventListener('click', function(ev) {
               ev.stopPropagation();
               closePlanowanePicker();
@@ -1873,7 +1882,7 @@ export function wordModalBrowserScript(): string {
             delBtn.className = 'harm-icon-btn danger';
             delBtn.title = 'Usuń';
             delBtn.setAttribute('aria-label', 'Usuń');
-            delBtn.innerHTML = '<img src="./icon-delete.png" alt="" width="18" height="18" />';
+            delBtn.innerHTML = ICON_DELETE_SVG;
             delBtn.addEventListener('click', function(ev) {
               ev.stopPropagation();
               deletePlanowaneRow(row);
@@ -2033,7 +2042,7 @@ export function wordModalBrowserScript(): string {
         editBtn.className = 'harm-icon-btn harm-edit';
         editBtn.title = 'Edytuj';
         editBtn.setAttribute('aria-label', 'Edytuj');
-        editBtn.innerHTML = '<img src="./icon-edit.png" alt="" width="18" height="18" />';
+        editBtn.innerHTML = ICON_EDIT_SVG;
         editBtn.addEventListener('click', function(ev) {
           ev.stopPropagation();
           openHarmonogramEditForm(row);
@@ -2043,7 +2052,7 @@ export function wordModalBrowserScript(): string {
         delBtn.className = 'harm-icon-btn danger';
         delBtn.title = 'Usuń';
         delBtn.setAttribute('aria-label', 'Usuń');
-        delBtn.innerHTML = '<img src="./icon-delete.png" alt="" width="18" height="18" />';
+        delBtn.innerHTML = ICON_DELETE_SVG;
         delBtn.addEventListener('click', function(ev) {
           ev.stopPropagation();
           deleteHarmonogramRow(row);
@@ -2398,18 +2407,19 @@ export function wordModalBrowserScript(): string {
       setMapLogoLoading(true, isEdit ? 'Zapisuję harmonogram…' : 'Dodaję do harmonogramu…');
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          alert(isEdit
+          notifyChange(isEdit
             ? ('Nie udało się zapisać zmian: ' + (resp && resp.error ? resp.error : 'błąd API'))
-            : ('Nie udało się dodać do Harmonogramu: ' + (resp && resp.error ? resp.error : 'błąd API')));
+            : ('Nie udało się dodać do Harmonogramu: ' + (resp && resp.error ? resp.error : 'błąd API')), 'error');
           return;
         }
         closeHarmonogramAddForm();
         loadHarmonogramList();
+        notifyChange(isEdit ? 'Zapisano zmiany w Harmonogramie.' : 'Dodano do Harmonogramu.', 'ok');
       }).catch(function(err) {
         console.error(err);
-        alert(isEdit
+        notifyChange(isEdit
           ? 'Nie udało się zapisać zmian (sieć / Web App).'
-          : 'Nie udało się dodać do Harmonogramu (sieć / Web App).');
+          : 'Nie udało się dodać do Harmonogramu (sieć / Web App).', 'error');
       }).finally(function() {
         setMapLogoLoading(false);
         if (btn) btn.disabled = false;
@@ -2436,14 +2446,15 @@ export function wordModalBrowserScript(): string {
       setMapLogoLoading(true, 'Usuwam z harmonogramu…');
       appendFormatkaRow({ mode: 'deleteHarmonogram', harmonogramRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
-          alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          notifyChange('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
           return;
         }
         closeHarmonogramAddForm();
         loadHarmonogramList();
+        notifyChange('Usunięto z Harmonogramu.', 'ok');
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się usunąć z Harmonogramu.');
+        notifyChange('Nie udało się usunąć z Harmonogramu.', 'error');
       }).finally(function() {
         setMapLogoLoading(false);
         if (saveBtn) saveBtn.disabled = false;
@@ -2574,19 +2585,22 @@ export function wordModalBrowserScript(): string {
         return chain.then(function() {
           closeDocModal();
           if (failed > 0) {
-            alert(
+            notifyChange(
               (skipWord ? 'Stały odbiór (Excel): zapisano ' : 'Stały odbiór: zapisano/pobrano ') +
-              generated + ', błędy: ' + failed + '.'
+              generated + '\\nBłędy: ' + failed + '.',
+              'error'
             );
           } else if (skipWord) {
-            alert(excelSavedMessage(generated + ' termin(ów)'));
+            notifyChange(excelSavedMessage(generated + ' termin(ów)'), 'ok');
+          } else {
+            notifyChange('Stały odbiór: zapisano/pobrano ' + generated + ' termin(ów).', 'ok');
           }
         });
       }).catch(function(err) {
         console.error(err);
-        alert(skipWord
+        notifyChange(skipWord
           ? 'Nie udało się zapisać stałego odbioru w Excelu.'
-          : 'Nie udało się uruchomić generacji stałego odbioru.');
+          : 'Nie udało się uruchomić generacji stałego odbioru.', 'error');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -2619,21 +2633,21 @@ export function wordModalBrowserScript(): string {
       if (isRealize) payload.planowaneRow = plan.rowIndex;
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          alert('Nie udało się zapisać planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          notifyChange('Nie udało się zapisać planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
           return;
         }
         var numer = String(resp.numer || numerWpisany || '');
         if (numerEl) numerEl.value = numer;
         if (isRealize && window.__realizePlan) {
           window.__realizePlan.numer = numer;
-          alert('Zaktualizowano planowane (' + numer + ').');
+          notifyChange('Zaktualizowano planowane.\\nNumer: ' + numer, 'ok');
         } else {
-          alert('Zapisano w Planowane: ' + numer);
+          notifyChange('Zapisano w Planowane.\\nNumer: ' + numer, 'ok');
           closeDocModal();
         }
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się zapisać planowanego (sieć / Web App).');
+        notifyChange('Nie udało się zapisać planowanego (sieć / Web App).', 'error');
       }).finally(function() {
         setMapLogoLoading(false);
         if (btn) btn.disabled = false;
@@ -2656,16 +2670,17 @@ export function wordModalBrowserScript(): string {
       setMapLogoLoading(true, 'Usuwam planowane…');
       appendFormatkaRow({ mode: 'deletePlan', planowaneRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
-          alert('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'));
+          notifyChange('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
           return;
         }
         if (window.__realizePlan && window.__realizePlan.rowIndex === row.rowIndex) {
           closeDocModal();
         }
         openPlanowanePicker();
+        notifyChange('Usunięto z Planowane' + (row.numer ? ('.\\nNumer: ' + row.numer) : '.'), 'ok');
       }).catch(function(err) {
         console.error(err);
-        alert('Nie udało się usunąć planowanego.');
+        notifyChange('Nie udało się usunąć planowanego.', 'error');
       }).finally(function() {
         setMapLogoLoading(false);
         if (btn) btn.disabled = false;
@@ -2867,42 +2882,44 @@ export function wordModalBrowserScript(): string {
           realizePayload.czyProtokolZrobiony = 'tak';
           return appendFormatkaRow(realizePayload).then(function(resp) {
             if (!resp || !resp.ok) {
-              alert('Nie udało się zrealizować planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'));
+              notifyChange('Nie udało się zrealizować planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
               return;
             }
             var numer = String(resp.numer || numerWpisany || plan.numer || '');
             if (numerEl) numerEl.value = numer;
             if (skipWord) {
-              alert(excelSavedMessage(numer));
+              notifyChange(excelSavedMessage(numer), 'ok');
               closeDocModal();
               return;
             }
             updateDocGenerateStatus('Pobieranie pliku .docx…');
             renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
+            notifyChange('Zapisano i pobrano protokół.\\nNumer: ' + numer, 'ok');
           });
         }
         var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
         var payload = buildFormatkaPayload(zal, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
           if (!resp || !resp.ok) {
-            alert('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'));
+            notifyChange('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
             return;
           }
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
           if (skipWord) {
-            alert(excelSavedMessage(numer));
+            notifyChange(excelSavedMessage(numer), 'ok');
             closeDocModal();
             return;
           }
           updateDocGenerateStatus('Pobieranie pliku .docx…');
           renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
+          notifyChange('Zapisano i pobrano protokół.\\nNumer: ' + numer, 'ok');
         });
       }).catch(function(err) {
         console.error(err);
-        alert(skipWord
+        notifyChange(skipWord
           ? 'Nie udało się zapisać w Excelu (sieć / Web App).'
-          : 'Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).');
+          : 'Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).', 'error');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -2944,7 +2961,7 @@ export function wordModalBrowserScript(): string {
         if (skipWord) {
           clearCombinedSelection();
           closeDocModal();
-          alert(excelSavedMessage(numer || (isBolecinOnlyChecked() ? '' : 'OK')));
+          notifyChange(excelSavedMessage(numer || (isBolecinOnlyChecked() ? '' : 'OK')), 'ok');
           return Promise.resolve();
         }
         var chain = Promise.resolve();
@@ -2962,6 +2979,7 @@ export function wordModalBrowserScript(): string {
         return chain.then(function() {
           clearCombinedSelection();
           closeDocModal();
+          notifyChange('Protokół łączony: zapisano i pobrano 2 dokumenty.\\nNumer: ' + (numer || ''), 'ok');
         });
       }
 
@@ -2975,7 +2993,7 @@ export function wordModalBrowserScript(): string {
         var payload = buildFormatkaPayload(zalSheet, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
           if (!resp || !resp.ok) {
-            alert('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'));
+            notifyChange('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
             return;
           }
           var numer = String(resp.numer || numerWpisany || '');
@@ -2984,9 +3002,9 @@ export function wordModalBrowserScript(): string {
         });
       }).catch(function(err) {
         console.error(err);
-        alert(skipWord
+        notifyChange(skipWord
           ? 'Nie udało się zapisać w Excelu (sieć / Web App).'
-          : 'Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).');
+          : 'Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).', 'error');
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -3052,19 +3070,22 @@ export function wordModalBrowserScript(): string {
           clearBulkSelection();
           closeDocModal();
           if (failed > 0) {
-            alert(
+            notifyChange(
               (skipWord ? 'Hurt (Excel): zapisano ' : 'Hurt: zapisano/pobrano ') +
-              generated + ', błędy: ' + failed + '.'
+              generated + '\\nBłędy: ' + failed + '.',
+              'error'
             );
           } else if (skipWord) {
-            alert(excelSavedMessage(generated + ' wiersz(y)'));
+            notifyChange(excelSavedMessage(generated + ' wiersz(y)'), 'ok');
+          } else {
+            notifyChange('Hurt: zapisano/pobrano ' + generated + ' wiersz(y).', 'ok');
           }
         });
       }).catch(function(err) {
         console.error(err);
-        alert(skipWord
+        notifyChange(skipWord
           ? 'Nie udało się zapisać hurtowo w Excelu.'
-          : 'Nie udało się uruchomić generacji hurtowej.');
+          : 'Nie udało się uruchomić generacji hurtowej.', 'error');
       }).finally(function() {
         setDocGenerateBusy(false);
       });

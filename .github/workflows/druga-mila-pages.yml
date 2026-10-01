@@ -45,8 +45,8 @@ jobs:
           npm run generate
           mkdir -p site
           cp index.html site/ 2>/dev/null || true
-          # favicon / assets jeśli są w root
-          for f in favicon.png favicon.ico; do
+          # favicon + ikony Edytuj/Usuń (Harmonogram / Planowane)
+          for f in favicon.png favicon.ico icon-edit.png icon-delete.png; do
             if [ -f "$f" ]; then cp "$f" site/; fi
           done
           if [ ! -f site/index.html ]; then

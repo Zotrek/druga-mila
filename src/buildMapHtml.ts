@@ -130,6 +130,18 @@ export function buildMapHtml(
     .map-logo-loader-panel { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px 22px; background: rgba(255,255,255,0.96); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); font-size: 13px; font-weight: 600; color: #555; border: 1px solid rgba(255,255,255,0.7); text-align: center; }
     .map-logo-loader-logo { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; animation: map-logo-pulse 1.2s ease-in-out infinite; }
     @keyframes map-logo-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.12); opacity: 0.55; } }
+    .map-app-notice {
+      position: fixed; z-index: 31000; left: 50%; bottom: 28px; transform: translateX(-50%);
+      max-width: min(420px, calc(100vw - 24px)); padding: 14px 18px; border-radius: 12px;
+      background: rgba(255,255,255,0.97); border: 1px solid rgba(13,148,136,0.35);
+      box-shadow: 0 10px 28px rgba(15,23,42,0.18); font-size: 13px; font-weight: 600;
+      color: #1e293b; line-height: 1.45; white-space: pre-line; text-align: left;
+    }
+    .map-app-notice[hidden] { display: none !important; }
+    .map-app-notice.is-ok { border-color: rgba(15,118,110,0.45); color: #0f766e; }
+    .map-app-notice.is-error { border-color: rgba(176,42,55,0.4); color: #b02a37; }
+    .doc-modal-hint.is-ok { color: #0f766e; font-weight: 600; }
+    .doc-modal-hint.is-error { color: #b02a37; font-weight: 600; }
 ${wordEnabled ? wordModalCss() : ''}${wordEnabled ? manualAdminCss() : ''}  </style>
 </head>
 <body>
@@ -145,6 +157,7 @@ ${
       <span id="map-logo-loader-label">Ładowanie…</span>
     </div>
   </div>
+  <div id="map-app-notice" class="map-app-notice" role="status" aria-live="polite" hidden></div>
 ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <script>
 ${SITE_PASSWORD_FETCH_SNIPPET}
     const PUNKTY = ${JSON.stringify(payload)};
@@ -172,6 +185,32 @@ ${SITE_PASSWORD_FETCH_SNIPPET}
       el.setAttribute('aria-busy', on ? 'true' : 'false');
       var label = document.getElementById('map-logo-loader-label');
       if (label && message) label.textContent = message;
+    }
+    var mapNoticeHideTimer = 0;
+    function showAppNotice(message, kind) {
+      var el = document.getElementById('map-app-notice');
+      var hint = document.getElementById('doc-modal-hint');
+      if (hint && message) {
+        hint.textContent = message;
+        hint.classList.remove('is-ok', 'is-error', 'is-busy');
+        if (kind === 'ok') hint.classList.add('is-ok');
+        if (kind === 'error') hint.classList.add('is-error');
+      }
+      if (!el) {
+        if (!hint) window.alert(message);
+        return;
+      }
+      el.textContent = message || '';
+      el.classList.remove('is-ok', 'is-error');
+      if (kind === 'ok') el.classList.add('is-ok');
+      if (kind === 'error') el.classList.add('is-error');
+      el.hidden = !message;
+      if (mapNoticeHideTimer) window.clearTimeout(mapNoticeHideTimer);
+      if (!message) return;
+      mapNoticeHideTimer = window.setTimeout(function () {
+        el.hidden = true;
+        mapNoticeHideTimer = 0;
+      }, 6000);
     }
 
     const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 7);

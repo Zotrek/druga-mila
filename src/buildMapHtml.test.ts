@@ -37,6 +37,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('map-logo-loader-logo');
     expect(html).toContain('map-logo-pulse');
     expect(html).toContain('setMapLogoLoading');
+    expect(html).toContain('showAppNotice');
+    expect(html).toContain('map-app-notice');
     expect(html).toContain('tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
     expect(html).not.toContain('basemaps.cartocdn.com');
     expect(html).not.toContain('tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -142,9 +144,11 @@ describe('buildMapHtml', () => {
     expect(html).toContain('deleteHarmonogram');
     expect(html).toContain('openHarmonogramEditForm');
     expect(html).toContain('harmonogram-add-delete');
-    expect(html).toContain('icon-edit.png');
-    expect(html).toContain('icon-delete.png');
+    expect(html).toContain('ICON_EDIT_SVG');
+    expect(html).toContain('ICON_DELETE_SVG');
     expect(html).toContain('harm-icon-btn');
+    expect(html).toContain('stroke="#0d9488"');
+    expect(html).toContain('stroke="#dc3545"');
     expect(html).toContain('Edytuj w Harmonogramie');
     expect(html).toContain('doc-inp-data-od');
     expect(html).toContain('doc-inp-data-do');
