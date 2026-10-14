@@ -343,7 +343,20 @@ export function manualAdminBrowserScript(): string {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
-      }).then(function(res) { return res.json(); });
+      }).then(readDmJson_);
+    }
+
+    function reportAdminSave(summary, place, resp, err) {
+      setManualAdminStatus(summary, 'error');
+      if (typeof dmApiErrorCard_ === 'function') {
+        dmApiErrorCard_({
+          code: 'DM-E-ADMIN-SAVE',
+          summary: summary,
+          effect: 'Zapis nie wszedł do arkusza. Lista na mapie zostaje bez tej zmiany.',
+          place: place,
+          technical: (resp && (resp.technical || resp.error)) || (err && err.message) || summary
+        }, resp, err);
+      }
     }
 
     function setManualAdminStatus(msg, kind) {
@@ -417,10 +430,15 @@ export function manualAdminBrowserScript(): string {
       }
       return postReferenceData(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          if (resp && resp.error === 'duplicate') {
-            setManualAdminStatus('To miejsce już jest w arkuszu.', 'error');
-          } else {
-            setManualAdminStatus('Nie udało się zapisać — sprawdź Web App.', 'error');
+          if (!(resp && resp.status === 401)) {
+            reportAdminSave(
+              resp && resp.error === 'duplicate'
+                ? 'To miejsce już jest w arkuszu.'
+                : 'Nie udało się zapisać miejsca załadunku.',
+              'buildMapManualAdmin.ts persistZaladunekEntry',
+              resp,
+              null
+            );
           }
           return false;
         }
@@ -683,22 +701,51 @@ export function manualAdminBrowserScript(): string {
 
     function geocodeAddressAdmin(adres) {
       var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(adres);
+      function geocodeNet(data, err) {
+        if (typeof dmApiErrorCard_ === 'function') {
+          dmApiErrorCard_({
+            code: 'DM-E-GEOCODE',
+            summary: 'Nominatim nie odpowiedział przy dodawaniu miejsca.',
+            effect: 'Możesz wpisać Lat i Lon ręcznie albo zapisać bez pinezki.',
+            place: 'buildMapManualAdmin.ts geocodeAddressAdmin',
+            technical: (data && (data.technical || data.error)) || (err && err.message) || 'brak odpowiedzi'
+          }, data, err);
+        }
+        return { network: true };
+      }
       return fetch(url, { headers: { 'Accept': 'application/json' } })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!Array.isArray(data) || !data.length) return null;
-          return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        .then(function(res) {
+          return readDmJson_(res).then(function(data) {
+            if (res.status === 401) return { network: true };
+            if (!res.ok || (data && (data.notJson || data.ok === false))) return geocodeNet(data, null);
+            if (!Array.isArray(data) || !data.length) return null;
+            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+          });
         })
-        .catch(function() { return null; });
+        .catch(function(err) {
+          return geocodeNet(null, err);
+        });
     }
 
     function loadReferenceDataFromSheets() {
       if (!WEBAPP_URL) return Promise.resolve();
       if (typeof setMapLogoLoading === 'function') setMapLogoLoading(true, 'Ładowanie danych…');
       return fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listReferenceData')
-        .then(function(r) { return r.json(); })
+        .then(readDmJson_)
         .then(function(resp) {
-          if (!resp || !resp.ok || !resp.data) return;
+          if (resp && resp.status === 401) return;
+          if (!resp || !resp.ok || !resp.data) {
+            if (typeof dmApiErrorCard_ === 'function') {
+              dmApiErrorCard_({
+                code: 'DM-E-ADMIN-DICTS',
+                summary: 'Nie udało się pobrać słowników z arkusza.',
+                effect: 'Zostają listy wbudowane w mapę. Nowsze wpisy z arkusza mogą nie być widoczne.',
+                place: 'buildMapManualAdmin.ts loadReferenceDataFromSheets',
+                technical: (resp && (resp.technical || resp.error)) || 'ok: false'
+              }, resp, null);
+            }
+            return;
+          }
           var data = resp.data;
           (data.zaladunek || []).forEach(function(e) { applyReferenceZaladunekEntry(e, true); });
           (data.przewoznicy || []).forEach(function(e) { applyReferencePrzewoznikEntry(e); });
@@ -707,7 +754,17 @@ export function manualAdminBrowserScript(): string {
             applyPoprawAdresToMap(e, -1, { focusMap: false });
           });
         })
-        .catch(function() { /* cicho — mapa działa z danymi z buildu */ })
+        .catch(function(err) {
+          if (typeof dmApiErrorCard_ === 'function') {
+            dmApiErrorCard_({
+              code: 'DM-E-ADMIN-DICTS',
+              summary: 'Nie udało się pobrać słowników z arkusza.',
+              effect: 'Zostają listy wbudowane w mapę. Nowsze wpisy z arkusza mogą nie być widoczne.',
+              place: 'buildMapManualAdmin.ts loadReferenceDataFromSheets',
+              technical: String(err && err.message || err)
+            }, null, err);
+          }
+        })
         .finally(function() {
           if (typeof setMapLogoLoading === 'function') setMapLogoLoading(false);
         });
@@ -758,7 +815,14 @@ export function manualAdminBrowserScript(): string {
         uwagi: uwagi
       }).then(function(resp) {
         if (!resp || !resp.ok) {
-          setManualAdminStatus('Nie udało się zapisać poprawki — sprawdź Web App (redeploy?).', 'error');
+          if (!(resp && resp.status === 401)) {
+            reportAdminSave(
+              'Nie udało się zapisać poprawki adresu.',
+              'buildMapManualAdmin.ts submitManualPopraw',
+              resp,
+              null
+            );
+          }
           return;
         }
         var entry = resp.entry || {
@@ -773,8 +837,13 @@ export function manualAdminBrowserScript(): string {
         setManualAdminStatus('Zapisano poprawkę — pinezka zaktualizowana.');
         resetPoprawForm();
         closeManualAdminModal();
-      }).catch(function() {
-        setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error');
+      }).catch(function(err) {
+        reportAdminSave(
+          'Błąd sieci — poprawka adresu nie doszła.',
+          'buildMapManualAdmin.ts submitManualPopraw',
+          null,
+          err
+        );
       }).finally(function() {
         setManualAdminBusy(btn, false);
       });
@@ -821,7 +890,14 @@ export function manualAdminBrowserScript(): string {
         setManualAdminBusy(btn, true);
         setManualAdminStatus('Zapis do arkusza (współrzędne ręczne)…');
         persistZaladunekEntry(pelna, skrocona, adres, typ, rodzajZbiorki, manual)
-          .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
+          .catch(function(err) {
+            reportAdminSave(
+              'Błąd sieci — zapis miejsca załadunku nie doszedł.',
+              'buildMapManualAdmin.ts submitManualZaladunek',
+              null,
+              err
+            );
+          })
           .finally(function() { setManualAdminBusy(btn, false); });
         return;
       }
@@ -829,6 +905,11 @@ export function manualAdminBrowserScript(): string {
       setManualAdminBusy(btn, true);
       setManualAdminStatus('Geokodowanie adresu…');
       geocodeAddressAdmin(adres).then(function(coords) {
+        if (coords && coords.network) {
+          setManualAdminStatus('Błąd sieci podczas geokodowania — spróbuj ponownie albo wpisz Lat/Lon.', 'error');
+          showZalCoordsSection(true);
+          return;
+        }
         if (coords) {
           showZalGeocodeFail(false);
           setManualAdminStatus('Zapis do arkusza…');
@@ -840,8 +921,13 @@ export function manualAdminBrowserScript(): string {
           'Geokodowanie nie powiodło się. Podaj Lat/Lon ręcznie i kliknij Zapisz — albo „Zapisz bez pinezki”.',
           'warn'
         );
-      }).catch(function() {
-        setManualAdminStatus('Błąd sieci podczas geokodowania — spróbuj ponownie.', 'error');
+      }).catch(function(err) {
+        reportAdminSave(
+          'Błąd sieci podczas geokodowania.',
+          'buildMapManualAdmin.ts submitManualZaladunek',
+          null,
+          err
+        );
       }).finally(function() {
         setManualAdminBusy(btn, false);
       });
@@ -871,7 +957,14 @@ export function manualAdminBrowserScript(): string {
       setManualAdminBusy(btn, true);
       setManualAdminStatus('Zapis do arkusza (bez pinezki)…');
       persistZaladunekEntry(pelna, skrocona, adres, typ, rodzajZbiorki, null)
-        .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
+        .catch(function(err) {
+          reportAdminSave(
+            'Błąd sieci — zapis bez pinezki nie doszedł.',
+            'buildMapManualAdmin.ts submitManualZaladunekWithoutPin',
+            null,
+            err
+          );
+        })
         .finally(function() { setManualAdminBusy(btn, false); });
     }
 
@@ -907,9 +1000,16 @@ export function manualAdminBrowserScript(): string {
       };
       postReferenceData(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          setManualAdminStatus(resp && resp.error === 'duplicate'
-            ? 'Ten przewoźnik już jest w arkuszu.'
-            : 'Nie udało się zapisać — sprawdź Web App.', 'error');
+          if (!(resp && resp.status === 401)) {
+            reportAdminSave(
+              resp && resp.error === 'duplicate'
+                ? 'Ten przewoźnik już jest w arkuszu.'
+                : 'Nie udało się zapisać przewoźnika.',
+              'buildMapManualAdmin.ts submitManualPrzewoznik',
+              resp,
+              null
+            );
+          }
           return;
         }
         applyReferencePrzewoznikEntry(resp.entry || payload);
@@ -919,8 +1019,14 @@ export function manualAdminBrowserScript(): string {
         document.getElementById('manual-admin-prz-adres').value = '';
         document.getElementById('manual-admin-prz-nip').value = '';
         document.getElementById('manual-admin-prz-bdo').value = '';
-      }).catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
-        .finally(function() { setManualAdminBusy(btn, false); });
+      }).catch(function(err) {
+        reportAdminSave(
+          'Błąd sieci — zapis przewoźnika nie doszedł.',
+          'buildMapManualAdmin.ts submitManualPrzewoznik',
+          null,
+          err
+        );
+      }).finally(function() { setManualAdminBusy(btn, false); });
     }
 
     function submitManualDostawa() {
@@ -960,9 +1066,16 @@ export function manualAdminBrowserScript(): string {
       postReferenceData(payload)
         .then(function(resp) {
           if (!resp || !resp.ok) {
-            setManualAdminStatus(resp && resp.error === 'duplicate'
-              ? 'To miejsce już jest w arkuszu.'
-              : 'Nie udało się zapisać — sprawdź Web App.', 'error');
+            if (!(resp && resp.status === 401)) {
+              reportAdminSave(
+                resp && resp.error === 'duplicate'
+                  ? 'To miejsce już jest w arkuszu.'
+                  : 'Nie udało się zapisać miejsca dostawy.',
+                'buildMapManualAdmin.ts submitManualDostawa',
+                resp,
+                null
+              );
+            }
             return;
           }
           applyReferenceDostawaEntry(resp.entry || payload);
@@ -972,7 +1085,14 @@ export function manualAdminBrowserScript(): string {
           document.getElementById('manual-admin-dos-adres').value = '';
           document.getElementById('manual-admin-dos-typ').value = '';
         })
-        .catch(function() { setManualAdminStatus('Błąd sieci — spróbuj ponownie.', 'error'); })
+        .catch(function(err) {
+          reportAdminSave(
+            'Błąd sieci — zapis miejsca dostawy nie doszedł.',
+            'buildMapManualAdmin.ts submitManualDostawa',
+            null,
+            err
+          );
+        })
         .finally(function() { setManualAdminBusy(btn, false); });
     }
 

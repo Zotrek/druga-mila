@@ -741,6 +741,7 @@ export function wordModalBrowserScript(): string {
       setDataZaladunkuValue(formatDateForDoc(defaultDateZaladunkuYmd()));
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
+      prewarmDocxTemplateCache();
       previewNumerFromApi();
       if (!hasPrefill) {
         var zalInp = document.getElementById('doc-sel-zaladunek');
@@ -768,6 +769,7 @@ export function wordModalBrowserScript(): string {
       if (indices.length > 0) applyRodzajZbiorkiFromLoadPoint(LOAD_POINTS[indices[0]]);
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
+      prewarmDocxTemplateCache();
       var bulkNumerInfo = document.getElementById('doc-bulk-numer-info');
       var hint = document.getElementById('doc-modal-hint');
       if (!WEBAPP_URL) {
@@ -778,8 +780,17 @@ export function wordModalBrowserScript(): string {
       if (bulkNumerInfo) bulkNumerInfo.textContent = 'Pobieranie podglądu numeracji…';
       setMapLogoLoading(true, 'Pobieranie numeracji…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=modalData')
-        .then(function(r) { return r.json(); })
+        .then(readDmJson_)
         .then(function(data) {
+          if (!(data && data.status === 401) && (!data || data.ok === false || data.notJson)) {
+            dmFailApi({
+              code: 'DM-E-BULK-DOC-NUMBER',
+              summary: 'Nie udało się pobrać podglądu numeracji hurtowej.',
+              effect: 'Modal zostaje otwarty. Numery nada serwer przy zapisie, jeśli Web App działa.',
+              place: 'buildMapWordModal.ts openBulkDocModal',
+              technical: (data && (data.technical || data.error)) || 'ok: false'
+            }, data, null);
+          }
           var preview = data && data.ok && data.numer ? String(data.numer) : '';
           window.__docPreviewNumer = preview;
           if (bulkNumerInfo) {
@@ -789,8 +800,16 @@ export function wordModalBrowserScript(): string {
           }
           if (hint) hint.textContent = 'Wspólne pola (przewoźnik, dostawa, data…). Załadunek z zaznaczenia.';
         })
-        .catch(function() {
-          if (bulkNumerInfo) bulkNumerInfo.textContent = 'Nie udało się pobrać podglądu — przy generacji i tak auto z API.';
+        .catch(function(err) {
+          dmFailApi({
+            code: 'DM-E-BULK-DOC-NUMBER',
+            summary: 'Nie udało się pobrać podglądu numeracji hurtowej.',
+            effect: 'Modal zostaje otwarty. Numery nada serwer przy zapisie, jeśli Web App działa.',
+            place: 'buildMapWordModal.ts openBulkDocModal',
+            technical: String(err && err.message || err)
+          }, null, err);
+          if (bulkNumerInfo) bulkNumerInfo.textContent = 'Numery zostaną nadane automatycznie kolejno.';
+          if (hint) hint.textContent = 'Wspólne pola (przewoźnik, dostawa, data…). Załadunek z zaznaczenia.';
         })
         .finally(function() { setMapLogoLoading(false); });
     }
@@ -825,6 +844,7 @@ export function wordModalBrowserScript(): string {
       if (hint) {
         hint.textContent = 'Ewidencja: Adres1; Adres2. Word: dwa pliki z tym samym numerem — inne tylko miejsce załadunku.';
       }
+      prewarmDocxTemplateCache();
       previewNumerFromApi();
     }
     window.__manualBulkPickIdxs = window.__manualBulkPickIdxs || {};
@@ -1376,23 +1396,45 @@ export function wordModalBrowserScript(): string {
     }
     var wordTemplateBytesCache = null;
     function getWordTemplateBytes() {
-      if (!wordTemplateBytesCache) wordTemplateBytesCache = b64ToUint8(WORD_TEMPLATE_B64);
-      return wordTemplateBytesCache;
+      if (wordTemplateBytesCache) return wordTemplateBytesCache;
+      try {
+        wordTemplateBytesCache = b64ToUint8(WORD_TEMPLATE_B64);
+        return wordTemplateBytesCache;
+      } catch (err) {
+        if (err) err.dmReported = true;
+        var openCard = document.querySelector('.dm-error-card[data-dm-code="DM-E-TEMPLATE-BYTES"]');
+        if (!openCard && typeof showDmErrorCard === 'function') {
+          showDmErrorCard({
+            code: 'DM-E-TEMPLATE-BYTES',
+            summary: 'Szablon Word w mapie jest uszkodzony.',
+            effect: 'Protokół się nie pobierze. Trzeba ponownie wygenerować mapę z poprawnym plikiem szablonu.',
+            place: 'buildMapWordModal.ts getWordTemplateBytes',
+            technical: String(err && err.message || err)
+          });
+        }
+        throw err;
+      }
+    }
+    function prewarmDocxTemplateCache() {
+      if (!WORD_TEMPLATE_B64) return;
+      try { getWordTemplateBytes(); } catch (e) { /* karta DM-E-TEMPLATE-BYTES */ }
     }
     var docxLibsPromise = null;
     function loadScriptOnce(src) {
       return new Promise(function(resolve, reject) {
         var existing = document.querySelector('script[src="' + src + '"]');
-        if (existing) {
-          if (existing.getAttribute('data-loaded') === '1') { resolve(); return; }
-          existing.addEventListener('load', function() { resolve(); });
-          existing.addEventListener('error', function() { reject(new Error(src)); });
+        if (existing && existing.getAttribute('data-loaded') === '1') {
+          resolve();
           return;
         }
+        if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
         var s = document.createElement('script');
         s.src = src; s.crossOrigin = '';
         s.onload = function() { s.setAttribute('data-loaded', '1'); resolve(); };
-        s.onerror = function() { reject(new Error(src)); };
+        s.onerror = function() {
+          if (s.parentNode) s.parentNode.removeChild(s);
+          reject(new Error(src));
+        };
         document.head.appendChild(s);
       });
     }
@@ -1403,7 +1445,11 @@ export function wordModalBrowserScript(): string {
       if (!docxLibsPromise) {
         docxLibsPromise = loadScriptOnce('https://unpkg.com/pizzip@3.1.7/dist/pizzip.min.js')
           .then(function() { return loadScriptOnce('https://unpkg.com/docxtemplater@3.50.0/build/docxtemplater.js'); })
-          .then(function() { return loadScriptOnce('https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js'); });
+          .then(function() { return loadScriptOnce('https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js'); })
+          .catch(function(err) {
+            docxLibsPromise = null;
+            throw err;
+          });
       }
       return docxLibsPromise;
     }
@@ -1632,6 +1678,32 @@ export function wordModalBrowserScript(): string {
       }
       alert(message);
     }
+    function notifyError(report) {
+      if (typeof showDmErrorCard === 'function') {
+        showDmErrorCard(report);
+        return;
+      }
+      alert((report && report.summary) || 'Coś się nie udało.');
+    }
+    function dmFailApi(report, resp, err) {
+      if (typeof dmApiErrorCard_ === 'function') {
+        dmApiErrorCard_(report, resp, err);
+        return;
+      }
+      notifyError(report);
+    }
+    function dmSheetError_(resp) {
+      var apiErr = new Error(
+        resp && resp.notJson
+          ? (resp.technical || 'nie-JSON')
+          : (resp && resp.error ? resp.error : 'błąd API')
+      );
+      if (resp && resp.status) apiErr.status = resp.status;
+      if (resp && resp.notJson) apiErr.notJson = true;
+      if (resp && resp.technical) apiErr.technical = resp.technical;
+      if (resp && resp.error) apiErr.apiError = String(resp.error);
+      return apiErr;
+    }
     function resolveZaladunek() {
       var hid = document.getElementById('doc-val-zaladunek');
       if (hid && hid.value !== '') {
@@ -1688,30 +1760,47 @@ export function wordModalBrowserScript(): string {
       }
       if (hint) hint.textContent = 'Pobieranie podglądu numeru…';
       var action = window.__docModalMode === 'harmonogram' ? 'previewNumberHarm' : 'modalData';
+      function restorePreviewHint() {
+        if (!hint) return;
+        if (window.__docModalMode === 'harmonogram') {
+          hint.textContent = harmRowHasSecondLoad(window.__harmRow)
+            ? 'Łączony: każdy termin = 1× DMH* (Adres1; Adres2) + 2 protokoły Word. „Tylko zapisz w Excelu” — bez Worda. Harmonogram bez zmian.'
+            : 'Stały odbiór: każdy termin = wiersz DMH* + .docx. „Tylko zapisz w Excelu” — bez Worda. Harmonogram bez zmian.';
+        } else if (window.__docModalMode === 'combined') {
+          hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word. „Tylko zapisz w Excelu” — tylko wiersz, bez Worda.';
+        } else {
+          hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Tylko zapisz w Excelu” — to samo bez Worda. „Zapisz planowane” tylko rezerwuje numer.';
+        }
+      }
       setMapLogoLoading(true, 'Pobieranie numeru…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=' + action)
-        .then(function(r) { return r.json(); })
+        .then(readDmJson_)
         .then(function(data) {
-          if (data && data.ok && data.numer) {
+          if (!(data && data.status === 401) && (!data || data.ok === false || data.notJson)) {
+            dmFailApi({
+              code: 'DM-E-DOC-NUMBER',
+              summary: 'Nie udało się pobrać podglądu numeru.',
+              effect: 'Nad przyciskiem zostaje zwykła podpowiedź. Numer możesz wpisać ręcznie.',
+              place: 'buildMapWordModal.ts previewNumerFromApi',
+              technical: (data && (data.technical || data.error)) || 'ok: false'
+            }, data, null);
+          } else if (data && data.ok && data.numer) {
             window.__docPreviewNumer = String(data.numer);
             if (numerEl && !String(numerEl.value).trim()) {
               numerEl.value = window.__docPreviewNumer;
             }
           }
-          if (hint) {
-            if (window.__docModalMode === 'harmonogram') {
-              hint.textContent = harmRowHasSecondLoad(window.__harmRow)
-                ? 'Łączony: każdy termin = 1× DMH* (Adres1; Adres2) + 2 protokoły Word. „Tylko zapisz w Excelu” — bez Worda. Harmonogram bez zmian.'
-                : 'Stały odbiór: każdy termin = wiersz DMH* + .docx. „Tylko zapisz w Excelu” — bez Worda. Harmonogram bez zmian.';
-            } else if (window.__docModalMode === 'combined') {
-              hint.textContent = 'Oba miejsca → jeden wiersz (Adres1; Adres2) i dwa protokoły Word. „Tylko zapisz w Excelu” — tylko wiersz, bez Worda.';
-            } else {
-              hint.textContent = 'Pola opcjonalne. „Pobierz .docx” zapisze wiersz do formatki Google i pobierze Word. „Tylko zapisz w Excelu” — to samo bez Worda. „Zapisz planowane” tylko rezerwuje numer.';
-            }
-          }
+          restorePreviewHint();
         })
-        .catch(function() {
-          if (hint) hint.textContent = 'Nie udało się pobrać numeru — sprawdź Web App / sieć.';
+        .catch(function(err) {
+          dmFailApi({
+            code: 'DM-E-DOC-NUMBER',
+            summary: 'Nie udało się pobrać podglądu numeru.',
+            effect: 'Nad przyciskiem zostaje zwykła podpowiedź. Numer możesz wpisać ręcznie.',
+            place: 'buildMapWordModal.ts previewNumerFromApi',
+            technical: String(err && err.message || err)
+          }, null, err);
+          restorePreviewHint();
         })
         .finally(function() { setMapLogoLoading(false); });
     }
@@ -1720,7 +1809,7 @@ export function wordModalBrowserScript(): string {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
-      }).then(function(res) { return res.json(); });
+      }).then(readDmJson_);
     }
     function findLoadIdxForPlanRow(row) {
       if (!row) return -1;
@@ -1832,12 +1921,21 @@ export function wordModalBrowserScript(): string {
       if (statusEl) statusEl.textContent = 'Ładowanie…';
       setMapLogoLoading(true, 'Ładowanie planowanych…');
       fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listPlanowane')
-        .then(function(r) { return r.json(); })
+        .then(readDmJson_)
         .then(function(data) {
           if (seq !== planowaneListSeq) return;
           listEl.innerHTML = '';
           if (!data || !data.ok) {
-            if (statusEl) statusEl.textContent = 'Błąd API: ' + (data && data.error ? data.error : 'nieznany');
+            if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy planowanych.';
+            if (!(data && data.status === 401)) {
+              dmFailApi({
+                code: 'DM-E-PLAN-LIST',
+                summary: 'Nie udało się wczytać listy planowanych.',
+                effect: 'Lista jest pusta. Zapisane plany w arkuszu zostają.',
+                place: 'buildMapWordModal.ts loadPlanowaneList',
+                technical: (data && (data.technical || data.error)) || 'ok: false'
+              }, data, null);
+            }
             return;
           }
           var rows = data.rows || [];
@@ -1898,6 +1996,13 @@ export function wordModalBrowserScript(): string {
           if (seq !== planowaneListSeq) return;
           console.error(err);
           if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy planowanych.';
+          dmFailApi({
+            code: 'DM-E-PLAN-LIST',
+            summary: 'Nie udało się wczytać listy planowanych.',
+            effect: 'Lista jest pusta. Zapisane plany w arkuszu zostają.',
+            place: 'buildMapWordModal.ts loadPlanowaneList',
+            technical: String(err && err.message || err)
+          }, null, err);
         })
         .finally(function() { setMapLogoLoading(false); });
     }
@@ -1942,6 +2047,7 @@ export function wordModalBrowserScript(): string {
       if (uwagiRealize) uwagiRealize.value = row.uwagi || '';
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
+      prewarmDocxTemplateCache();
       previewNumerFromApi();
     }
     function openHarmonogramPicker() {
@@ -2065,39 +2171,64 @@ export function wordModalBrowserScript(): string {
       });
     }
     var harmonogramListSeq = 0;
-    function loadHarmonogramList() {
+    function loadHarmonogramList(reloadAfterSave) {
       var statusEl = document.getElementById('harmonogram-status');
       var listEl = document.getElementById('harmonogram-list');
-      if (!listEl) return;
+      if (!listEl) return Promise.resolve(false);
       var seq = ++harmonogramListSeq;
       window.__harmonogramLoaded = false;
       window.__harmonogramRows = [];
       listEl.innerHTML = '';
       if (!WEBAPP_URL) {
         if (statusEl) statusEl.textContent = 'Brak Web App — nie można wczytać Harmonogramu.';
-        return;
+        return Promise.resolve(false);
       }
       if (statusEl) statusEl.textContent = 'Ładowanie…';
       setMapLogoLoading(true, 'Ładowanie harmonogramu…');
-      fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listHarmonogram')
-        .then(function(r) { return r.json(); })
+      var code = reloadAfterSave ? 'DM-E-HARM-RELOAD' : 'DM-E-HARM-LIST';
+      var summary = reloadAfterSave
+        ? 'Zmiana weszła do arkusza, ale lista Harmonogramu się nie odświeżyła.'
+        : 'Nie udało się wczytać Harmonogramu.';
+      var effect = reloadAfterSave
+        ? 'Nie pokazuję potwierdzenia, bo lista może być nieaktualna. Otwórz Harmonogram ponownie.'
+        : 'Lista stałych odbiorów jest pusta. Mapa i protokoły z pinezek dalej działają.';
+      return fetch(WEBAPP_URL + (WEBAPP_URL.indexOf('?') >= 0 ? '&' : '?') + 'action=listHarmonogram')
+        .then(readDmJson_)
         .then(function(data) {
-          if (seq !== harmonogramListSeq) return;
+          if (seq !== harmonogramListSeq) return false;
           if (!data || !data.ok) {
             window.__harmonogramLoaded = false;
             listEl.innerHTML = '';
-            if (statusEl) statusEl.textContent = 'Błąd API: ' + (data && data.error ? data.error : 'nieznany');
-            return;
+            if (statusEl) statusEl.textContent = summary;
+            if (!(data && data.status === 401)) {
+              dmFailApi({
+                code: code,
+                summary: summary,
+                effect: effect,
+                place: 'buildMapWordModal.ts loadHarmonogramList',
+                technical: (data && (data.technical || data.error)) || 'ok: false'
+              }, data, null);
+            }
+            return false;
           }
           window.__harmonogramRows = data.rows || [];
           window.__harmonogramLoaded = true;
           renderHarmonogramList();
+          return true;
         })
         .catch(function(err) {
-          if (seq !== harmonogramListSeq) return;
+          if (seq !== harmonogramListSeq) return false;
           window.__harmonogramLoaded = false;
           console.error(err);
-          if (statusEl) statusEl.textContent = 'Nie udało się wczytać listy Harmonogramu.';
+          if (statusEl) statusEl.textContent = summary;
+          dmFailApi({
+            code: code,
+            summary: summary,
+            effect: effect,
+            place: 'buildMapWordModal.ts loadHarmonogramList',
+            technical: String(err && err.message || err)
+          }, null, err);
+          return false;
         })
         .finally(function() { setMapLogoLoading(false); });
     }
@@ -2226,6 +2357,7 @@ export function wordModalBrowserScript(): string {
       setDocModalMode('harmonogram');
       m.style.display = 'flex';
       m.setAttribute('aria-hidden', 'false');
+      prewarmDocxTemplateCache();
       previewNumerFromApi();
     }
     function resetHarmonogramAddForm() {
@@ -2407,19 +2539,28 @@ export function wordModalBrowserScript(): string {
       setMapLogoLoading(true, isEdit ? 'Zapisuję harmonogram…' : 'Dodaję do harmonogramu…');
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          notifyChange(isEdit
-            ? ('Nie udało się zapisać zmian: ' + (resp && resp.error ? resp.error : 'błąd API'))
-            : ('Nie udało się dodać do Harmonogramu: ' + (resp && resp.error ? resp.error : 'błąd API')), 'error');
+          dmFailApi({
+            code: 'DM-E-HARM-SAVE',
+            summary: isEdit ? 'Nie udało się zapisać zmian w Harmonogramie.' : 'Nie udało się dodać do Harmonogramu.',
+            effect: 'Wpis w arkuszu zostaje bez tej zmiany.',
+            place: 'buildMapWordModal.ts submitHarmonogramAddForm',
+            technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+          }, resp, null);
           return;
         }
         closeHarmonogramAddForm();
-        loadHarmonogramList();
-        notifyChange(isEdit ? 'Zapisano zmiany w Harmonogramie.' : 'Dodano do Harmonogramu.', 'ok');
+        return loadHarmonogramList(true).then(function(ok) {
+          if (ok) notifyChange(isEdit ? 'Zapisano zmiany w Harmonogramie.' : 'Dodano do Harmonogramu.', 'ok');
+        });
       }).catch(function(err) {
         console.error(err);
-        notifyChange(isEdit
-          ? 'Nie udało się zapisać zmian (sieć / Web App).'
-          : 'Nie udało się dodać do Harmonogramu (sieć / Web App).', 'error');
+        dmFailApi({
+          code: 'DM-E-HARM-SAVE',
+          summary: isEdit ? 'Nie udało się zapisać zmian w Harmonogramie.' : 'Nie udało się dodać do Harmonogramu.',
+          effect: 'Wpis w arkuszu zostaje bez tej zmiany.',
+          place: 'buildMapWordModal.ts submitHarmonogramAddForm',
+          technical: String(err && err.message || err)
+        }, null, err);
       }).finally(function() {
         setMapLogoLoading(false);
         if (btn) btn.disabled = false;
@@ -2446,15 +2587,28 @@ export function wordModalBrowserScript(): string {
       setMapLogoLoading(true, 'Usuwam z harmonogramu…');
       appendFormatkaRow({ mode: 'deleteHarmonogram', harmonogramRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
-          notifyChange('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
+          dmFailApi({
+            code: 'DM-E-HARM-DELETE',
+            summary: 'Nie udało się usunąć wpisu z Harmonogramu.',
+            effect: 'Wpis zostaje w arkuszu.',
+            place: 'buildMapWordModal.ts deleteHarmonogramRow',
+            technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+          }, resp, null);
           return;
         }
         closeHarmonogramAddForm();
-        loadHarmonogramList();
-        notifyChange('Usunięto z Harmonogramu.', 'ok');
+        return loadHarmonogramList(true).then(function(ok) {
+          if (ok) notifyChange('Usunięto z Harmonogramu.', 'ok');
+        });
       }).catch(function(err) {
         console.error(err);
-        notifyChange('Nie udało się usunąć z Harmonogramu.', 'error');
+        dmFailApi({
+          code: 'DM-E-HARM-DELETE',
+          summary: 'Nie udało się usunąć wpisu z Harmonogramu.',
+          effect: 'Wpis zostaje w arkuszu.',
+          place: 'buildMapWordModal.ts deleteHarmonogramRow',
+          technical: String(err && err.message || err)
+        }, null, err);
       }).finally(function() {
         setMapLogoLoading(false);
         if (saveBtn) saveBtn.disabled = false;
@@ -2512,6 +2666,7 @@ export function wordModalBrowserScript(): string {
       startChain.then(function() {
         var generated = 0;
         var failed = 0;
+        var failures = [];
         var chain = Promise.resolve();
         dates.forEach(function(dateVal, jobIdx) {
           chain = chain.then(function() {
@@ -2570,9 +2725,7 @@ export function wordModalBrowserScript(): string {
             payload.mode = 'commitHarm';
             payload.czyProtokolZrobiony = 'tak';
             return appendFormatkaRow(payload).then(function(resp) {
-              if (!resp || !resp.ok) {
-                throw new Error(resp && resp.error ? resp.error : 'błąd API');
-              }
+              if (!resp || !resp.ok) throw dmSheetError_(resp);
               var numer = String(resp.numer || '');
               if (numerEl) numerEl.value = numer;
               return downloadWordsForDate(numer);
@@ -2580,27 +2733,45 @@ export function wordModalBrowserScript(): string {
           }).catch(function(err) {
             console.error(err);
             failed += 1;
+            if (err && (err.status === 401 || err.apiError === 'proxy_auth_mismatch' || err.dmReported)) return;
+            var stageNote = err && err.dmStage === 'word'
+              ? (WEBAPP_URL ? 'Word nie powstał, wiersz w arkuszu mógł już wejść' : 'Word nie powstał')
+              : 'wiersz nie zapisany';
+            failures.push((dateVal || 'bez daty') + ' — ' + stageNote + ' — ' + String(err && (err.technical || err.message) || err));
           });
         });
         return chain.then(function() {
           closeDocModal();
-          if (failed > 0) {
-            notifyChange(
-              (skipWord ? 'Stały odbiór (Excel): zapisano ' : 'Stały odbiór: zapisano/pobrano ') +
-              generated + '\\nBłędy: ' + failed + '.',
-              'error'
-            );
-          } else if (skipWord) {
+          if (failures.length > 0) {
+            notifyError({
+              code: 'DM-E-HARM-GENERATE',
+              summary: generated > 0
+                ? 'Część terminów stałego odbioru się nie udała.'
+                : 'Nie udało się zapisać stałego odbioru.',
+              effect: 'Zapisano ' + generated + ' z ' + (generated + failed) + '. Nie udało się: ' + failed + '.',
+              place: 'buildMapWordModal.ts runHarmonogramDocGenerate',
+              technical: failures.join(' | ')
+            });
+          } else if (failed === 0 && skipWord) {
             notifyChange(excelSavedMessage(generated + ' termin(ów)'), 'ok');
-          } else {
+          } else if (failed === 0) {
             notifyChange('Stały odbiór: zapisano/pobrano ' + generated + ' termin(ów).', 'ok');
           }
         });
       }).catch(function(err) {
         console.error(err);
-        notifyChange(skipWord
-          ? 'Nie udało się zapisać stałego odbioru w Excelu.'
-          : 'Nie udało się uruchomić generacji stałego odbioru.', 'error');
+        if (err && err.dmReported) return;
+        notifyError({
+          code: skipWord ? 'DM-E-HARM-GENERATE' : 'DM-E-WORD-LIBS',
+          summary: skipWord
+            ? 'Nie udało się zapisać stałego odbioru.'
+            : 'Nie udało się załadować bibliotek Word.',
+          effect: skipWord
+            ? 'Terminy nie weszły do arkusza.'
+            : 'Stały odbiór się nie uruchomił. Sprawdź internet i spróbuj ponownie.',
+          place: 'buildMapWordModal.ts runHarmonogramDocGenerate',
+          technical: String(err && err.message || err)
+        });
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -2633,7 +2804,13 @@ export function wordModalBrowserScript(): string {
       if (isRealize) payload.planowaneRow = plan.rowIndex;
       appendFormatkaRow(payload).then(function(resp) {
         if (!resp || !resp.ok) {
-          notifyChange('Nie udało się zapisać planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
+          dmFailApi({
+            code: 'DM-E-PLAN-SAVE',
+            summary: 'Nie udało się zapisać planowanego.',
+            effect: 'Numer nie został zarezerwowany w arkuszu.',
+            place: 'buildMapWordModal.ts savePlanowaneFromModal',
+            technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+          }, resp, null);
           return;
         }
         var numer = String(resp.numer || numerWpisany || '');
@@ -2647,7 +2824,13 @@ export function wordModalBrowserScript(): string {
         }
       }).catch(function(err) {
         console.error(err);
-        notifyChange('Nie udało się zapisać planowanego (sieć / Web App).', 'error');
+        dmFailApi({
+          code: 'DM-E-PLAN-SAVE',
+          summary: 'Nie udało się zapisać planowanego.',
+          effect: 'Numer nie został zarezerwowany w arkuszu.',
+          place: 'buildMapWordModal.ts savePlanowaneFromModal',
+          technical: String(err && err.message || err)
+        }, null, err);
       }).finally(function() {
         setMapLogoLoading(false);
         if (btn) btn.disabled = false;
@@ -2670,7 +2853,13 @@ export function wordModalBrowserScript(): string {
       setMapLogoLoading(true, 'Usuwam planowane…');
       appendFormatkaRow({ mode: 'deletePlan', planowaneRow: row.rowIndex }).then(function(resp) {
         if (!resp || !resp.ok) {
-          notifyChange('Nie udało się usunąć: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
+          dmFailApi({
+            code: 'DM-E-PLAN-DELETE',
+            summary: 'Nie udało się usunąć planowanego.',
+            effect: 'Wiersz zostaje w arkuszu, numer nie wraca do puli.',
+            place: 'buildMapWordModal.ts deletePlanowaneRow',
+            technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+          }, resp, null);
           return;
         }
         if (window.__realizePlan && window.__realizePlan.rowIndex === row.rowIndex) {
@@ -2680,7 +2869,13 @@ export function wordModalBrowserScript(): string {
         notifyChange('Usunięto z Planowane' + (row.numer ? ('.\\nNumer: ' + row.numer) : '.'), 'ok');
       }).catch(function(err) {
         console.error(err);
-        notifyChange('Nie udało się usunąć planowanego.', 'error');
+        dmFailApi({
+          code: 'DM-E-PLAN-DELETE',
+          summary: 'Nie udało się usunąć planowanego.',
+          effect: 'Wiersz zostaje w arkuszu, numer nie wraca do puli.',
+          place: 'buildMapWordModal.ts deletePlanowaneRow',
+          technical: String(err && err.message || err)
+        }, null, err);
       }).finally(function() {
         setMapLogoLoading(false);
         if (btn) btn.disabled = false;
@@ -2696,26 +2891,31 @@ export function wordModalBrowserScript(): string {
     }
     function renderAndDownloadDocx(zal, pr, md, dataVal, awizacja, numer, options) {
       var opts = options || {};
-      var miejsceWord = zal.miejsceZaladunkuWord
-        ? String(zal.miejsceZaladunkuWord)
-        : [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
-      var zip = new PizZip(getWordTemplateBytes());
-      var Doc = window.docxtemplater;
-      var doc = new Doc(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
-      doc.render({
-        numer_zlecenia_transportowego: String(numer || '').trim(),
-        miejsce_zaladunku: miejsceWord,
-        przewoznik: pr.value || pr.label || '',
-        miejsce_dostawy: md.value || md.label || '',
-        dane_do_awizacji: String(awizacja || '').trim(),
-        data_zaladunku: formatDateForDoc(dataVal)
-      });
-      var out = doc.getZip().generate({
-        type: 'blob',
-        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      });
-      saveAs(out, buildDocxDownloadName(zal.nazwaSkrocona || zal.nazwaPelna, dataVal, zal.adres));
-      if (opts.closeModal !== false) closeDocModal();
+      try {
+        var miejsceWord = zal.miejsceZaladunkuWord
+          ? String(zal.miejsceZaladunkuWord)
+          : [zal.nazwaPelna, zal.adres].filter(Boolean).join(' ');
+        var zip = new PizZip(getWordTemplateBytes());
+        var Doc = window.docxtemplater;
+        var doc = new Doc(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '{{', end: '}}' } });
+        doc.render({
+          numer_zlecenia_transportowego: String(numer || '').trim(),
+          miejsce_zaladunku: miejsceWord,
+          przewoznik: pr.value || pr.label || '',
+          miejsce_dostawy: md.value || md.label || '',
+          dane_do_awizacji: String(awizacja || '').trim(),
+          data_zaladunku: formatDateForDoc(dataVal)
+        });
+        var out = doc.getZip().generate({
+          type: 'blob',
+          mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        });
+        saveAs(out, buildDocxDownloadName(zal.nazwaSkrocona || zal.nazwaPelna, dataVal, zal.adres));
+        if (opts.closeModal !== false) closeDocModal();
+      } catch (err) {
+        if (err && !err.dmReported) err.dmStage = 'word';
+        throw err;
+      }
     }
     function collectSharedForm() {
       return {
@@ -2882,7 +3082,13 @@ export function wordModalBrowserScript(): string {
           realizePayload.czyProtokolZrobiony = 'tak';
           return appendFormatkaRow(realizePayload).then(function(resp) {
             if (!resp || !resp.ok) {
-              notifyChange('Nie udało się zrealizować planowanego: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
+              dmFailApi({
+                code: 'DM-E-REALIZE',
+                summary: 'Nie udało się zrealizować planowanego.',
+                effect: 'Wiersz zostaje w Planowane. Protokół się nie pobrał.',
+                place: 'buildMapWordModal.ts generateDocxLocal',
+                technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+              }, resp, null);
               return;
             }
             var numer = String(resp.numer || numerWpisany || plan.numer || '');
@@ -2895,13 +3101,29 @@ export function wordModalBrowserScript(): string {
             updateDocGenerateStatus('Pobieranie pliku .docx…');
             renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
             notifyChange('Zapisano i pobrano protokół.\\nNumer: ' + numer, 'ok');
+          }).catch(function(err) {
+            if (err && err.dmStage === 'word') throw err;
+            if (err && err.dmReported) return;
+            dmFailApi({
+              code: 'DM-E-REALIZE',
+              summary: 'Nie udało się zrealizować planowanego.',
+              effect: 'Wiersz zostaje w Planowane. Protokół się nie pobrał.',
+              place: 'buildMapWordModal.ts generateDocxLocal',
+              technical: String(err && err.message || err)
+            }, null, err);
           });
         }
         var manual = numerWpisany && numerWpisany !== String(window.__docPreviewNumer || '');
         var payload = buildFormatkaPayload(zal, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
           if (!resp || !resp.ok) {
-            notifyChange('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
+            dmFailApi({
+              code: 'DM-E-SHEET-SAVE',
+              summary: 'Nie udało się zapisać wiersza w arkuszu.',
+              effect: 'Protokół się nie pobrał. Wiersz nie wszedł do formatki.',
+              place: 'buildMapWordModal.ts generateDocxLocal',
+              technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+            }, resp, null);
             return;
           }
           var numer = String(resp.numer || numerWpisany || '');
@@ -2914,12 +3136,34 @@ export function wordModalBrowserScript(): string {
           updateDocGenerateStatus('Pobieranie pliku .docx…');
           renderAndDownloadDocx(zal, shared.pr, shared.md, shared.dataVal, shared.awizacja, numer);
           notifyChange('Zapisano i pobrano protokół.\\nNumer: ' + numer, 'ok');
+        }).catch(function(err) {
+          if (err && err.dmStage === 'word') throw err;
+          if (err && err.dmReported) return;
+          dmFailApi({
+            code: 'DM-E-SHEET-SAVE',
+            summary: 'Nie udało się zapisać wiersza w arkuszu.',
+            effect: 'Protokół się nie pobrał. Wiersz nie wszedł do formatki.',
+            place: 'buildMapWordModal.ts generateDocxLocal',
+            technical: String(err && err.message || err)
+          }, null, err);
         });
       }).catch(function(err) {
         console.error(err);
-        notifyChange(skipWord
-          ? 'Nie udało się zapisać w Excelu (sieć / Web App).'
-          : 'Nie udało się wygenerować / zapisać (biblioteki Word, sieć lub Web App).', 'error');
+        if (err && err.dmReported) return;
+        var word = err && err.dmStage === 'word';
+        notifyError({
+          code: word ? 'DM-E-DOC-RENDER' : (skipWord ? 'DM-E-SHEET-SAVE' : 'DM-E-WORD-LIBS'),
+          summary: word
+            ? 'Nie udało się złożyć protokołu Word.'
+            : (skipWord ? 'Nie udało się zapisać w Excelu.' : 'Nie udało się załadować bibliotek Word.'),
+          effect: word
+            ? 'Plik się nie pobrał. Jeśli zapis do arkusza zdążył przejść, wiersz może już być w formatce.'
+            : (skipWord
+              ? 'Wiersz nie wszedł do arkusza.'
+              : 'Protokół się nie pobrał. Sprawdź internet i spróbuj ponownie.'),
+          place: 'buildMapWordModal.ts generateDocxLocal',
+          technical: String(err && err.message || err)
+        });
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -2993,18 +3237,45 @@ export function wordModalBrowserScript(): string {
         var payload = buildFormatkaPayload(zalSheet, shared, manual ? numerWpisany : '');
         return appendFormatkaRow(payload).then(function(resp) {
           if (!resp || !resp.ok) {
-            notifyChange('Nie udało się zapisać wiersza w arkuszu: ' + (resp && resp.error ? resp.error : 'błąd API'), 'error');
+            dmFailApi({
+              code: 'DM-E-COMBINED',
+              summary: 'Nie udało się zapisać protokołu łączonego.',
+              effect: 'Wiersz nie wszedł do arkusza. Pliki Word się nie pobrały.',
+              place: 'buildMapWordModal.ts runCombinedDocGenerate',
+              technical: (resp && (resp.technical || resp.error)) || 'błąd API'
+            }, resp, null);
             return;
           }
           var numer = String(resp.numer || numerWpisany || '');
           if (numerEl) numerEl.value = numer;
           return downloadBothWord(numer);
+        }).catch(function(err) {
+          if (err && (err.dmReported || err.dmStage === 'word')) throw err;
+          dmFailApi({
+            code: 'DM-E-COMBINED',
+            summary: 'Nie udało się zapisać protokołu łączonego.',
+            effect: 'Wiersz nie wszedł do arkusza. Pliki Word się nie pobrały.',
+            place: 'buildMapWordModal.ts runCombinedDocGenerate',
+            technical: String(err && err.message || err)
+          }, null, err);
         });
       }).catch(function(err) {
         console.error(err);
-        notifyChange(skipWord
-          ? 'Nie udało się zapisać w Excelu (sieć / Web App).'
-          : 'Nie udało się wygenerować protokołu łączonego (biblioteki Word, sieć lub Web App).', 'error');
+        if (err && err.dmReported) return;
+        var word = err && err.dmStage === 'word';
+        notifyError({
+          code: word ? 'DM-E-DOC-RENDER' : (skipWord ? 'DM-E-COMBINED' : 'DM-E-WORD-LIBS'),
+          summary: word
+            ? 'Nie udało się złożyć protokołu łączonego.'
+            : (skipWord ? 'Nie udało się zapisać protokołu łączonego.' : 'Nie udało się załadować bibliotek Word.'),
+          effect: word
+            ? 'Pliki się nie pobrały. Jeśli zapis zdążył przejść, wiersz może już być w formatce.'
+            : (skipWord
+              ? 'Wiersz nie wszedł do arkusza.'
+              : 'Protokół łączony się nie uruchomił. Sprawdź internet i spróbuj ponownie.'),
+          place: 'buildMapWordModal.ts runCombinedDocGenerate',
+          technical: String(err && err.message || err)
+        });
       }).finally(function() {
         setDocGenerateBusy(false);
       });
@@ -3033,6 +3304,7 @@ export function wordModalBrowserScript(): string {
       startChain.then(function() {
         var generated = 0;
         var failed = 0;
+        var failures = [];
         var chain = Promise.resolve();
         indices.forEach(function(loadIdx, jobIdx) {
           chain = chain.then(function() {
@@ -3048,9 +3320,7 @@ export function wordModalBrowserScript(): string {
               return delayMs(400);
             }
             return appendFormatkaRow(buildFormatkaPayload(zal, shared, '')).then(function(resp) {
-              if (!resp || !resp.ok) {
-                throw new Error(resp && resp.error ? resp.error : 'błąd API');
-              }
+              if (!resp || !resp.ok) throw dmSheetError_(resp);
               if (!skipWord) {
                 renderAndDownloadDocx(
                   zal, shared.pr, shared.md, shared.dataVal, shared.awizacja,
@@ -3064,28 +3334,48 @@ export function wordModalBrowserScript(): string {
           }).catch(function(err) {
             console.error(err);
             failed += 1;
+            if (err && (err.status === 401 || err.apiError === 'proxy_auth_mismatch' || err.dmReported)) return;
+            var point = LOAD_POINTS[loadIdx];
+            var shop = point ? (point.adres || point.nazwaSkrocona || point.nazwaPelna) : 'bez adresu';
+            var stageNote = err && err.dmStage === 'word'
+              ? (WEBAPP_URL ? 'Word nie powstał, wiersz w arkuszu mógł już wejść' : 'Word nie powstał')
+              : 'wiersz nie zapisany';
+            failures.push(shop + ' — ' + stageNote + ' — ' + String(err && (err.technical || err.message) || err));
           });
         });
         return chain.then(function() {
           clearBulkSelection();
           closeDocModal();
-          if (failed > 0) {
-            notifyChange(
-              (skipWord ? 'Hurt (Excel): zapisano ' : 'Hurt: zapisano/pobrano ') +
-              generated + '\\nBłędy: ' + failed + '.',
-              'error'
-            );
-          } else if (skipWord) {
+          if (failures.length > 0) {
+            notifyError({
+              code: 'DM-E-BULK-GENERATE',
+              summary: generated > 0
+                ? 'Część protokołów hurtowych się nie udała.'
+                : 'Nie udało się wygenerować protokołów hurtowych.',
+              effect: 'Zapisano ' + generated + ' z ' + (generated + failed) + '. Nie udało się: ' + failed + '.',
+              place: 'buildMapWordModal.ts runBulkDocGenerate',
+              technical: failures.join(' | ')
+            });
+          } else if (failed === 0 && skipWord) {
             notifyChange(excelSavedMessage(generated + ' wiersz(y)'), 'ok');
-          } else {
+          } else if (failed === 0) {
             notifyChange('Hurt: zapisano/pobrano ' + generated + ' wiersz(y).', 'ok');
           }
         });
       }).catch(function(err) {
         console.error(err);
-        notifyChange(skipWord
-          ? 'Nie udało się zapisać hurtowo w Excelu.'
-          : 'Nie udało się uruchomić generacji hurtowej.', 'error');
+        if (err && err.dmReported) return;
+        notifyError({
+          code: skipWord ? 'DM-E-BULK-GENERATE' : 'DM-E-WORD-LIBS',
+          summary: skipWord
+            ? 'Nie udało się zapisać hurtowo w Excelu.'
+            : 'Nie udało się załadować bibliotek Word.',
+          effect: skipWord
+            ? 'Wiersze nie weszły do arkusza.'
+            : 'Hurt się nie uruchomił. Sprawdź internet i spróbuj ponownie.',
+          place: 'buildMapWordModal.ts runBulkDocGenerate',
+          technical: String(err && err.message || err)
+        });
       }).finally(function() {
         setDocGenerateBusy(false);
       });

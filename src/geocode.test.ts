@@ -108,6 +108,64 @@ describe('geocode cache + Nominatim', () => {
     }
   });
 
+  it('test_geocodeAddresses_network_error_should_not_cache_a_bad_address', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'dm-geo-'));
+    const path = join(dir, 'cache.json');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const fetchFn = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 503,
+        json: async () => {
+          throw new Error('no json');
+        },
+      });
+      const { results, stats } = await geocodeAddresses(['Kraków ul. Test 1'], {
+        cachePath: path,
+        userAgent: 'test-ua',
+        fetchFn: fetchFn as unknown as typeof fetch,
+        sleepFn: async () => undefined,
+        rateLimitMs: 0,
+      });
+      expect(stats.network).toBe(1);
+      expect(results[0]!.status).toBe('fail');
+      const cached = await loadGeocodeCache(path);
+      expect(cached[normalizeAddressKey('Kraków ul. Test 1')]).toBeUndefined();
+      const report = errorSpy.mock.calls.map((call) => String(call[0])).join('\n');
+      expect(report).toContain('DRUGA-MILA-ERROR');
+      expect(report).toContain('kod: DM-E-GEOCODE-NET');
+      expect(report).toContain('technicznie: HTTP 503');
+    } finally {
+      errorSpy.mockRestore();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('test_geocodeAddresses_empty_nominatim_should_cache_fail', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'dm-geo-'));
+    const path = join(dir, 'cache.json');
+    try {
+      const fetchFn = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => [],
+      });
+      const { stats } = await geocodeAddresses(['Kraków ul. Test 1'], {
+        cachePath: path,
+        userAgent: 'test-ua',
+        fetchFn: fetchFn as unknown as typeof fetch,
+        sleepFn: async () => undefined,
+        rateLimitMs: 0,
+      });
+      expect(stats.network).toBe(0);
+      expect(stats.fail).toBe(1);
+      const cached = await loadGeocodeCache(path);
+      expect(cached[normalizeAddressKey('Kraków ul. Test 1')]?.status).toBe('fail');
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it('test_attachCoords_maps_by_normalized_address', () => {
     const attached = attachCoords(
       [{ adres: '  Foo  Bar ', id: 1 }],

@@ -39,6 +39,11 @@ describe('buildMapHtml', () => {
     expect(html).toContain('setMapLogoLoading');
     expect(html).toContain('showAppNotice');
     expect(html).toContain('map-app-notice');
+    expect(html).toContain('id="dm-error-stack"');
+    expect(html).toContain('function showDmErrorCard(report)');
+    expect(html).toContain('DRUGA-MILA-ERROR');
+    expect(html).toContain('Możesz dalej pracować na mapie.');
+    expect(html).toContain('.dm-error-card {\n      pointer-events: auto');
     expect(html).toContain('tile.openstreetmap.fr/hot/{z}/{x}/{y}.png');
     expect(html).not.toContain('basemaps.cartocdn.com');
     expect(html).not.toContain('tile.openstreetmap.org/{z}/{x}/{y}.png');
@@ -88,6 +93,11 @@ describe('buildMapHtml', () => {
     expect(html).toContain('openDocModal');
     expect(html).toContain('docxtemplater');
     expect(html).toContain('appendFormatkaRow');
+    expect(html).toContain('DM-E-DOC-NUMBER');
+    expect(html).toContain('DM-E-BULK-GENERATE');
+    expect(html).toContain('DM-E-ADMIN-SAVE');
+    expect(html).toContain('DM-E-AUTH-MISMATCH');
+    expect(html).toContain('readDmJson_');
     expect(html).toContain('czyProtokolZrobiony');
     expect(html).toContain('znacznikMiejsca: String(zal.typ');
     expect(html).toContain('"typ":"CD"');

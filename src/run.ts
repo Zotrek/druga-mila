@@ -24,6 +24,17 @@ import {
   mergePoprawAdresIntoGeocodeCache,
   parsePoprawAdresList,
 } from './poprawAdres.js';
+import { logDrugaMilaError } from './dmErrorReport.js';
+
+function logReferenceSkip(technical: string): void {
+  logDrugaMilaError(console, {
+    code: 'DM-E-REFERENCE-SKIP',
+    place: 'run.ts applyPoprawAdresFromWebApp',
+    summary: 'Poprawki adresu z Web App nie weszły do mapy.',
+    effect: 'Mapa powstaje bez poprawek adresów z arkusza. Pinezki zostają z geokodu.',
+    technical,
+  });
+}
 
 /** Pobiera poprawAdres z Web App i nadpisuje geocode-cache. */
 async function applyPoprawAdresFromWebApp(
@@ -34,14 +45,17 @@ async function applyPoprawAdresFromWebApp(
   const url = `${webAppUrl}${sep}action=listReferenceData`;
   const res = await fetch(url);
   const text = await res.text();
-  let json: { ok?: boolean; data?: { poprawAdres?: unknown } };
+  let json: { ok?: boolean; error?: unknown; data?: { poprawAdres?: unknown } };
   try {
     json = JSON.parse(text) as typeof json;
   } catch {
-    console.warn('[druga-mila] poprawAdres — nieprawidłowa odpowiedź listReferenceData');
+    const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 280);
+    logReferenceSkip(`HTTP ${res.status}${snippet ? `: ${snippet}` : ''}`);
     return 0;
   }
-  if (!json.ok || !json.data) {
+  if (!res.ok || !json.ok || !json.data) {
+    const detail = json.error != null ? String(json.error) : '';
+    logReferenceSkip(detail || `HTTP ${res.status}`);
     return 0;
   }
   const entries = parsePoprawAdresList(json.data.poprawAdres);
@@ -89,10 +103,7 @@ async function main(): Promise<void> {
       const n = await applyPoprawAdresFromWebApp(cfg.webAppUrl, cfg.geocodeCachePath);
       console.log(`  poprawAdres → geocode-cache: ${n}`);
     } catch (err) {
-      console.warn(
-        '[druga-mila] poprawAdres — pominięto (Web App niedostępny):',
-        err instanceof Error ? err.message : err,
-      );
+      logReferenceSkip(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -110,7 +121,7 @@ async function main(): Promise<void> {
   );
 
   console.log(
-    `  geocode: unique=${stats.unique} cacheHits=${stats.cacheHits} fetched=${stats.fetched} ok=${stats.ok} fail=${stats.fail}`,
+    `  geocode: unique=${stats.unique} cacheHits=${stats.cacheHits} fetched=${stats.fetched} ok=${stats.ok} fail=${stats.fail} network=${stats.network}`,
   );
   console.log(`  pinezki z coords: ${onMap.length}`);
 

@@ -5,6 +5,7 @@
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { logDrugaMilaError } from './dmErrorReport.js';
 
 export type GeocodeStatus = 'ok' | 'fail';
 
@@ -154,37 +155,61 @@ interface NominatimHit {
   display_name?: string;
 }
 
+type NominatimOnce =
+  | { kind: 'hit'; entry: GeocodeCacheEntry }
+  | { kind: 'empty' }
+  | { kind: 'net'; technical: string };
+
 async function queryNominatimOnce(
   query: string,
   userAgent: string,
   fetchFn: typeof fetch,
-): Promise<GeocodeCacheEntry | null> {
+): Promise<NominatimOnce> {
   const url = buildNominatimUrl(query);
-  const response = await fetchFn(url, {
-    headers: {
-      'User-Agent': userAgent,
-      Accept: 'application/json',
-    },
-  });
-  if (!response.ok) {
-    return null;
+  let response: Response;
+  try {
+    response = await fetchFn(url, {
+      headers: {
+        'User-Agent': userAgent,
+        Accept: 'application/json',
+      },
+    });
+  } catch (err) {
+    return {
+      kind: 'net',
+      technical: err instanceof Error ? err.message : String(err),
+    };
   }
-  const payload = (await response.json()) as NominatimHit[];
+  if (!response.ok) {
+    return { kind: 'net', technical: `HTTP ${response.status}` };
+  }
+  let payload: NominatimHit[];
+  try {
+    payload = (await response.json()) as NominatimHit[];
+  } catch (err) {
+    return {
+      kind: 'net',
+      technical: err instanceof Error ? err.message : String(err),
+    };
+  }
   const hit = Array.isArray(payload) ? payload[0] : undefined;
   if (!hit?.lat || !hit?.lon) {
-    return null;
+    return { kind: 'empty' };
   }
   const lat = Number(hit.lat);
   const lon = Number(hit.lon);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return null;
+    return { kind: 'empty' };
   }
   return {
-    lat,
-    lon,
-    status: 'ok',
-    displayName: hit.display_name,
-    queriedAt: new Date().toISOString(),
+    kind: 'hit',
+    entry: {
+      lat,
+      lon,
+      status: 'ok',
+      displayName: hit.display_name,
+      queriedAt: new Date().toISOString(),
+    },
   };
 }
 
@@ -194,18 +219,31 @@ async function queryNominatim(
   fetchFn: typeof fetch,
   sleepFn: (ms: number) => Promise<void>,
   rateLimitMs: number,
-): Promise<GeocodeCacheEntry> {
+): Promise<{ entry: GeocodeCacheEntry; networkTechnical: string | null }> {
   const variants = buildGeocodeQueryVariants(address);
+  let lastNet = '';
+  let sawEmpty = false;
   for (let i = 0; i < variants.length; i++) {
-    const hit = await queryNominatimOnce(variants[i]!, userAgent, fetchFn);
-    if (hit) {
-      return hit;
+    const attempt = await queryNominatimOnce(variants[i]!, userAgent, fetchFn);
+    if (attempt.kind === 'hit') {
+      return { entry: attempt.entry, networkTechnical: null };
     }
+    if (attempt.kind === 'empty') sawEmpty = true;
+    else lastNet = attempt.technical;
     if (i < variants.length - 1) {
       await sleepFn(rateLimitMs);
     }
   }
-  return { lat: null, lon: null, status: 'fail', queriedAt: new Date().toISOString() };
+  const failEntry: GeocodeCacheEntry = {
+    lat: null,
+    lon: null,
+    status: 'fail',
+    queriedAt: new Date().toISOString(),
+  };
+  if (!sawEmpty && lastNet) {
+    return { entry: failEntry, networkTechnical: lastNet };
+  }
+  return { entry: failEntry, networkTechnical: null };
 }
 
 /**
@@ -241,6 +279,7 @@ export async function geocodeAddresses(
   let fetched = 0;
   let ok = 0;
   let fail = 0;
+  let network = 0;
 
   for (const key of uniqueKeys) {
     const original = keyToOriginal.get(key)!;
@@ -259,15 +298,37 @@ export async function geocodeAddresses(
       continue;
     }
 
-    const entry = await queryNominatim(
+    const queried = await queryNominatim(
       original,
       options.userAgent,
       fetchFn,
       sleepFn,
       rateLimitMs,
     );
-    cache[key] = entry;
     fetched += 1;
+    if (queried.networkTechnical) {
+      network += 1;
+      fail += 1;
+      logDrugaMilaError(undefined, {
+        code: 'DM-E-GEOCODE-NET',
+        place: 'geocode.ts geocodeAddresses',
+        summary: `Nominatim nie odpowiedział dla adresu ${original}.`,
+        effect:
+          'Pinezki nie ma na tej mapie. Adres nie zostaje zapisany jako błędny. Następne generowanie spróbuje ponownie.',
+        technical: queried.networkTechnical,
+      });
+      results.push({
+        address: original,
+        lat: null,
+        lon: null,
+        status: 'fail',
+        fromCache: false,
+      });
+      await sleepFn(rateLimitMs);
+      continue;
+    }
+    const entry = queried.entry;
+    cache[key] = entry;
     if (entry.status === 'ok') {
       ok += 1;
     } else {
@@ -294,6 +355,7 @@ export async function geocodeAddresses(
       fetched,
       ok,
       fail,
+      network,
     },
   };
 }
@@ -304,6 +366,8 @@ export interface GeocodeStats {
   fetched: number;
   ok: number;
   fail: number;
+  /** Nominatim bez odpowiedzi albo HTTP inny niż 200. Nie trafia do cache jako błędny adres. */
+  network: number;
 }
 
 /** Dołącza współrzędne do punktów po adresie. */

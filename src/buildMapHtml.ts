@@ -24,6 +24,7 @@ import { referenceFormatsBrowserScript } from './referenceFormats.js';
 import type { ManualOverlay } from './readManualOverlay.js';
 import { EMPTY_MANUAL_OVERLAY } from './readManualOverlay.js';
 import { SITE_PASSWORD_FETCH_SNIPPET } from './sitePasswordFetchSnippet.js';
+import { DM_ERROR_CARD_CSS, DM_ERROR_CARD_SCRIPT } from './dmErrorReport.js';
 
 export interface MapHtmlPoint {
   nazwaPelna: string;
@@ -142,7 +143,7 @@ export function buildMapHtml(
     .map-app-notice.is-error { border-color: rgba(176,42,55,0.4); color: #b02a37; }
     .doc-modal-hint.is-ok { color: #0f766e; font-weight: 600; }
     .doc-modal-hint.is-error { color: #b02a37; font-weight: 600; }
-${wordEnabled ? wordModalCss() : ''}${wordEnabled ? manualAdminCss() : ''}  </style>
+${DM_ERROR_CARD_CSS}${wordEnabled ? wordModalCss() : ''}${wordEnabled ? manualAdminCss() : ''}  </style>
 </head>
 <body>
   <div class="map-brand">${escapeHtml(title)}</div>
@@ -158,6 +159,7 @@ ${
     </div>
   </div>
   <div id="map-app-notice" class="map-app-notice" role="status" aria-live="polite" hidden></div>
+  <div id="dm-error-stack" class="dm-error-stack" aria-live="polite" hidden></div>
 ${wordEnabled ? wordModalHtml() : ''}${wordEnabled ? manualAdminHtml() : ''}  <script>
 ${SITE_PASSWORD_FETCH_SNIPPET}
     const PUNKTY = ${JSON.stringify(payload)};
@@ -212,7 +214,7 @@ ${SITE_PASSWORD_FETCH_SNIPPET}
         mapNoticeHideTimer = 0;
       }, 6000);
     }
-
+${DM_ERROR_CARD_SCRIPT}
     const map = L.map('map', { zoomControl: false }).setView([52.1, 19.4], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
       maxZoom: 19,
