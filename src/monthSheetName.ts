@@ -38,14 +38,14 @@ function partsFromDayMonthYear(
   return { day, month, year };
 }
 
-/** Parsuje `dd.mm.rrrr` albo zakres `dd.mm/dd.mm.rrrr` (miesiąc z Od). Invalid → null. */
+/** Parsuje `dd.mm.rrrr` / `dd-mm-rrrr` albo zakres `dd.mm/dd.mm.rrrr` (miesiąc z Od). Invalid → null. */
 export function parseDataOdbioru(value: string): ParsedDayMonthYear | null {
   const s = value.trim();
-  const range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const range = s.match(/^(\d{1,2})[.-](\d{1,2})\/(\d{1,2})[.-](\d{1,2})[.-](\d{4})$/);
   if (range) {
     return partsFromDayMonthYear(range[1]!, range[2]!, range[5]!);
   }
-  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const m = s.match(/^(\d{1,2})[.-](\d{1,2})[.-](\d{4})$/);
   if (!m) {
     return null;
   }

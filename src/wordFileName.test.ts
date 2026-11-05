@@ -28,6 +28,13 @@ describe('wordFileName', () => {
     expect(formatDateForDoc('13.08/14.08.2026')).toBe('13.08/14.08.2026');
   });
 
+  it('test_formatDateForDoc_sheet_hyphen_becomes_dotted', () => {
+    expect(formatDateForDoc('05-11-2026')).toBe('05.11.2026');
+    expect(formatDateForFileName('05-11-2026')).toBe('05.11.26');
+    expect(formatDateForDoc('13-08/14-08-2026')).toBe('13.08/14.08.2026');
+    expect(formatDateForFileName('13-08/14-08-2026')).toBe('13.08-14.08.26');
+  });
+
   it('test_formatDateForFileName_range_uses_hyphen', () => {
     expect(formatDateForFileName('13.08/14.08.2026')).toBe('13.08-14.08.26');
   });

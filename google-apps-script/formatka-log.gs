@@ -431,6 +431,7 @@ function handleUpdatePlanPost_(body) {
   // getRange(row, column, numRows, numColumns) — 3./4. to liczba wierszy/kolumn, NIE endRow/endCol
   var rowVals = buildFormatkaRowValuesForSheet_(sheet, numer, planBody);
   sheet.getRange(rowIndex, 1, 1, rowVals.length).setValues([rowVals]);
+  lockDateCellsInRow_(sheet, rowIndex);
   return jsonResponse({ ok: true, numer: String(numer) });
 }
 
@@ -449,6 +450,7 @@ function handleDeletePlanPost_(body) {
 function handleAddHarmonogramPost_(body) {
   var sheet = getOrCreateHarmonogramSheet_();
   sheet.appendRow(buildHarmonogramRowValuesForSheet_(sheet, body));
+  lockDateCellsInRow_(sheet, sheet.getLastRow());
   return jsonResponse({ ok: true });
 }
 
@@ -461,6 +463,7 @@ function handleUpdateHarmonogramPost_(body) {
   // getRange(row, column, numRows, numColumns) — 3./4. to liczba wierszy/kolumn, NIE endRow/endCol
   var rowVals = buildHarmonogramRowValuesForSheet_(sheet, body);
   sheet.getRange(rowIndex, 1, 1, rowVals.length).setValues([rowVals]);
+  lockDateCellsInRow_(sheet, rowIndex);
   return jsonResponse({ ok: true });
 }
 
@@ -1340,6 +1343,82 @@ function syncCounterAfterWrite_(numer) {
   }
 }
 
+/** Nowa komórka daty: `dd-mm-yyyy` albo zakres `dd-mm/dd-mm-yyyy`. Inny tekst zostaje. */
+function sheetCellDateText_(raw) {
+  if (Object.prototype.toString.call(raw) === '[object Date]' && !isNaN(raw.getTime())) {
+    return padDatePart_(raw.getDate()) + '-' + padDatePart_(raw.getMonth() + 1) + '-' + raw.getFullYear();
+  }
+  var s = String(raw == null ? '' : raw).trim();
+  if (s.charAt(0) === "'") {
+    s = s.substring(1).trim();
+  }
+  var range = s.match(/^(\d{1,2})[.\-](\d{1,2})\/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})$/);
+  if (range) {
+    return (
+      padDatePart_(range[1]) +
+      '-' +
+      padDatePart_(range[2]) +
+      '/' +
+      padDatePart_(range[3]) +
+      '-' +
+      padDatePart_(range[4]) +
+      '-' +
+      range[5]
+    );
+  }
+  var one = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (one) {
+    return one[3] + '-' + one[2] + '-' + one[1];
+  }
+  var dmy = s.match(/^(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})$/);
+  if (!dmy) {
+    return s;
+  }
+  var day = parseInt(dmy[1], 10);
+  var month = parseInt(dmy[2], 10);
+  var year = parseInt(dmy[3], 10);
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return s;
+  }
+  return padDatePart_(day) + '-' + padDatePart_(month) + '-' + year;
+}
+
+function padDatePart_(n) {
+  var value = parseInt(n, 10);
+  return value < 10 ? '0' + value : String(value);
+}
+
+function isSheetDateText_(text) {
+  return /^\d{2}-\d{2}-\d{4}$/.test(text) || /^\d{2}-\d{2}\/\d{2}-\d{2}-\d{4}$/.test(text);
+}
+
+function putFormatkaDateCell_(sheet, row, col, raw) {
+  var stored = sheetCellDateText_(raw);
+  if (!isSheetDateText_(stored)) {
+    return;
+  }
+  sheet.getRange(row, col).setNumberFormat('@').setValue("'" + stored);
+}
+
+function lockDateCellsInRow_(sheet, row) {
+  if (!sheet || row < 2) {
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < 1) {
+    return;
+  }
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var i;
+  for (i = 0; i < headers.length; i++) {
+    var key = fieldKeyFromHeader_(headers[i]);
+    if (key !== 'dataOdbioru' && key !== 'pierwszyDzienObowiazywania') {
+      continue;
+    }
+    putFormatkaDateCell_(sheet, row, i + 1, sheet.getRange(row, i + 1).getValue());
+  }
+}
+
 /** Parsuje dd.mm.rrrr → { day, month, year } lub null. */
 function partsFromDayMonthYear_(dayRaw, monthRaw, yearRaw) {
   var day = parseInt(dayRaw, 10);
@@ -1351,14 +1430,14 @@ function partsFromDayMonthYear_(dayRaw, monthRaw, yearRaw) {
   return { day: day, month: month, year: year };
 }
 
-/** `dd.mm.rrrr` albo zakres `dd.mm/dd.mm.rrrr` (miesiąc zakładki z Od). */
+/** `dd.mm.rrrr` / `dd-mm-rrrr` albo zakres `dd.mm/dd.mm.rrrr` (miesiąc zakładki z Od). */
 function parseDataOdbioru_(value) {
   var s = String(value || '').trim();
-  var range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  var range = s.match(/^(\d{1,2})[.\-](\d{1,2})\/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})$/);
   if (range) {
     return partsFromDayMonthYear_(range[1], range[2], range[5]);
   }
-  var m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  var m = s.match(/^(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})$/);
   if (!m) {
     return null;
   }
@@ -1575,7 +1654,7 @@ function buildHarmonogramRowValues_(body) {
     body.nazwaKontrahentaIi != null ? String(body.nazwaKontrahentaIi) : '',
     body.dzienOdbioru != null ? String(body.dzienOdbioru) : '',
     body.czestotliwosc != null ? String(body.czestotliwosc) : '',
-    body.pierwszyDzienObowiazywania != null ? String(body.pierwszyDzienObowiazywania) : '',
+    body.pierwszyDzienObowiazywania != null ? sheetCellDateText_(body.pierwszyDzienObowiazywania) : '',
     body.ktoOdbiera != null ? String(body.ktoOdbiera) : '',
     body.miejsceZrzutu != null ? String(body.miejsceZrzutu) : '',
     body.rodzajZbiorki != null ? String(body.rodzajZbiorki) : '',
@@ -1600,7 +1679,9 @@ function buildHarmonogramRowValuesForSheet_(sheet, body) {
     if (key) {
       hasRecognized = true;
     }
-    if (key && body[key] != null) {
+    if ((key === 'pierwszyDzienObowiazywania' || key === 'dataOdbioru') && body[key] != null) {
+      row.push(sheetCellDateText_(body[key]));
+    } else if (key && body[key] != null) {
       row.push(String(body[key]));
     } else {
       row.push('');
@@ -1626,7 +1707,7 @@ function buildFormatkaRowValues_(numer, body) {
     body.oknoAwizacji != null ? String(body.oknoAwizacji) : '',
     body.adresOdbioru != null ? String(body.adresOdbioru) : '',
     body.nazwaKontrahenta != null ? String(body.nazwaKontrahenta) : '',
-    body.dataOdbioru != null ? String(body.dataOdbioru) : '',
+    body.dataOdbioru != null ? sheetCellDateText_(body.dataOdbioru) : '',
     body.ktoOdbiera != null ? String(body.ktoOdbiera) : '',
     body.miejsceZrzutu != null ? String(body.miejsceZrzutu) : '',
     body.rodzajZbiorki != null ? String(body.rodzajZbiorki) : '',
@@ -1743,6 +1824,8 @@ function buildFormatkaRowValuesForSheet_(sheet, numer, body) {
       row.push(
         body.czyProtokolZrobiony != null ? String(body.czyProtokolZrobiony) : 'tak',
       );
+    } else if ((key === 'dataOdbioru' || key === 'pierwszyDzienObowiazywania') && body[key] != null) {
+      row.push(sheetCellDateText_(body[key]));
     } else if (key && body[key] != null) {
       row.push(String(body[key]));
     } else {
@@ -1772,11 +1855,13 @@ function findNumerZleceniaCol_(sheet) {
 function appendFormatkaRow_(numer, body) {
   var sheet = getOrCreateMonthSheet_(body);
   sheet.appendRow(buildFormatkaRowValuesForSheet_(sheet, numer, body));
+  lockDateCellsInRow_(sheet, sheet.getLastRow());
 }
 
 function appendPlanowaneRow_(numer, body) {
   var sheet = getOrCreatePlanowaneSheet_();
   sheet.appendRow(buildFormatkaRowValuesForSheet_(sheet, numer, body));
+  lockDateCellsInRow_(sheet, sheet.getLastRow());
 }
 
 /** Węższy wiersz do arkusza Bolęcin (bez numeracji / stawki / znacznika). */
@@ -1787,7 +1872,7 @@ function appendBolecinRow_(body) {
     body.oknoAwizacji != null ? String(body.oknoAwizacji) : '',
     body.adresOdbioru != null ? String(body.adresOdbioru) : '',
     body.nazwaKontrahenta != null ? String(body.nazwaKontrahenta) : '',
-    body.dataOdbioru != null ? String(body.dataOdbioru) : '',
+    body.dataOdbioru != null ? sheetCellDateText_(body.dataOdbioru) : '',
     body.ktoOdbiera != null ? String(body.ktoOdbiera) : '',
     body.miejsceZrzutu != null ? String(body.miejsceZrzutu) : '',
     body.rodzajZbiorki != null ? String(body.rodzajZbiorki) : '',
@@ -1796,6 +1881,7 @@ function appendBolecinRow_(body) {
     body.awizacja != null ? String(body.awizacja) : '',
   ];
   sheet.appendRow(row);
+  lockDateCellsInRow_(sheet, sheet.getLastRow());
 }
 
 /**

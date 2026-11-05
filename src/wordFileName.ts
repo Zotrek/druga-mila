@@ -18,8 +18,8 @@ export interface FormattedLoadDates {
 }
 
 /**
- * Konwertuje wartość z <input type="date"> (`yyyy-mm-dd`) lub już `dd.mm.rrrr`
- * na formaty jak w mapie plomb.
+ * Konwertuje wartość z <input type="date"> (`yyyy-mm-dd`), `dd.mm.rrrr`
+ * albo tekst arkusza `dd-mm-rrrr` na formaty jak w mapie plomb.
  */
 export function formatLoadDates(dataZaladunku: string): FormattedLoadDates {
   const s = dataZaladunku.trim();
@@ -27,7 +27,7 @@ export function formatLoadDates(dataZaladunku: string): FormattedLoadDates {
     return { doc: '', file: '' };
   }
 
-  const range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const range = s.match(/^(\d{1,2})[.\-](\d{1,2})\/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})$/);
   if (range) {
     const dd1 = range[1]!.padStart(2, '0');
     const mm1 = range[2]!.padStart(2, '0');
@@ -77,6 +77,17 @@ export function formatLoadDates(dataZaladunku: string): FormattedLoadDates {
     return {
       doc: `${dd}.${mm}.20${rr}`,
       file: `${dd}.${mm}.${rr}`,
+    };
+  }
+
+  const dashed = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (dashed) {
+    const dd = dashed[1]!.padStart(2, '0');
+    const mm = dashed[2]!.padStart(2, '0');
+    const yyyy = dashed[3]!;
+    return {
+      doc: `${dd}.${mm}.${yyyy}`,
+      file: `${dd}.${mm}.${yyyy.slice(-2)}`,
     };
   }
 

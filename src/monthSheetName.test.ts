@@ -25,6 +25,8 @@ describe('parseDataOdbioru', () => {
 
   it('test_parseDataOdbioru_range_uses_od_month_year', () => {
     expect(parseDataOdbioru('13.08/14.08.2026')).toEqual({ day: 13, month: 8, year: 2026 });
+    expect(parseDataOdbioru('13-08/14-08-2026')).toEqual({ day: 13, month: 8, year: 2026 });
+    expect(parseDataOdbioru('03-08-2026')).toEqual({ day: 3, month: 8, year: 2026 });
   });
 
   it('test_parseDataOdbioru_month_out_of_range_returns_null', () => {

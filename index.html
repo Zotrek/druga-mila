@@ -2129,7 +2129,7 @@
     function formatLoadDates(dataZaladunku) {
       var s = String(dataZaladunku || '').trim();
       if (!s) return { doc: '', file: '' };
-      var range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      var range = s.match(/^(\d{1,2})[.\-](\d{1,2})\/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})$/);
       if (range) {
         var dd1 = String(range[1]).padStart(2, '0');
         var mm1 = String(range[2]).padStart(2, '0');
@@ -2162,6 +2162,13 @@
         var yyyy2 = dotted[3];
         return { doc: dd2 + '.' + mm2 + '.' + yyyy2, file: dd2 + '.' + mm2 + '.' + yyyy2.slice(-2) };
       }
+      var dashed = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+      if (dashed) {
+        var dd3 = String(dashed[1]).padStart(2, '0');
+        var mm3 = String(dashed[2]).padStart(2, '0');
+        var yyyy3 = dashed[3];
+        return { doc: dd3 + '.' + mm3 + '.' + yyyy3, file: dd3 + '.' + mm3 + '.' + yyyy3.slice(-2) };
+      }
       return { doc: s, file: sanitizeFileNamePart(s) };
     }
     function formatDateForDoc(isoOrDot) {
@@ -2187,16 +2194,16 @@
       return leftDm + '/' + right.doc;
     }
     function splitDataZaladunkuRange(value) {
-      var s = String(value || '').trim();
-      var range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+      var normalized = formatLoadDates(String(value || '').trim()).doc;
+      var range = normalized.match(/^(\d{2})\.(\d{2})\/(\d{2})\.(\d{2})\.(\d{4})$/);
       if (range) {
         var yyyy = range[5];
         return {
-          od: String(range[1]).padStart(2, '0') + '.' + String(range[2]).padStart(2, '0') + '.' + yyyy,
-          doDate: String(range[3]).padStart(2, '0') + '.' + String(range[4]).padStart(2, '0') + '.' + yyyy
+          od: range[1] + '.' + range[2] + '.' + yyyy,
+          doDate: range[3] + '.' + range[4] + '.' + yyyy
         };
       }
-      return { od: formatLoadDates(s).doc, doDate: '' };
+      return { od: normalized, doDate: '' };
     }
     function getDataZaladunkuValue() {
       var odEl = document.getElementById('doc-inp-data-od');

@@ -42,6 +42,17 @@ describe('splitDataZaladunkuRange', () => {
     });
   });
 
+  it('test_splitDataZaladunkuRange_sheet_hyphen_becomes_dotted', () => {
+    expect(splitDataZaladunkuRange('05-11-2026')).toEqual({
+      od: '05.11.2026',
+      doDate: '',
+    });
+    expect(splitDataZaladunkuRange('13-08/14-08-2026')).toEqual({
+      od: '13.08.2026',
+      doDate: '14.08.2026',
+    });
+  });
+
   it('test_splitDataZaladunkuRange_empty', () => {
     expect(splitDataZaladunkuRange('')).toEqual({ od: '', doDate: '' });
   });

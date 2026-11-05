@@ -29,15 +29,16 @@ export function formatDataZaladunkuRange(od: string, doDate: string): string {
   return `${leftDm}/${right.doc}`;
 }
 
-/** Rozbija `13.08/14.08.2026` albo pojedynczą datę na pola Od / Do. */
+/** Rozbija `13.08/14.08.2026` (albo kreski z arkusza) albo pojedynczą datę na pola Od / Do. */
 export function splitDataZaladunkuRange(value: string): DataZaladunkuParts {
-  const s = String(value || '').trim();
-  const range = s.match(/^(\d{1,2})\.(\d{1,2})\/(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const normalized = formatLoadDates(String(value || '').trim()).doc;
+  const range = normalized.match(/^(\d{2})\.(\d{2})\/(\d{2})\.(\d{2})\.(\d{4})$/);
   if (range) {
     const yyyy = range[5]!;
-    const od = `${range[1]!.padStart(2, '0')}.${range[2]!.padStart(2, '0')}.${yyyy}`;
-    const doDate = `${range[3]!.padStart(2, '0')}.${range[4]!.padStart(2, '0')}.${yyyy}`;
-    return { od, doDate };
+    return {
+      od: `${range[1]}.${range[2]}.${yyyy}`,
+      doDate: `${range[3]}.${range[4]}.${yyyy}`,
+    };
   }
-  return { od: formatLoadDates(s).doc, doDate: '' };
+  return { od: normalized, doDate: '' };
 }
