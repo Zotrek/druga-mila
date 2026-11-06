@@ -83,6 +83,7 @@ export function wordModalCss(): string {
       cursor: pointer;
     }
     .doc-bolecin-only-label input { width: auto; margin: 0; flex-shrink: 0; cursor: pointer; }
+    .doc-bolecin-only-label[hidden] { display: none !important; }
     .popup-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
     .popup-actions button { padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #0d6efd; background: #0d6efd; color: #fff; cursor: pointer; }
     .popup-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -1638,9 +1639,8 @@ export function wordModalBrowserScript(): string {
       return combined.indexOf('bolecin') >= 0 || combined.indexOf('biosystem') >= 0;
     }
     function isBolecinOnlyChecked() {
-      var wrap = document.getElementById('doc-bolecin-only-wrap');
       var chk = document.getElementById('doc-chk-bolecin-only');
-      return !!(wrap && !wrap.hidden && chk && chk.checked);
+      return !!(chk && chk.checked);
     }
     function syncBolecinOnlyUi() {
       var wrap = document.getElementById('doc-bolecin-only-wrap');
@@ -2960,6 +2960,16 @@ export function wordModalBrowserScript(): string {
       };
       if (isBolecinOnlyChecked()) {
         payload.bolecinOnly = true;
+        var miejsceTyped = String((document.getElementById('doc-sel-miejsce') || {}).value || '').trim();
+        if (
+          miejsceTyped &&
+          !isBolecinDestinationClient(payload.miejsceZrzutu, payload.miejsceDostawyAdres)
+        ) {
+          payload.miejsceZrzutu = miejsceTyped;
+          if (!isBolecinDestinationClient('', payload.miejsceDostawyAdres)) {
+            payload.miejsceDostawyAdres = miejsceTyped;
+          }
+        }
       }
       return payload;
     }

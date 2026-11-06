@@ -138,6 +138,8 @@ describe('buildMapHtml', () => {
     expect(html).toContain('doc-chk-bolecin-only');
     expect(html).toContain('bolecinOnly');
     expect(html).toContain('Nie jest drugą milą');
+    expect(html).toContain('.doc-bolecin-only-label[hidden] { display: none !important; }');
+    expect(html).toContain('miejsceTyped');
     expect(html).toContain('doc-modal-actions--gen');
     expect(html).toContain('skipWord');
     expect(html).toContain("mode === 'realize'");

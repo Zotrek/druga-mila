@@ -1463,8 +1463,11 @@ function monthSheetNameFromBody_(body) {
 }
 
 function normalizeBolecinText_(value) {
-  return String(value || '')
-    .toLowerCase()
+  var s = String(value || '').toLowerCase();
+  if (typeof s.normalize === 'function') {
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  return s
     .replace(/ą/g, 'a')
     .replace(/ć/g, 'c')
     .replace(/ę/g, 'e')
@@ -1864,11 +1867,73 @@ function appendPlanowaneRow_(numer, body) {
   lockDateCellsInRow_(sheet, sheet.getLastRow());
 }
 
-/** Węższy wiersz do arkusza Bolęcin (bez numeracji / stawki / znacznika). */
-function appendBolecinRow_(body) {
-  var ss = SpreadsheetApp.openById(getBolecinSheetsId_());
-  var sheet = getOrCreateMonthSheetInSs_(ss, body, BOLECIN_HEADER_ROW);
-  var row = [
+/** Klucz kolumny Bolęcin po nagłówku. „okno awizacji” nie może wpaść w „awizacja”. */
+function bolecinFieldKey_(header) {
+  var n = String(header || '')
+    .trim()
+    .toLowerCase();
+  if (n.indexOf('okno') >= 0) {
+    return 'oknoAwizacji';
+  }
+  if (n.indexOf('adres odbioru') >= 0) {
+    return 'adresOdbioru';
+  }
+  if (n.indexOf('nazwa kontrahenta') >= 0 || n.indexOf('podmiot handlowy') >= 0) {
+    return 'nazwaKontrahenta';
+  }
+  if (n.indexOf('data odbioru') >= 0) {
+    return 'dataOdbioru';
+  }
+  if (n.indexOf('kto odbiera') >= 0) {
+    return 'ktoOdbiera';
+  }
+  if (n.indexOf('miejsce zrzutu') >= 0) {
+    return 'miejsceZrzutu';
+  }
+  if (n.indexOf('rodzaj zbi') >= 0) {
+    return 'rodzajZbiorki';
+  }
+  if (n.indexOf('ile work') >= 0 || n.indexOf('ilość work') >= 0 || n.indexOf('ilosc work') >= 0) {
+    return 'ileWorkow';
+  }
+  if (n.indexOf('traport') >= 0 || n.indexOf('transport') >= 0) {
+    return 'rodzajTransportu';
+  }
+  if (n === 'awizacja' || n.indexOf('awizacja') === 0) {
+    return 'awizacja';
+  }
+  return '';
+}
+
+/**
+ * Wiersz wg nagłówków zakładki. null gdy żaden nagłówek nie pasuje
+ * (wtedy caller używa stałej kolejności 10 kolumn).
+ */
+function buildBolecinRowForHeaders_(headers, body) {
+  var recognized = false;
+  var row = [];
+  var i;
+  for (i = 0; i < headers.length; i++) {
+    var key = bolecinFieldKey_(headers[i]);
+    if (key) {
+      recognized = true;
+    }
+    if (key === 'dataOdbioru') {
+      row.push(body && body.dataOdbioru != null ? sheetCellDateText_(body.dataOdbioru) : '');
+    } else if (key && body && body[key] != null) {
+      row.push(String(body[key]));
+    } else {
+      row.push('');
+    }
+  }
+  if (!recognized) {
+    return null;
+  }
+  return row;
+}
+
+function bolecinFixedRow_(body) {
+  return [
     body.oknoAwizacji != null ? String(body.oknoAwizacji) : '',
     body.adresOdbioru != null ? String(body.adresOdbioru) : '',
     body.nazwaKontrahenta != null ? String(body.nazwaKontrahenta) : '',
@@ -1880,8 +1945,177 @@ function appendBolecinRow_(body) {
     body.rodzajTransportu != null ? String(body.rodzajTransportu) : '',
     body.awizacja != null ? String(body.awizacja) : '',
   ];
-  sheet.appendRow(row);
+}
+
+/** Węższy wiersz do arkusza Bolęcin (bez numeracji / stawki / znacznika). */
+function appendBolecinRow_(body) {
+  var ss = SpreadsheetApp.openById(getBolecinSheetsId_());
+  var sheet = getOrCreateMonthSheetInSs_(ss, body, BOLECIN_HEADER_ROW);
+  var lastCol = sheet.getLastColumn();
+  var headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  var mapped = buildBolecinRowForHeaders_(headers, body);
+  sheet.appendRow(mapped || bolecinFixedRow_(body));
   lockDateCellsInRow_(sheet, sheet.getLastRow());
+  expandBolecinSheetQuiet_(sheet);
+}
+
+/**
+ * Tabela / filtr Bolęcina ma własny zakres. appendRow dopisuje pod nim i wiersz
+ * znika z widoku. Rozciąga tabelę i filtr do ostatniego wiersza. Błąd nie cofa zapisu.
+ */
+function expandBolecinSheetQuiet_(sheet) {
+  try {
+    if (!sheet) {
+      return;
+    }
+    var ss = sheet.getParent();
+    var lastRowById = {};
+    lastRowById[sheet.getSheetId()] = sheet.getLastRow();
+    var requests = buildTableExpandRequests_(fetchSpreadsheetTables_(ss.getId()), lastRowById);
+    postTableExpand_(ss.getId(), requests);
+  } catch (err) {
+    Logger.log('expand bolecin table: ' + (err && err.message ? err.message : String(err)));
+  }
+}
+
+function fetchSpreadsheetTables_(spreadsheetId) {
+  var token = ScriptApp.getOAuthToken();
+  var url =
+    'https://sheets.googleapis.com/v4/spreadsheets/' +
+    encodeURIComponent(spreadsheetId) +
+    '?fields=sheets(properties(sheetId,title),basicFilter,filterViews,tables(tableId,name,range))';
+  var res = UrlFetchApp.fetch(url, {
+    headers: { Authorization: 'Bearer ' + token },
+    muteHttpExceptions: true,
+  });
+  var code = res.getResponseCode();
+  var text = res.getContentText();
+  if (code < 200 || code >= 300) {
+    throw new Error('tables-meta-' + code + ' ' + text.substring(0, 400));
+  }
+  var meta = JSON.parse(text);
+  return meta.sheets || [];
+}
+
+function buildTableExpandRequests_(apiSheets, lastRowById) {
+  var requests = [];
+  var s;
+  for (s = 0; s < apiSheets.length; s++) {
+    var props = apiSheets[s].properties || {};
+    var sheetId = props.sheetId;
+    var tables = apiSheets[s].tables || [];
+    if (sheetId == null || lastRowById[sheetId] == null) {
+      continue;
+    }
+    var lastRow = lastRowById[sheetId];
+    if (lastRow < 1) {
+      continue;
+    }
+    var t;
+    for (t = 0; t < tables.length; t++) {
+      var table = tables[t];
+      var range = table.range || {};
+      var startRow = range.startRowIndex != null ? range.startRowIndex : 0;
+      var startCol = range.startColumnIndex != null ? range.startColumnIndex : 0;
+      var endRow = range.endRowIndex;
+      var endCol = range.endColumnIndex;
+      if (!table.tableId || endRow == null || endCol == null) {
+        continue;
+      }
+      if (startRow !== 0 || endRow >= lastRow) {
+        continue;
+      }
+      requests.push({
+        updateTable: {
+          table: {
+            tableId: table.tableId,
+            range: {
+              sheetId: sheetId,
+              startRowIndex: startRow,
+              endRowIndex: lastRow,
+              startColumnIndex: startCol,
+              endColumnIndex: endCol,
+            },
+          },
+          fields: 'range',
+        },
+      });
+    }
+    pushFilterRangeUpdates_(requests, sheetId, lastRow, apiSheets[s].basicFilter, apiSheets[s].filterViews);
+  }
+  return requests;
+}
+
+function extendedGridRange_(range, sheetId, lastRow) {
+  if (!range || range.endRowIndex == null || range.endColumnIndex == null) {
+    return null;
+  }
+  if (range.endRowIndex >= lastRow) {
+    return null;
+  }
+  return {
+    sheetId: sheetId,
+    startRowIndex: range.startRowIndex || 0,
+    endRowIndex: lastRow,
+    startColumnIndex: range.startColumnIndex || 0,
+    endColumnIndex: range.endColumnIndex,
+  };
+}
+
+function pushFilterRangeUpdates_(requests, sheetId, lastRow, basicFilter, filterViews) {
+  if (basicFilter) {
+    var next = extendedGridRange_(basicFilter.range, sheetId, lastRow);
+    if (next) {
+      var filter = { range: next };
+      if (basicFilter.criteria) {
+        filter.criteria = basicFilter.criteria;
+      }
+      if (basicFilter.sortSpecs) {
+        filter.sortSpecs = basicFilter.sortSpecs;
+      }
+      if (basicFilter.filterSpecs) {
+        filter.filterSpecs = basicFilter.filterSpecs;
+      }
+      requests.push({ setBasicFilter: { filter: filter } });
+    }
+  }
+  var views = filterViews || [];
+  var v;
+  for (v = 0; v < views.length; v++) {
+    var view = views[v];
+    var viewRange = extendedGridRange_(view.range, sheetId, lastRow);
+    if (!viewRange || view.filterViewId == null) {
+      continue;
+    }
+    requests.push({
+      updateFilterView: {
+        filter: { filterViewId: view.filterViewId, range: viewRange },
+        fields: 'range',
+      },
+    });
+  }
+}
+
+function postTableExpand_(spreadsheetId, requests) {
+  if (!requests.length) {
+    return 0;
+  }
+  var token = ScriptApp.getOAuthToken();
+  var res = UrlFetchApp.fetch(
+    'https://sheets.googleapis.com/v4/spreadsheets/' + encodeURIComponent(spreadsheetId) + ':batchUpdate',
+    {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + token },
+      payload: JSON.stringify({ requests: requests }),
+      muteHttpExceptions: true,
+    },
+  );
+  var code = res.getResponseCode();
+  if (code < 200 || code >= 300) {
+    throw new Error('tables-update-' + code + ' ' + res.getContentText().substring(0, 400));
+  }
+  return requests.length;
 }
 
 /**

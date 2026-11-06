@@ -2307,9 +2307,8 @@
       return combined.indexOf('bolecin') >= 0 || combined.indexOf('biosystem') >= 0;
     }
     function isBolecinOnlyChecked() {
-      var wrap = document.getElementById('doc-bolecin-only-wrap');
       var chk = document.getElementById('doc-chk-bolecin-only');
-      return !!(wrap && !wrap.hidden && chk && chk.checked);
+      return !!(chk && chk.checked);
     }
     function syncBolecinOnlyUi() {
       var wrap = document.getElementById('doc-bolecin-only-wrap');
@@ -3462,6 +3461,16 @@
       };
       if (isBolecinOnlyChecked()) {
         payload.bolecinOnly = true;
+        var miejsceTyped = String((document.getElementById('doc-sel-miejsce') || {}).value || '').trim();
+        if (
+          miejsceTyped &&
+          !isBolecinDestinationClient(payload.miejsceZrzutu, payload.miejsceDostawyAdres)
+        ) {
+          payload.miejsceZrzutu = miejsceTyped;
+          if (!isBolecinDestinationClient('', payload.miejsceDostawyAdres)) {
+            payload.miejsceDostawyAdres = miejsceTyped;
+          }
+        }
       }
       return payload;
     }
